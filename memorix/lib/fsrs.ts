@@ -20,19 +20,20 @@ export function scheduleCard(
 
   const isNew = !review.state || review.state === 'new' || review.reps === 0
 
-  const card = isNew
-    ? createEmptyCard(new Date())
-    : {
-        due: review.scheduled_at ? new Date(review.scheduled_at) : new Date(),
-        stability: review.stability || 1,
-        difficulty: review.difficulty || 5,
-        elapsed_days: review.elapsed_days || 0,
-        scheduled_days: review.scheduled_days || 0,
-        reps: review.reps || 0,
-        lapses: review.lapses || 0,
-        state: stateFromString(review.state || 'new'),
-        last_review: review.reviewed_at ? new Date(review.reviewed_at) : undefined,
-      }
+  // Toujours partir d'une carte vierge et copier les propriétés
+  const baseCard = createEmptyCard(new Date())
+  const card = isNew ? baseCard : {
+    ...baseCard,
+    due: review.scheduled_at ? new Date(review.scheduled_at) : new Date(),
+    stability: review.stability || 1,
+    difficulty: review.difficulty || 5,
+    elapsed_days: review.elapsed_days || 0,
+    scheduled_days: review.scheduled_days || 0,
+    reps: review.reps || 0,
+    lapses: review.lapses || 0,
+    state: stateFromString(review.state || 'new'),
+    last_review: review.reviewed_at ? new Date(review.reviewed_at) : undefined,
+  }
 
   const fsrsRating = rating as unknown as Rating
   const results = scheduler.repeat(card, new Date())
@@ -100,4 +101,3 @@ function stateToString(s: State): string {
     default: return 'new'
   }
 }
-
