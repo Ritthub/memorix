@@ -271,3 +271,4 @@ export default function ReviewPage({ params }: { params: { deckId: string } }) {
     </div>
   )
 }
+export const runtime = 'edge'
