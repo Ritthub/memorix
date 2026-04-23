@@ -1,11 +1,24 @@
 import { createEmptyCard, fsrs, generatorParameters, Rating, State } from 'ts-fsrs'
 import { CardReview, Rating as AppRating } from '@/types'
 
-export function scheduleCard(review: Partial<CardReview>, rating: AppRating, retentionTarget = 0.9) {
-  const p = generatorParameters({ request_retention: retentionTarget })
+interface ScheduleOptions {
+  userEdited?: boolean
+  createdByAi?: boolean
+  successRate?: number
+}
+
+export function scheduleCard(
+  review: Partial<CardReview>,
+  rating: AppRating,
+  retentionTarget?: number,
+  options?: ScheduleOptions
+) {
+  const target = retentionTarget ?? 0.9
+  const opts = options ?? {}
+  const p = generatorParameters({ request_retention: target })
   const scheduler = fsrs(p)
 
-  const isNew = !review.state || review.state === 'new' || (review.reps === 0)
+  const isNew = !review.state || review.state === 'new' || review.reps === 0
 
   const card = isNew
     ? createEmptyCard(new Date())
@@ -22,33 +35,39 @@ export function scheduleCard(review: Partial<CardReview>, rating: AppRating, ret
       }
 
   const fsrsRating = rating as unknown as Rating
-
-  // ts-fsrs retourne un objet avec les 4 ratings possibles
   const results = scheduler.repeat(card, new Date())
   const scheduled = results[fsrsRating].card
 
+  let stabilityBonus = 1.0
+  if (opts.createdByAi === false) stabilityBonus = 1.2
+  else if (opts.userEdited === true) stabilityBonus = 1.1
+
+  let scheduleMultiplier = 1.0
+  const reps = review.reps || 0
+  const successRate = opts.successRate ?? 1.0
+  if (reps < 3 && successRate < 0.8) {
+    const expansiveFactors = [0.5, 0.75, 1.0]
+    scheduleMultiplier = expansiveFactors[Math.min(reps, 2)]
+  }
+
+  const finalStability = scheduled.stability * stabilityBonus
+  const finalScheduledDays = Math.max(1, Math.round(scheduled.scheduled_days * scheduleMultiplier))
+  const finalDue = new Date()
+  finalDue.setDate(finalDue.getDate() + finalScheduledDays)
+
   return {
-    stability: scheduled.stability,
+    stability: finalStability,
     difficulty: scheduled.difficulty,
-    retrievability: scheduled.stability > 0
-      ? Math.exp(Math.log(retentionTarget) / scheduled.stability)
+    retrievability: finalStability > 0
+      ? Math.exp(Math.log(target) / finalStability)
       : 1,
     state: stateToString(scheduled.state),
-    scheduled_at: scheduled.due.toISOString(),
+    scheduled_at: finalDue.toISOString(),
     elapsed_days: scheduled.elapsed_days,
-    scheduled_days: scheduled.scheduled_days,
+    scheduled_days: finalScheduledDays,
     reps: scheduled.reps,
     lapses: scheduled.lapses,
   }
-}
-
-export function getInitialStability(difficulty: number, userEdited: boolean, createdByAi: boolean) {
-  let base = 1.0
-  if (!createdByAi) base *= 1.2
-  else if (userEdited) base *= 1.1
-  if (difficulty <= 2) base *= 0.8
-  if (difficulty >= 4) base *= 1.2
-  return base
 }
 
 export function getForgettingCurve(stability: number, days: number[]) {
@@ -56,6 +75,12 @@ export function getForgettingCurve(stability: number, days: number[]) {
     day: d,
     retention: Math.round(Math.exp(Math.log(0.9) / stability * d) * 100)
   }))
+}
+
+export function computeSuccessRate(reviews: Partial<CardReview>[]): number {
+  if (!reviews.length) return 1.0
+  const successes = reviews.filter(r => (r.rating || 0) >= 2).length
+  return successes / reviews.length
 }
 
 function stateFromString(s: string): State {
