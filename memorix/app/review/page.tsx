@@ -22,3 +22,5 @@ export default async function ReviewIndexPage() {
     redirect('/dashboard')
   }
 }
+
+export const runtime = 'edge'

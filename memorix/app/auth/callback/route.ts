@@ -27,3 +27,4 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.redirect(`${origin}/login`)
 }
+export const runtime = 'edge'

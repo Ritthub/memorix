@@ -7,3 +7,5 @@ export default async function Home() {
   if (user) redirect('/dashboard')
   else redirect('/login')
 }
+
+export const runtime = 'edge'

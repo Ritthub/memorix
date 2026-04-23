@@ -104,3 +104,5 @@ export default async function DeckPage({ params }: { params: { id: string } }) {
     </div>
   )
 }
+
+export const runtime = 'edge'
