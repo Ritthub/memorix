@@ -1,4 +1,3 @@
-cat > /workspaces/memorix/memorix/app/create/page.tsx << 'ENDOFFILE'
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -36,15 +35,6 @@ function CreatePageInner() {
     fetchDeck()
   }, [existingDeckId])
 
-  async function extractPdfText(file: File): Promise<string> {
-    const formData = new FormData()
-    formData.append('file', file)
-    const res = await fetch('/api/extract-pdf', { method: 'POST', body: formData })
-    const data = await res.json()
-    if (data.error) throw new Error(data.error)
-    return data.text
-  }
-
   async function handleFile(file?: File) {
     if (!file || file.type !== 'application/pdf') {
       setAiError('Veuillez choisir un fichier PDF.')
@@ -54,9 +44,13 @@ function CreatePageInner() {
     setAiError('')
     setPdfName(file.name)
     try {
-      const text = await extractPdfText(file)
-      setAiText(text)
-    } catch (e) {
+      const formData = new FormData()
+      formData.append('file', file)
+      const res = await fetch('/api/extract-pdf', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setAiText(data.text)
+    } catch {
       setAiError('Erreur lors de la lecture du PDF.')
       setPdfName('')
     } finally {
@@ -67,8 +61,7 @@ function CreatePageInner() {
   async function handleDrop(e: React.DragEvent) {
     e.preventDefault()
     setDragOver(false)
-    const file = e.dataTransfer.files[0]
-    await handleFile(file)
+    await handleFile(e.dataTransfer.files[0])
   }
 
   async function createDeck() {
@@ -243,7 +236,6 @@ function CreatePageInner() {
           <div>
             {aiCards.length === 0 ? (
               <div className="space-y-4">
-                {/* Upload PDF */}
                 <div>
                   <label className="text-gray-400 text-sm mb-2 block">Option 1 — Uploadez un PDF</label>
                   <label
@@ -281,7 +273,6 @@ function CreatePageInner() {
                   <div className="flex-1 h-px bg-[#534AB7]/20" />
                 </div>
 
-                {/* Texte libre */}
                 <div>
                   <label className="text-gray-400 text-sm mb-2 block">Option 2 — Collez votre texte</label>
                   <textarea value={aiText} onChange={e => { setAiText(e.target.value); setPdfName('') }}
@@ -354,4 +345,3 @@ export default function CreatePage() {
     </Suspense>
   )
 }
-ENDOFFILE

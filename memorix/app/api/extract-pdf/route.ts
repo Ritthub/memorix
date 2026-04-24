@@ -1,54 +1,57 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
-    const file = formData.get("file") as File
+    const file = formData.get('file') as File
+    if (!file) return NextResponse.json({ error: 'Pas de fichier' }, { status: 400 })
 
     const arrayBuffer = await file.arrayBuffer()
     const buffer = Buffer.from(arrayBuffer)
-    const base64 = buffer.toString("base64")
+    const base64 = buffer.toString('base64')
 
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
-        "anthropic-version": "2023-06-01",
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: "claude-opus-4-5",
+        model: 'claude-opus-4-5',
         max_tokens: 4000,
         messages: [{
-          role: "user",
+          role: 'user',
           content: [
             {
-              type: "document",
+              type: 'document',
               source: {
-                type: "base64",
-                media_type: "application/pdf",
+                type: 'base64',
+                media_type: 'application/pdf',
                 data: base64,
               }
             },
             {
-              type: "text",
-              text: "Extrait tout le texte de ce document PDF. Retourne uniquement le texte brut, sans mise en forme, sans commentaire, sans markdown."
+              type: 'text',
+              text: 'Extrait tout le texte de ce document PDF. Retourne uniquement le texte brut, sans mise en forme, sans commentaire, sans markdown. Garde tous les chiffres, dates, noms et termes techniques exacts.'
             }
           ]
         }]
       })
     })
 
+    if (!response.ok) {
       const err = await response.text()
-      console.error("Claude PDF error:", err)
-      return NextResponse.json({ error: "Erreur extraction PDF" }, { status: 500 })
+      console.error('Claude PDF error:', err)
+      return NextResponse.json({ error: 'Erreur extraction PDF' }, { status: 500 })
     }
 
     const data = await response.json()
-    const text = data.content?.[0]?.text || ""
+    const text = data.content[0].text || ''
     return NextResponse.json({ text })
 
   } catch (error) {
-    console.error("Extract PDF error:", error)
-    return NextResponse.json({ error: "Erreur serveur" }, { status: 500 })
+    console.error('Extract PDF error:', error)
+    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
