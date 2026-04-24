@@ -81,4 +81,3 @@ ${text.slice(0, 8000)}`
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 }
-export const runtime = 'edge'
