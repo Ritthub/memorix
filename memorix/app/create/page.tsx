@@ -1,3 +1,4 @@
+cat > /workspaces/memorix/memorix/app/create/page.tsx << 'ENDOFFILE'
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -13,6 +14,9 @@ function CreatePageInner() {
   const [mode, setMode] = useState<'manual' | 'ai'>('manual')
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
+  const [extracting, setExtracting] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+  const [pdfName, setPdfName] = useState('')
   const [deckId, setDeckId] = useState(existingDeckId || '')
   const [deckName, setDeckName] = useState('')
   const [deck, setDeck] = useState({ name: '', description: '', icon: '📚', color: '#534AB7' })
@@ -31,6 +35,41 @@ function CreatePageInner() {
     }
     fetchDeck()
   }, [existingDeckId])
+
+  async function extractPdfText(file: File): Promise<string> {
+    const formData = new FormData()
+    formData.append('file', file)
+    const res = await fetch('/api/extract-pdf', { method: 'POST', body: formData })
+    const data = await res.json()
+    if (data.error) throw new Error(data.error)
+    return data.text
+  }
+
+  async function handleFile(file?: File) {
+    if (!file || file.type !== 'application/pdf') {
+      setAiError('Veuillez choisir un fichier PDF.')
+      return
+    }
+    setExtracting(true)
+    setAiError('')
+    setPdfName(file.name)
+    try {
+      const text = await extractPdfText(file)
+      setAiText(text)
+    } catch (e) {
+      setAiError('Erreur lors de la lecture du PDF.')
+      setPdfName('')
+    } finally {
+      setExtracting(false)
+    }
+  }
+
+  async function handleDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setDragOver(false)
+    const file = e.dataTransfer.files[0]
+    await handleFile(file)
+  }
 
   async function createDeck() {
     setLoading(true)
@@ -65,6 +104,7 @@ function CreatePageInner() {
   }
 
   async function saveCards(cardsToSave: any[]) {
+    if (loading) return
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
@@ -192,8 +232,8 @@ function CreatePageInner() {
                 + Ajouter une carte
               </button>
               <button onClick={() => saveCards(cards)} disabled={!cards.some(c => c.question && c.answer) || loading}
-                className="flex-1 bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 rounded-xl py-3 font-medium transition-colors">
-                {loading ? 'Sauvegarde...' : 'Sauvegarder →'}
+                className="flex-1 bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors">
+                {loading ? '⏳ Sauvegarde...' : 'Sauvegarder →'}
               </button>
             </div>
           </div>
@@ -203,15 +243,53 @@ function CreatePageInner() {
           <div>
             {aiCards.length === 0 ? (
               <div className="space-y-4">
+                {/* Upload PDF */}
                 <div>
-                  <label className="text-gray-400 text-sm mb-2 block">
-                    Collez votre texte — Claude va extraire les informations clés et générer les flashcards
+                  <label className="text-gray-400 text-sm mb-2 block">Option 1 — Uploadez un PDF</label>
+                  <label
+                    className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
+                      dragOver ? 'border-[#534AB7] bg-[#534AB7]/10' : 'border-[#534AB7]/30 hover:border-[#534AB7]/60'
+                    }`}
+                    onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                  >
+                    <input type="file" accept=".pdf" className="hidden" onChange={e => handleFile(e.target.files?.[0])} />
+                    {extracting ? (
+                      <div className="text-center">
+                        <div className="text-2xl mb-2">⏳</div>
+                        <p className="text-gray-400 text-sm">Extraction du texte en cours...</p>
+                      </div>
+                    ) : pdfName ? (
+                      <div className="text-center">
+                        <div className="text-2xl mb-2">📄</div>
+                        <p className="text-white text-sm font-medium">{pdfName}</p>
+                        <p className="text-gray-500 text-xs mt-1">Texte extrait ({aiText.length} caractères)</p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <div className="text-2xl mb-2">📎</div>
+                        <p className="text-gray-400 text-sm">Glissez un PDF ici ou cliquez pour choisir</p>
+                      </div>
+                    )}
                   </label>
-                  <textarea value={aiText} onChange={e => setAiText(e.target.value)}
-                    placeholder="Collez ici votre texte, vos notes, un résumé, un term-sheet..." rows={12}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 h-px bg-[#534AB7]/20" />
+                  <span className="text-gray-600 text-xs">ou</span>
+                  <div className="flex-1 h-px bg-[#534AB7]/20" />
+                </div>
+
+                {/* Texte libre */}
+                <div>
+                  <label className="text-gray-400 text-sm mb-2 block">Option 2 — Collez votre texte</label>
+                  <textarea value={aiText} onChange={e => { setAiText(e.target.value); setPdfName('') }}
+                    placeholder="Collez ici votre texte, vos notes, un résumé, un term-sheet..." rows={8}
                     className="w-full bg-[#1A1A2E] border border-[#534AB7]/30 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors resize-none" />
                   <p className="text-gray-600 text-xs mt-1">{aiText.length} caractères</p>
                 </div>
+
                 {aiError && <p className="text-red-400 text-sm">{aiError}</p>}
                 <button onClick={generateCards} disabled={generating || aiText.length < 50}
                   className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 rounded-xl py-3 font-medium transition-colors">
@@ -222,16 +300,14 @@ function CreatePageInner() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <p className="text-gray-400 text-sm">{aiCards.length} cartes générées — modifiez avant d'importer</p>
-                  <button onClick={() => setAiCards([])} className="text-gray-500 hover:text-white text-sm transition-colors">Recommencer</button>
+                  <button onClick={() => { setAiCards([]); setPdfName('') }} className="text-gray-500 hover:text-white text-sm transition-colors">Recommencer</button>
                 </div>
                 <div className="space-y-4 mb-6">
                   {aiCards.map((card, idx) => (
                     <div key={idx} className="bg-[#1A1A2E] rounded-2xl p-6 border border-[#534AB7]/20">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          {card.theme && (
-                            <span className="text-xs px-2 py-1 bg-[#534AB7]/20 text-[#AFA9EC] rounded-full">{card.theme}</span>
-                          )}
+                          {card.theme && <span className="text-xs px-2 py-1 bg-[#534AB7]/20 text-[#AFA9EC] rounded-full">{card.theme}</span>}
                           <span className="text-xs text-gray-500">Difficulté {card.difficulty}/5</span>
                         </div>
                         <button onClick={() => removeAiCard(idx)} className="text-red-400 hover:text-red-300 text-sm transition-colors">Supprimer</button>
@@ -256,9 +332,11 @@ function CreatePageInner() {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => { if (!loading) saveCards(aiCards) }} disabled={aiCards.length === 0 || loading}
-                className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors">
-                 {loading ? '⏳ Import en cours...' : `Importer ${aiCards.length} cartes →`}
+                <button
+                  onClick={() => { if (!loading) saveCards(aiCards) }}
+                  disabled={aiCards.length === 0 || loading}
+                  className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors">
+                  {loading ? '⏳ Import en cours...' : `Importer ${aiCards.length} cartes →`}
                 </button>
               </div>
             )}
@@ -276,3 +354,4 @@ export default function CreatePage() {
     </Suspense>
   )
 }
+ENDOFFILE
