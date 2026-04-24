@@ -256,9 +256,9 @@ function CreatePageInner() {
                     </div>
                   ))}
                 </div>
-                <button onClick={() => saveCards(aiCards)} disabled={aiCards.length === 0 || loading}
-                  className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 rounded-xl py-3 font-medium transition-colors">
-                  {loading ? 'Import...' : `Importer ${aiCards.length} cartes →`}
+                <button onClick={() => { if (!loading) saveCards(aiCards) }} disabled={aiCards.length === 0 || loading}
+                className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors">
+                 {loading ? '⏳ Import en cours...' : `Importer ${aiCards.length} cartes →`}
                 </button>
               </div>
             )}
