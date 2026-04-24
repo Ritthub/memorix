@@ -1,5 +1,26 @@
 @import "tailwindcss";
 
+/* Light mode overrides */
+.light-mode {
+  --bg-base: #F4F4F8;
+  --bg-card: #FFFFFF;
+  --text-primary: #0D0D1A;
+  --text-muted: #6B7280;
+  --border: rgba(83, 74, 183, 0.25);
+}
+
+.light-mode body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+}
+
+.light-mode .bg-\[\#0D0D1A\] { background-color: var(--bg-base) !important; }
+.light-mode .bg-\[\#1A1A2E\] { background-color: var(--bg-card) !important; }
+.light-mode .text-white { color: var(--text-primary) !important; }
+.light-mode .text-gray-400 { color: var(--text-muted) !important; }
+.light-mode .border-\[\#534AB7\]\/20 { border-color: var(--border) !important; }
+.light-mode .border-\[\#534AB7\]\/30 { border-color: rgba(83, 74, 183, 0.35) !important; }
+
 @keyframes confetti-fall {
   0% {
     transform: translateY(-10px) translateX(0) rotate(0deg);

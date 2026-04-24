@@ -13,7 +13,8 @@ type HardCard = {
   card_id: string
   lapses: number
   rating: number
-  cards: { question: string; answer: string; deck_id: string; decks: { name: string } | null } | null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  cards: any
 }
 
 type Props = {
@@ -97,9 +98,6 @@ export default function StatsView({ reviews365, hardCards, totalCards, mastered,
   const dayMap = buildDayMap(reviews365)
   const weekGrid = buildWeekGrid(dayMap)
   const retentionCurve = buildRetentionCurve(reviews365)
-
-  const maxCount = Math.max(...weekGrid.flatMap(w => w.map(d => d.count)), 1)
-  const curveMax = Math.max(...retentionCurve.filter(d => d.rate >= 0).map(d => d.count), 1)
 
   // Month labels
   const monthLabels: { label: string; col: number }[] = []

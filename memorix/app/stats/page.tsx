@@ -18,13 +18,14 @@ export default async function StatsPage() {
     .order('reviewed_at', { ascending: true })
 
   // Hardest cards: most lapses
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: hardCards } = await supabase
     .from('card_reviews')
     .select('card_id, lapses, rating, cards(question, answer, deck_id, decks(name))')
     .eq('user_id', user.id)
     .gt('lapses', 0)
     .order('lapses', { ascending: false })
-    .limit(10)
+    .limit(10) as { data: any[] | null }
 
   // Overall stats
   const { data: allReviews } = await supabase
