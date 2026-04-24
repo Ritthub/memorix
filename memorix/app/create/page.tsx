@@ -50,6 +50,8 @@ function CreatePageInner() {
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       setAiText(data.text)
+      // Lance automatiquement la génération après extraction
+      await generateCardsFromText(data.text)
     } catch {
       setAiError('Erreur lors de la lecture du PDF.')
       setPdfName('')
@@ -73,27 +75,32 @@ function CreatePageInner() {
     setLoading(false)
   }
 
-  async function generateCards() {
-    if (!aiText.trim() || aiText.length < 50) {
-      setAiError('Le texte doit faire au moins 50 caractères.')
-      return
-    }
+  async function generateCardsFromText(text: string) {
+    if (!text || text.length < 50) return
     setGenerating(true)
     setAiError('')
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: aiText })
+        body: JSON.stringify({ text })
       })
       const data = await res.json()
       if (data.error) { setAiError(data.error); return }
       setAiCards(data.cards || [])
     } catch {
-      setAiError('Erreur de connexion.')
+      setAiError('Erreur de génération.')
     } finally {
       setGenerating(false)
     }
+  }
+  
+  async function generateCards() {
+    if (!aiText.trim() || aiText.length < 50) {
+      setAiError('Le texte doit faire au moins 50 caractères.')
+      return
+    }
+    await generateCardsFromText(aiText)
   }
 
   async function saveCards(cardsToSave: any[]) {
@@ -254,9 +261,11 @@ function CreatePageInner() {
                       </div>
                     ) : pdfName ? (
                       <div className="text-center">
-                        <div className="text-2xl mb-2">📄</div>
+                        <div className="text-2xl mb-2">{generating ? '🧠' : '📄'}</div>
                         <p className="text-white text-sm font-medium">{pdfName}</p>
-                        <p className="text-gray-500 text-xs mt-1">Texte extrait ({aiText.length} caractères)</p>
+                        <p className="text-gray-500 text-xs mt-1">
+                          {generating ? 'Claude génère les cartes...' : `Texte extrait (${aiText.length} caractères)`}
+                        </p>
                       </div>
                     ) : (
                       <div className="text-center">
