@@ -20,7 +20,7 @@ export default async function DecksPage() {
       .from('decks')
       .select('*, cards(count)')
       .eq('user_id', user.id)
-      .order('position'),
+      .order('created_at', { ascending: false }),
     supabase
       .from('card_reviews')
       .select('cards(deck_id)')
