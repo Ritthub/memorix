@@ -3,6 +3,15 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 
+const WIKI_PRIORITIES = [
+  'Dates & faits clés',
+  'Personnages',
+  'Causes & effets',
+  'Chronologie',
+  'Concepts clés',
+  'Chiffres importants',
+]
+
 function CreatePageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -10,7 +19,7 @@ function CreatePageInner() {
   const supabase = createClient()
 
   const [step, setStep] = useState<'deck' | 'cards'>(existingDeckId ? 'cards' : 'deck')
-  const [mode, setMode] = useState<'manual' | 'ai'>('manual')
+  const [mode, setMode] = useState<'manual' | 'ai' | 'wikipedia'>('manual')
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [extracting, setExtracting] = useState(false)
@@ -24,6 +33,21 @@ function CreatePageInner() {
   const [aiCards, setAiCards] = useState<any[]>([])
   const [aiError, setAiError] = useState('')
 
+  // Wikipedia state
+  const [wikiStep, setWikiStep] = useState<'search' | 'article' | 'params' | 'cards'>('search')
+  const [wikiQuery, setWikiQuery] = useState('')
+  const [wikiResults, setWikiResults] = useState<Array<[string, string]>>([])
+  const [wikiTitle, setWikiTitle] = useState('')
+  const [wikiText, setWikiText] = useState('')
+  const [wikiSearchLoading, setWikiSearchLoading] = useState(false)
+  const [wikiArticleLoading, setWikiArticleLoading] = useState(false)
+  const [wikiMaxCards, setWikiMaxCards] = useState(15)
+  const [wikiPriorities, setWikiPriorities] = useState<Set<string>>(new Set())
+  const [wikiDeckMode, setWikiDeckMode] = useState<'new' | 'existing'>('new')
+  const [wikiSelectedDeckId, setWikiSelectedDeckId] = useState(existingDeckId || '')
+  const [existingDecks, setExistingDecks] = useState<Array<{ id: string; name: string; icon: string }>>([])
+  const [wikiError, setWikiError] = useState('')
+
   const icons = ['📚', '💼', '🧠', '🌍', '⚖️', '💊', '🏛️', '🔬', '💰', '🎯']
 
   useEffect(() => {
@@ -34,6 +58,149 @@ function CreatePageInner() {
     }
     fetchDeck()
   }, [existingDeckId])
+
+  // Wikipedia search debounce
+  useEffect(() => {
+    if (wikiQuery.trim().length < 2) { setWikiResults([]); return }
+    const t = setTimeout(async () => {
+      setWikiSearchLoading(true)
+      try {
+        const res = await fetch(
+          `https://fr.wikipedia.org/w/api.php?action=opensearch&search=${encodeURIComponent(wikiQuery)}&limit=6&format=json&origin=*`
+        )
+        const data = await res.json()
+        const titles = (data[1] as string[]) || []
+        const descs = (data[2] as string[]) || []
+        setWikiResults(titles.map((t, i) => [t, descs[i] || '']))
+      } catch {
+        // network error — silently ignore, user can retry
+      } finally {
+        setWikiSearchLoading(false)
+      }
+    }, 400)
+    return () => clearTimeout(t)
+  }, [wikiQuery])
+
+  // Fetch existing decks when reaching wiki cards step
+  useEffect(() => {
+    if (wikiStep !== 'cards') return
+    async function fetchDecks() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('decks')
+        .select('id, name, icon')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+      if (data) {
+        setExistingDecks(data)
+        if (!wikiSelectedDeckId && data.length > 0) setWikiSelectedDeckId(data[0].id)
+      }
+    }
+    fetchDecks()
+  }, [wikiStep])
+
+  async function fetchWikiArticle(title: string) {
+    setWikiArticleLoading(true)
+    setWikiError('')
+    try {
+      const res = await fetch(
+        `https://fr.wikipedia.org/w/api.php?action=query&titles=${encodeURIComponent(title)}&prop=extracts&exintro=false&explaintext=true&format=json&origin=*`
+      )
+      const data = await res.json()
+      const pages = data.query?.pages || {}
+      const page = Object.values(pages)[0] as any
+      if (!page || 'missing' in page) {
+        setWikiError('Article non trouvé.')
+        return
+      }
+      setWikiTitle(page.title)
+      setWikiText(page.extract || '')
+      setWikiStep('article')
+    } catch {
+      setWikiError("Impossible de charger l'article Wikipedia. Vérifiez votre connexion.")
+    } finally {
+      setWikiArticleLoading(false)
+    }
+  }
+
+  function toggleWikiPriority(p: string) {
+    setWikiPriorities(prev => {
+      const next = new Set(prev)
+      next.has(p) ? next.delete(p) : next.add(p)
+      return next
+    })
+  }
+
+  async function generateFromWiki() {
+    setGenerating(true)
+    setWikiError('')
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          text: wikiText,
+          maxCards: wikiMaxCards,
+          priorities: Array.from(wikiPriorities),
+          source: 'wikipedia',
+        }),
+      })
+      const data = await res.json()
+      if (data.error) { setWikiError(data.error); return }
+      setAiCards(data.cards || [])
+      setWikiStep('cards')
+    } catch {
+      setWikiError('Erreur de génération.')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  async function saveWikiCards() {
+    if (loading) return
+    setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { setLoading(false); return }
+
+    let targetDeckId = wikiSelectedDeckId
+
+    if (wikiDeckMode === 'new') {
+      const { data: newDeck, error } = await supabase
+        .from('decks')
+        .insert({ name: wikiTitle, description: 'Importé depuis Wikipedia', icon: '🌍', color: '#534AB7', user_id: user.id })
+        .select()
+        .single()
+      if (error || !newDeck) { setLoading(false); return }
+      targetDeckId = newDeck.id
+    }
+
+    const { error } = await supabase.from('cards').insert(
+      aiCards.map(c => ({
+        deck_id: targetDeckId,
+        question: c.q,
+        answer: c.a,
+        explanation: c.expl || null,
+        theme: c.theme || null,
+        difficulty: c.difficulty || 3,
+        created_by_ai: true,
+      }))
+    )
+
+    if (!error) {
+      const { data: allCards } = await supabase.from('cards').select('id').eq('deck_id', targetDeckId)
+      const { data: existingReviews } = await supabase.from('card_reviews').select('card_id').eq('user_id', user.id)
+      const existingIds = new Set(existingReviews?.map(r => r.card_id) || [])
+      const newCards = allCards?.filter(c => !existingIds.has(c.id)) || []
+      if (newCards.length > 0) {
+        await supabase.from('card_reviews').insert(
+          newCards.map(card => ({ card_id: card.id, user_id: user.id, state: 'new', scheduled_at: new Date().toISOString() }))
+        )
+      }
+      router.push(`/decks/${targetDeckId}`)
+    }
+    setLoading(false)
+  }
 
   async function handleFile(file?: File) {
     if (!file || file.type !== 'application/pdf') {
@@ -50,7 +217,6 @@ function CreatePageInner() {
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       setAiText(data.text)
-      // Lance automatiquement la génération après extraction
       await generateCardsFromText(data.text)
     } catch {
       setAiError('Erreur lors de la lecture du PDF.')
@@ -94,7 +260,7 @@ function CreatePageInner() {
       setGenerating(false)
     }
   }
-  
+
   async function generateCards() {
     if (!aiText.trim() || aiText.length < 50) {
       setAiError('Le texte doit faire au moins 50 caractères.')
@@ -194,7 +360,8 @@ function CreatePageInner() {
           <div className="w-16" />
         </div>
 
-        <div className="flex gap-2 mb-8 bg-[#1A1A2E] p-1 rounded-xl">
+        {/* Mode tabs */}
+        <div className="flex gap-1 mb-8 bg-[#1A1A2E] p-1 rounded-xl">
           <button onClick={() => setMode('manual')}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-[#534AB7] text-white' : 'text-gray-400 hover:text-white'}`}>
             Saisie manuelle
@@ -203,8 +370,13 @@ function CreatePageInner() {
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'ai' ? 'bg-[#534AB7] text-white' : 'text-gray-400 hover:text-white'}`}>
             Générer avec Claude
           </button>
+          <button onClick={() => { setMode('wikipedia'); setWikiStep('search') }}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'wikipedia' ? 'bg-[#534AB7] text-white' : 'text-gray-400 hover:text-white'}`}>
+            Wikipedia
+          </button>
         </div>
 
+        {/* Manual mode */}
         {mode === 'manual' && (
           <div>
             <div className="space-y-4 mb-6">
@@ -239,6 +411,7 @@ function CreatePageInner() {
           </div>
         )}
 
+        {/* AI mode */}
         {mode === 'ai' && (
           <div>
             {aiCards.length === 0 ? (
@@ -297,11 +470,182 @@ function CreatePageInner() {
                 </button>
               </div>
             ) : (
+              <AiCardsReview
+                aiCards={aiCards}
+                loading={loading}
+                onUpdate={updateAiCard}
+                onRemove={removeAiCard}
+                onReset={() => { setAiCards([]); setPdfName('') }}
+                onSave={() => saveCards(aiCards)}
+              />
+            )}
+          </div>
+        )}
+
+        {/* Wikipedia mode */}
+        {mode === 'wikipedia' && (
+          <div>
+            {/* Step: search */}
+            {wikiStep === 'search' && (
+              <div>
+                <div className="relative mb-4">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg">🔍</span>
+                  <input
+                    value={wikiQuery}
+                    onChange={e => setWikiQuery(e.target.value)}
+                    placeholder="Rechercher un article Wikipedia..."
+                    className="w-full bg-[#1A1A2E] border border-[#534AB7]/30 rounded-xl pl-11 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors"
+                    autoFocus
+                  />
+                  {wikiSearchLoading && (
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs animate-pulse">Recherche...</span>
+                  )}
+                </div>
+
+                {wikiError && <p className="text-red-400 text-sm mb-4">{wikiError}</p>}
+
+                {wikiArticleLoading && (
+                  <div className="text-center py-12">
+                    <div className="text-3xl mb-3 animate-pulse">🌐</div>
+                    <p className="text-gray-400">Chargement de l'article...</p>
+                  </div>
+                )}
+
+                {!wikiArticleLoading && wikiResults.length > 0 && (
+                  <div className="space-y-2">
+                    {wikiResults.map(([title, desc]) => (
+                      <button
+                        key={title}
+                        onClick={() => fetchWikiArticle(title)}
+                        className="w-full text-left bg-[#1A1A2E] hover:bg-[#1A1A2E]/70 border border-[#534AB7]/20 hover:border-[#534AB7]/50 rounded-xl px-4 py-3 transition-colors group"
+                      >
+                        <div className="flex items-start gap-3">
+                          <span className="text-lg mt-0.5 shrink-0 font-serif font-bold text-[#AFA9EC]">W</span>
+                          <div className="min-w-0">
+                            <p className="text-white font-medium text-sm group-hover:text-[#AFA9EC] transition-colors truncate">{title}</p>
+                            {desc && <p className="text-gray-500 text-xs mt-0.5 line-clamp-2">{desc}</p>}
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {!wikiArticleLoading && wikiQuery.length >= 2 && !wikiSearchLoading && wikiResults.length === 0 && (
+                  <p className="text-gray-500 text-sm text-center py-8">Aucun résultat pour « {wikiQuery} »</p>
+                )}
+
+                {wikiQuery.length === 0 && (
+                  <div className="text-center py-12">
+                    <div className="text-4xl mb-3">🌐</div>
+                    <p className="text-gray-500 text-sm">Recherchez n'importe quel sujet sur Wikipedia<br />pour générer des flashcards automatiquement.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Step: article preview */}
+            {wikiStep === 'article' && (
+              <div className="flex flex-col" style={{ height: 'calc(100vh - 200px)' }}>
+                <div className="flex items-center justify-between mb-4 shrink-0">
+                  <button onClick={() => setWikiStep('search')} className="text-gray-400 hover:text-white transition-colors text-sm">← Retour</button>
+                  <h2 className="text-base font-bold text-center flex-1 mx-4 truncate">{wikiTitle}</h2>
+                  <button
+                    onClick={() => setWikiStep('params')}
+                    className="shrink-0 bg-[#534AB7] hover:bg-[#3C3489] rounded-xl px-4 py-2 text-sm font-medium transition-colors"
+                  >
+                    Créer des cartes
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto bg-[#1A1A2E] rounded-2xl border border-[#534AB7]/20 p-6 mb-4">
+                  <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">
+                    {wikiText.split(/\s+/).slice(0, 3000).join(' ')}
+                    {wikiText.split(/\s+/).length > 3000 && (
+                      <span className="text-gray-600"> […article tronqué à 3 000 mots]</span>
+                    )}
+                  </p>
+                </div>
+
+                <div className="shrink-0">
+                  <button
+                    onClick={() => setWikiStep('params')}
+                    className="w-full bg-[#534AB7] hover:bg-[#3C3489] rounded-xl py-3 font-medium transition-colors"
+                  >
+                    Générer des flashcards depuis cet article →
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step: parameters */}
+            {wikiStep === 'params' && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-4 mb-2">
+                  <button onClick={() => setWikiStep('article')} className="text-gray-400 hover:text-white transition-colors text-sm">← Retour</button>
+                  <h2 className="text-base font-bold">Paramètres de génération</h2>
+                </div>
+
+                <div className="bg-[#1A1A2E] rounded-2xl border border-[#534AB7]/20 p-6">
+                  <label className="text-gray-400 text-sm mb-4 block">
+                    Nombre maximum de cartes : <span className="text-white font-bold">{wikiMaxCards}</span>
+                  </label>
+                  <input
+                    type="range"
+                    min={5}
+                    max={50}
+                    value={wikiMaxCards}
+                    onChange={e => setWikiMaxCards(Number(e.target.value))}
+                    className="w-full accent-[#534AB7]"
+                  />
+                  <div className="flex justify-between text-xs text-gray-600 mt-1">
+                    <span>5</span>
+                    <span>50</span>
+                  </div>
+                </div>
+
+                <div className="bg-[#1A1A2E] rounded-2xl border border-[#534AB7]/20 p-6">
+                  <label className="text-gray-400 text-sm mb-4 block">
+                    Priorités <span className="text-gray-600">(optionnel — sélectionnez les thèmes à privilégier)</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {WIKI_PRIORITIES.map(p => (
+                      <button
+                        key={p}
+                        onClick={() => toggleWikiPriority(p)}
+                        className={`text-left px-3 py-2 rounded-xl text-sm border transition-colors ${
+                          wikiPriorities.has(p)
+                            ? 'bg-[#534AB7]/30 border-[#534AB7] text-[#AFA9EC]'
+                            : 'border-[#534AB7]/20 text-gray-400 hover:border-[#534AB7]/50 hover:text-white'
+                        }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {wikiError && <p className="text-red-400 text-sm">{wikiError}</p>}
+
+                <button
+                  onClick={generateFromWiki}
+                  disabled={generating}
+                  className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 rounded-xl py-3 font-medium transition-colors"
+                >
+                  {generating ? 'Claude génère vos flashcards...' : `Générer avec Claude →`}
+                </button>
+              </div>
+            )}
+
+            {/* Step: cards review & import */}
+            {wikiStep === 'cards' && (
               <div>
                 <div className="flex items-center justify-between mb-4">
+                  <button onClick={() => setWikiStep('params')} className="text-gray-400 hover:text-white transition-colors text-sm">← Retour</button>
                   <p className="text-gray-400 text-sm">{aiCards.length} cartes générées — modifiez avant d'importer</p>
-                  <button onClick={() => { setAiCards([]); setPdfName('') }} className="text-gray-500 hover:text-white text-sm transition-colors">Recommencer</button>
+                  <button onClick={() => { setAiCards([]); setWikiStep('search') }} className="text-gray-500 hover:text-white text-sm transition-colors">Recommencer</button>
                 </div>
+
                 <div className="space-y-4 mb-6">
                   {aiCards.map((card, idx) => (
                     <div key={idx} className="bg-[#1A1A2E] rounded-2xl p-6 border border-[#534AB7]/20">
@@ -332,17 +676,113 @@ function CreatePageInner() {
                     </div>
                   ))}
                 </div>
+
+                {/* Deck selector */}
+                <div className="bg-[#1A1A2E] rounded-2xl border border-[#534AB7]/20 p-5 mb-4">
+                  <p className="text-gray-400 text-sm mb-3">Destination</p>
+                  <div className="flex gap-2 mb-3">
+                    <button
+                      onClick={() => setWikiDeckMode('new')}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${wikiDeckMode === 'new' ? 'bg-[#534AB7]/20 border-[#534AB7] text-[#AFA9EC]' : 'border-[#534AB7]/20 text-gray-400 hover:border-[#534AB7]/40'}`}
+                    >
+                      Nouveau deck
+                    </button>
+                    <button
+                      onClick={() => setWikiDeckMode('existing')}
+                      className={`flex-1 py-2 rounded-lg text-sm font-medium border transition-colors ${wikiDeckMode === 'existing' ? 'bg-[#534AB7]/20 border-[#534AB7] text-[#AFA9EC]' : 'border-[#534AB7]/20 text-gray-400 hover:border-[#534AB7]/40'}`}
+                    >
+                      Deck existant
+                    </button>
+                  </div>
+
+                  {wikiDeckMode === 'new' && (
+                    <p className="text-gray-500 text-xs">Un nouveau deck « {wikiTitle} » sera créé automatiquement.</p>
+                  )}
+
+                  {wikiDeckMode === 'existing' && (
+                    existingDecks.length === 0
+                      ? <p className="text-gray-500 text-xs">Aucun deck existant.</p>
+                      : <select
+                          value={wikiSelectedDeckId}
+                          onChange={e => setWikiSelectedDeckId(e.target.value)}
+                          className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[#534AB7] transition-colors"
+                        >
+                          {existingDecks.map(d => (
+                            <option key={d.id} value={d.id}>{d.icon} {d.name}</option>
+                          ))}
+                        </select>
+                  )}
+                </div>
+
                 <button
-                  onClick={() => { if (!loading) saveCards(aiCards) }}
-                  disabled={aiCards.length === 0 || loading}
-                  className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors">
-                  {loading ? '⏳ Import en cours...' : `Importer ${aiCards.length} cartes →`}
+                  onClick={saveWikiCards}
+                  disabled={aiCards.length === 0 || loading || (wikiDeckMode === 'existing' && !wikiSelectedDeckId)}
+                  className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors"
+                >
+                  {loading ? '⏳ Import en cours...' : `Importer ${aiCards.length} carte${aiCards.length > 1 ? 's' : ''} →`}
                 </button>
               </div>
             )}
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function AiCardsReview({
+  aiCards, loading, onUpdate, onRemove, onReset, onSave,
+}: {
+  aiCards: any[]
+  loading: boolean
+  onUpdate: (idx: number, field: string, value: string) => void
+  onRemove: (idx: number) => void
+  onReset: () => void
+  onSave: () => void
+}) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-gray-400 text-sm">{aiCards.length} cartes générées — modifiez avant d'importer</p>
+        <button onClick={onReset} className="text-gray-500 hover:text-white text-sm transition-colors">Recommencer</button>
+      </div>
+      <div className="space-y-4 mb-6">
+        {aiCards.map((card, idx) => (
+          <div key={idx} className="bg-[#1A1A2E] rounded-2xl p-6 border border-[#534AB7]/20">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                {card.theme && <span className="text-xs px-2 py-1 bg-[#534AB7]/20 text-[#AFA9EC] rounded-full">{card.theme}</span>}
+                <span className="text-xs text-gray-500">Difficulté {card.difficulty}/5</span>
+              </div>
+              <button onClick={() => onRemove(idx)} className="text-red-400 hover:text-red-300 text-sm transition-colors">Supprimer</button>
+            </div>
+            <div className="space-y-2">
+              <div>
+                <label className="text-gray-500 text-xs mb-1 block">Question</label>
+                <textarea value={card.q || ''} onChange={e => onUpdate(idx, 'q', e.target.value)} rows={2}
+                  className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[#534AB7] transition-colors resize-none" />
+              </div>
+              <div>
+                <label className="text-gray-500 text-xs mb-1 block">Réponse</label>
+                <textarea value={card.a || ''} onChange={e => onUpdate(idx, 'a', e.target.value)} rows={2}
+                  className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-2 text-[#AFA9EC] text-sm focus:outline-none focus:border-[#534AB7] transition-colors resize-none" />
+              </div>
+              <div>
+                <label className="text-gray-500 text-xs mb-1 block">Explication (optionnel)</label>
+                <textarea value={card.expl || ''} onChange={e => onUpdate(idx, 'expl', e.target.value)} rows={1}
+                  className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-2 text-gray-500 text-sm focus:outline-none focus:border-[#534AB7] transition-colors resize-none" />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <button
+        onClick={onSave}
+        disabled={aiCards.length === 0 || loading}
+        className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors"
+      >
+        {loading ? '⏳ Import en cours...' : `Importer ${aiCards.length} cartes →`}
+      </button>
     </div>
   )
 }

@@ -7,24 +7,40 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const { text } = await request.json()
+    const { text, maxCards, priorities, source } = await request.json()
     if (!text || text.trim().length < 50) {
       return NextResponse.json({ error: 'Texte trop court' }, { status: 400 })
     }
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': process.env.ANTHROPIC_API_KEY!,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-opus-4-5',
-        max_tokens: 4000,
-        messages: [{
-          role: 'user',
-          content: `Tu es un expert en mémorisation professionnelle. Ton rôle est d'extraire les informations ESSENTIELLES d'un document et de créer des flashcards permettant de les retenir parfaitement.
+    const isWiki = source === 'wikipedia'
+    const maxN = typeof maxCards === 'number' ? maxCards : 20
+    const prioStr = Array.isArray(priorities) && priorities.length > 0
+      ? priorities.join(', ')
+      : 'tous les faits importants'
+
+    const prompt = isWiki
+      ? `Tu génères des flashcards depuis un article Wikipedia. Génère EXACTEMENT ${maxN} cartes maximum en te concentrant prioritairement sur : ${prioStr}. Chaque carte doit tester un fait précis et vérifiable depuis l'article.
+
+RÈGLES STRICTES :
+1. Chaque carte teste UN SEUL fait précis et vérifiable
+2. Questions spécifiques : chiffres exacts, dates, noms, pourcentages quand disponibles
+3. INTERDIT : "Qu'est-ce que X ?", "Définissez X", "Expliquez X"
+4. OBLIGATOIRE : "Quel est...", "En quelle année...", "Combien...", "Qui a...", "Que s'est-il passé quand..."
+5. Réponses courtes et précises — idéalement un chiffre, une date, un nom, une condition
+
+NIVEAUX DE DIFFICULTÉ :
+- 1 : fait isolé simple (chiffre, date)
+- 2 : relation entre deux éléments
+- 3 : condition ou exception
+- 4 : comparaison entre plusieurs éléments
+- 5 : synthèse de plusieurs faits interdépendants
+
+FORMAT JSON STRICT — réponds UNIQUEMENT avec ce tableau, sans texte avant ou après, sans markdown :
+[{"q":"question précise","a":"réponse courte et exacte","expl":"contexte utile ou null","theme":"thème de l'article","difficulty":1}]
+
+ARTICLE WIKIPEDIA :
+${text.slice(0, 8000)}`
+      : `Tu es un expert en mémorisation professionnelle. Ton rôle est d'extraire les informations ESSENTIELLES d'un document et de créer des flashcards permettant de les retenir parfaitement.
 
 OBJECTIF : Quelqu'un qui connaît ces flashcards par coeur doit pouvoir répondre à toutes les questions pratiques sur ce document sans le relire.
 
@@ -48,7 +64,18 @@ FORMAT JSON STRICT — réponds UNIQUEMENT avec ce tableau, sans texte avant ou 
 
 DOCUMENT À ANALYSER :
 ${text.slice(0, 8000)}`
-        }]
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY!,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-opus-4-5',
+        max_tokens: 4000,
+        messages: [{ role: 'user', content: prompt }]
       })
     })
 
