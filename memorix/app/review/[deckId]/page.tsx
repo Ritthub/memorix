@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { scheduleCard } from '@/lib/fsrs'
-import { buildSession, reinsertFailed } from '@/lib/session-builder'
+import { buildSession } from '@/lib/session-builder'
 import { Card, CardReview, Rating } from '@/types'
 
 // Simple confetti burst
@@ -64,6 +64,8 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
   const [stats, setStats] = useState({ again: 0, hard: 0, good: 0, easy: 0 })
   const [deckId, setDeckId] = useState('')
   const [showConfetti, setShowConfetti] = useState(false)
+  const [failedCards, setFailedCards] = useState<Card[]>([])
+  const [passNumber, setPassNumber] = useState(1)
   // Swipe tracking
   const touchStartX = useRef<number | null>(null)
   const touchStartY = useRef<number | null>(null)
@@ -132,22 +134,30 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
       return { ...s, [key]: s[key] + 1 }
     })
 
-    let nextQueue = cards.slice(current + 1)
-    if (rating === 1) nextQueue = reinsertFailed(card, nextQueue)
+    const newFailed = rating === 1 ? [...failedCards, card] : [...failedCards]
+    const isLastCard = current + 1 >= cards.length
 
     setTimeout(() => {
-      if (nextQueue.length === 0) {
-        setDone(true)
-        setShowConfetti(true)
-        setTimeout(() => setShowConfetti(false), 3500)
+      if (isLastCard) {
+        if (newFailed.length > 0) {
+          setCards(newFailed)
+          setCurrent(0)
+          setFailedCards([])
+          setPassNumber(p => p + 1)
+          setFlipped(false)
+        } else {
+          setDone(true)
+          setShowConfetti(true)
+          setTimeout(() => setShowConfetti(false), 3500)
+        }
       } else {
-        setCards([...cards.slice(0, current + 1), ...nextQueue])
+        if (rating === 1) setFailedCards(newFailed)
         setCurrent(c => c + 1)
         setFlipped(false)
       }
       setSaving(false)
     }, 300)
-  }, [saving, cards, current, supabase])
+  }, [saving, cards, current, failedCards, supabase])
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -298,7 +308,14 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
           >
             ✕
           </button>
-          <span className="text-gray-400 text-sm">{current + 1} / {cards.length}</span>
+          <div className="text-center">
+            {passNumber > 1 && (
+              <div className="text-[#AFA9EC] text-xs font-semibold mb-0.5">
+                Passage {passNumber} — {cards.length} carte{cards.length > 1 ? 's' : ''} à retravailler
+              </div>
+            )}
+            <span className="text-gray-400 text-sm">{current + 1} / {cards.length}</span>
+          </div>
           <div className="w-8" />
         </div>
         <div className="max-w-lg mx-auto mt-3">
