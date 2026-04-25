@@ -276,6 +276,7 @@ export default function DecksLibrary({ initialThemes, initialDecks, userId }: Pr
   const [showCreateMenu, setShowCreateMenu] = useState(false)
   const [newThemeName, setNewThemeName] = useState('')
   const [newThemeColor, setNewThemeColor] = useState('#534AB7')
+  const [createThemeError, setCreateThemeError] = useState<string | null>(null)
   const [movingDeck, setMovingDeck] = useState<DeckWithMeta | null>(null)
   const [renamingDeck, setRenamingDeck] = useState<DeckWithMeta | null>(null)
   const [renameValue, setRenameValue] = useState('')
@@ -386,11 +387,18 @@ export default function DecksLibrary({ initialThemes, initialDecks, userId }: Pr
 
   const handleCreateTheme = async () => {
     if (!newThemeName.trim()) return
-    const { data } = await supabase
+    setCreateThemeError(null)
+    const { data, error } = await supabase
       .from('themes')
       .insert({ user_id: userId, name: newThemeName.trim(), color: newThemeColor, position: themes.length })
       .select()
       .single()
+    if (error) {
+      setCreateThemeError(error.message.includes('does not exist')
+        ? 'La migration SQL n\'a pas encore été exécutée. Ouvre le SQL editor Supabase et exécute le fichier supabase/migrations/20260425_themes.sql'
+        : error.message)
+      return
+    }
     if (data) {
       setThemes(prev => [...prev, data as Theme])
       setNewThemeName('')
@@ -489,7 +497,7 @@ export default function DecksLibrary({ initialThemes, initialDecks, userId }: Pr
                     <span>📚</span> Nouveau deck
                   </Link>
                   <button
-                    onClick={() => { setShowCreateMenu(false); setShowCreateTheme(true) }}
+                    onClick={() => { setShowCreateMenu(false); setShowCreateTheme(true); setCreateThemeError(null) }}
                     className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#534AB7]/20 transition-colors text-sm text-left"
                   >
                     <span>🗂️</span> Nouveau thème
@@ -595,11 +603,14 @@ export default function DecksLibrary({ initialThemes, initialDecks, userId }: Pr
               type="text"
               placeholder="Nom du thème"
               value={newThemeName}
-              onChange={e => setNewThemeName(e.target.value)}
+              onChange={e => { setNewThemeName(e.target.value); setCreateThemeError(null) }}
               onKeyDown={e => e.key === 'Enter' && handleCreateTheme()}
               autoFocus
               className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-3 mb-4 focus:outline-none focus:border-[#534AB7] text-sm"
             />
+            {createThemeError && (
+              <p className="text-red-400 text-xs mb-4 bg-red-500/10 rounded-xl p-3">{createThemeError}</p>
+            )}
             <div className="flex gap-2 mb-5 flex-wrap">
               {THEME_COLORS.map(c => (
                 <button
