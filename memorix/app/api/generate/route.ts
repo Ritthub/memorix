@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
 
-    const { text, maxCards, priorities, source } = await request.json()
+    const { text, title, maxCards, priorities, source } = await request.json()
     if (!text || text.trim().length < 50) {
       return NextResponse.json({ error: 'Texte trop court' }, { status: 400 })
     }
@@ -17,9 +17,14 @@ export async function POST(request: NextRequest) {
     const prioStr = Array.isArray(priorities) && priorities.length > 0
       ? priorities.join(', ')
       : 'tous les faits importants'
+    const articleTitle = typeof title === 'string' && title ? title : 'cet article'
 
     const prompt = isWiki
-      ? `Tu génères des flashcards depuis un article Wikipedia. Génère EXACTEMENT ${maxN} cartes maximum en te concentrant prioritairement sur : ${prioStr}. Chaque carte doit tester un fait précis et vérifiable depuis l'article.
+      ? `Tu génères des flashcards depuis l'article Wikipedia "${articleTitle}".
+Génère EXACTEMENT ${maxN} cartes maximum (garde uniquement les plus importantes).
+Priorités : ${prioStr}.
+Chaque carte teste un fait précis et vérifiable depuis l'article.
+Favorise les questions sur : chiffres exacts, dates, noms propres, causes/conséquences.
 
 RÈGLES STRICTES :
 1. Chaque carte teste UN SEUL fait précis et vérifiable
@@ -39,7 +44,7 @@ FORMAT JSON STRICT — réponds UNIQUEMENT avec ce tableau, sans texte avant ou 
 [{"q":"question précise","a":"réponse courte et exacte","expl":"contexte utile ou null","theme":"thème de l'article","difficulty":1}]
 
 ARTICLE WIKIPEDIA :
-${text.slice(0, 8000)}`
+${text}`
       : `Tu es un expert en mémorisation professionnelle. Ton rôle est d'extraire les informations ESSENTIELLES d'un document et de créer des flashcards permettant de les retenir parfaitement.
 
 OBJECTIF : Quelqu'un qui connaît ces flashcards par coeur doit pouvoir répondre à toutes les questions pratiques sur ce document sans le relire.
