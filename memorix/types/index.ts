@@ -1,3 +1,12 @@
+export type Theme = {
+  id: string
+  user_id: string
+  name: string
+  color: string
+  position: number
+  created_at: string
+}
+
 export type Profile = {
   id: string
   email: string
@@ -16,6 +25,8 @@ export type Deck = {
   color: string
   icon: string
   source_file_url?: string
+  theme_id?: string | null
+  position?: number
   created_at: string
   cards?: Card[]
   card_count?: number
