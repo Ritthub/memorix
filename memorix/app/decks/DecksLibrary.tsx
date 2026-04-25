@@ -16,6 +16,7 @@ import {
   useSensor,
   useSensors,
   closestCenter,
+  useDroppable,
 } from '@dnd-kit/core'
 import {
   SortableContext,
@@ -126,6 +127,7 @@ function ThemeSection({
   onToggle,
   onLongPress,
   onContextMenu,
+  isDragging,
 }: {
   theme: Theme | null
   decks: DeckWithMeta[]
@@ -133,7 +135,10 @@ function ThemeSection({
   onToggle: () => void
   onLongPress: (deck: DeckWithMeta) => void
   onContextMenu: (deck: DeckWithMeta, e: React.MouseEvent) => void
+  isDragging: boolean
 }) {
+  const droppableId = `theme:${theme?.id ?? 'null'}`
+  const { setNodeRef, isOver } = useDroppable({ id: droppableId })
   const deckIds = decks.map(d => d.id)
   const color = theme?.color || '#6B7280'
 
@@ -167,7 +172,12 @@ function ThemeSection({
 
       {!collapsed && (
         <SortableContext items={deckIds} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2 pl-4">
+          <div
+            ref={setNodeRef}
+            className={`space-y-2 pl-4 min-h-[8px] rounded-xl transition-colors ${
+              isOver ? 'bg-[#534AB7]/10 ring-1 ring-[#534AB7]/40' : ''
+            } ${isDragging && decks.length === 0 ? 'min-h-[48px]' : ''}`}
+          >
             {decks.map(deck => (
               <DeckRow
                 key={deck.id}
@@ -176,12 +186,21 @@ function ThemeSection({
                 onContextMenu={onContextMenu}
               />
             ))}
-            <Link
-              href={`/create${theme ? `?themeId=${theme.id}` : ''}`}
-              className="flex items-center gap-2 text-xs text-gray-600 hover:text-[#534AB7] py-1 transition-colors"
-            >
-              <span>+</span> Ajouter un deck ici
-            </Link>
+            {isDragging && decks.length === 0 && (
+              <div className={`border-2 border-dashed rounded-xl h-12 flex items-center justify-center text-xs transition-colors ${
+                isOver ? 'border-[#534AB7] text-[#534AB7]' : 'border-gray-700 text-gray-700'
+              }`}>
+                Déposer ici
+              </div>
+            )}
+            {!isDragging && (
+              <Link
+                href={`/create${theme ? `?themeId=${theme.id}` : ''}`}
+                className="flex items-center gap-2 text-xs text-gray-600 hover:text-[#534AB7] py-1 transition-colors"
+              >
+                <span>+</span> Ajouter un deck ici
+              </Link>
+            )}
           </div>
         </SortableContext>
       )}
@@ -316,6 +335,16 @@ export default function DecksLibrary({ initialThemes, initialDecks, userId }: Pr
     return map
   }, [filteredDecks, themes])
 
+  // Resolve a droppable/sortable ID to a theme_id (null = "Sans thème")
+  const resolveThemeId = useCallback((overId: string): string | null | undefined => {
+    if (overId.startsWith('theme:')) {
+      const part = overId.slice(6)
+      return part === 'null' ? null : part
+    }
+    const overDeck = decks.find(d => d.id === overId)
+    return overDeck ? (overDeck.theme_id || null) : undefined
+  }, [decks])
+
   const handleDragStart = (event: DragStartEvent) => {
     const deck = decks.find(d => d.id === event.active.id)
     if (deck) setActiveDeck(deck)
@@ -331,55 +360,59 @@ export default function DecksLibrary({ initialThemes, initialDecks, userId }: Pr
     const activeDeckObj = decks.find(d => d.id === activeId)
     if (!activeDeckObj) return
 
-    // Check if over a theme column (kanban) or deck in different group
-    const overDeck = decks.find(d => d.id === overId)
-    if (!overDeck) return
+    const targetThemeId = resolveThemeId(overId)
+    if (targetThemeId === undefined) return
 
-    if (activeDeckObj.theme_id !== overDeck.theme_id) {
-      setDecks(prev => prev.map(d => d.id === activeId ? { ...d, theme_id: overDeck.theme_id } : d))
+    if ((activeDeckObj.theme_id || null) !== targetThemeId) {
+      setDecks(prev => prev.map(d =>
+        d.id === activeId ? { ...d, theme_id: targetThemeId } : d
+      ))
     }
   }
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     setActiveDeck(null)
-    if (!over || active.id === over.id) return
+    if (!over) return
 
     const activeId = active.id as string
     const overId = over.id as string
 
-    const activeDeckObj = decks.find(d => d.id === activeId)
-    const overDeckObj = decks.find(d => d.id === overId)
-    if (!activeDeckObj || !overDeckObj) return
+    // Use current (post-dragOver) state via functional updater trick
+    let currentDecks: DeckWithMeta[] = []
+    setDecks(prev => { currentDecks = prev; return prev })
+    // Give React a tick to flush
+    await new Promise(r => setTimeout(r, 0))
 
-    const newThemeId = overDeckObj.theme_id
+    const activeDeckObj = currentDecks.find(d => d.id === activeId)
+    if (!activeDeckObj) return
 
-    // Reorder within the group
-    const groupDecks = decks.filter(d => (d.theme_id || null) === (newThemeId || null))
+    const targetThemeId = resolveThemeId(overId)
+    if (targetThemeId === undefined) return
+
+    const oldThemeId = activeDeckObj.theme_id || null
+
+    if (oldThemeId !== targetThemeId) {
+      // Moving to a different theme — already done optimistically in dragOver
+      setDecks(prev => prev.map(d =>
+        d.id === activeId ? { ...d, theme_id: targetThemeId } : d
+      ))
+      await supabase.from('decks').update({ theme_id: targetThemeId }).eq('id', activeId)
+      return
+    }
+
+    // Same theme: reorder
+    if (activeId === overId) return
+    const groupDecks = currentDecks.filter(d => (d.theme_id || null) === targetThemeId)
     const oldIdx = groupDecks.findIndex(d => d.id === activeId)
     const newIdx = groupDecks.findIndex(d => d.id === overId)
-
     if (oldIdx === -1 || newIdx === -1) return
 
     const reordered = arrayMove(groupDecks, oldIdx, newIdx)
-    const others = decks.filter(d => (d.theme_id || null) !== (newThemeId || null))
-    const newDecks = [...others, ...reordered].map((d, i) => ({
-      ...d,
-      position: decks.findIndex(od => od.id === d.id),
-    }))
-
     setDecks(prev => {
-      const groupOther = prev.filter(d => (d.theme_id || null) !== (newThemeId || null))
-      return [...groupOther, ...reordered]
+      const others = prev.filter(d => (d.theme_id || null) !== targetThemeId)
+      return [...others, ...reordered]
     })
-
-    // Persist to Supabase
-    await supabase
-      .from('decks')
-      .update({ theme_id: newThemeId || null })
-      .eq('id', activeId)
-
-    // Update positions
     await Promise.all(
       reordered.map((d, i) => supabase.from('decks').update({ position: i }).eq('id', d.id))
     )
@@ -415,10 +448,15 @@ export default function DecksLibrary({ initialThemes, initialDecks, userId }: Pr
   }
 
   const handleMoveDeck = async (deck: DeckWithMeta, themeId: string | null) => {
-    await supabase.from('decks').update({ theme_id: themeId }).eq('id', deck.id)
+    // Optimistic update
     setDecks(prev => prev.map(d => d.id === deck.id ? { ...d, theme_id: themeId } : d))
     setMovingDeck(null)
     setOptionsDeck(null)
+    const { error } = await supabase.from('decks').update({ theme_id: themeId }).eq('id', deck.id)
+    if (error) {
+      // Rollback
+      setDecks(prev => prev.map(d => d.id === deck.id ? { ...d, theme_id: deck.theme_id } : d))
+    }
   }
 
   const handleRenameDeck = async () => {
@@ -545,6 +583,7 @@ export default function DecksLibrary({ initialThemes, initialDecks, userId }: Pr
                     onToggle={() => setCollapsed(c => ({ ...c, [key]: !c[key] }))}
                     onLongPress={openOptions}
                     onContextMenu={handleContextMenu}
+                    isDragging={!!activeDeck}
                   />
                 )
               })}
@@ -559,6 +598,7 @@ export default function DecksLibrary({ initialThemes, initialDecks, userId }: Pr
                     onToggle={() => setCollapsed(c => ({ ...c, '__none__': !c['__none__'] }))}
                     onLongPress={openOptions}
                     onContextMenu={handleContextMenu}
+                    isDragging={!!activeDeck}
                   />
                 )
               })()}
