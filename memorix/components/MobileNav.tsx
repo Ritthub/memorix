@@ -54,7 +54,10 @@ export default function MobileNav() {
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0D0D1A]/95 backdrop-blur-md border-t border-[#534AB7]/20 safe-area-inset-bottom">
       <div className="flex items-stretch h-16">
         {TABS.map(tab => {
-          const active = pathname === tab.href || (tab.href !== '/dashboard' && pathname.startsWith(tab.href))
+          const active =
+          pathname === tab.href ||
+          (tab.href === '/dashboard' && (pathname.startsWith('/decks') || pathname.startsWith('/themes'))) ||
+          (tab.href !== '/dashboard' && pathname.startsWith(tab.href))
           return (
             <Link
               key={tab.href}

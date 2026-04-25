@@ -27,7 +27,7 @@ export default async function DashboardPage() {
     { data: recentReviews },
     { data: deckDueCards },
   ] = await Promise.all([
-    supabase.from('decks').select('*, cards(count)').eq('user_id', user.id).order('created_at', { ascending: false }),
+    supabase.from('decks').select('*, cards(count)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
     supabase.from('card_reviews').select('id').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
     supabase.from('profiles').select('name').eq('id', user.id).single(),
     supabase.from('card_reviews').select('reviewed_at').eq('user_id', user.id).not('reviewed_at', 'is', null).gte('reviewed_at', new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()),
@@ -111,39 +111,53 @@ export default async function DashboardPage() {
 
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xl font-bold">Mes decks</h3>
-            <Link href="/create" className="text-[#534AB7] hover:text-[#AFA9EC] text-sm transition-colors">+ Nouveau deck</Link>
+            <h3 className="text-xl font-bold">À réviser en priorité</h3>
+            <Link href="/decks" className="text-[#534AB7] hover:text-[#AFA9EC] text-sm transition-colors">
+              Voir toute la bibliothèque →
+            </Link>
           </div>
 
           {deckCount === 0 ? (
             <div className="bg-[#1A1A2E] rounded-2xl p-10 text-center border border-[#534AB7]/20">
               <div className="text-4xl mb-4">📚</div>
-              <p className="text-gray-400 mb-4">Vous n'avez pas encore de deck</p>
+              <p className="text-gray-400 mb-4">Vous n&apos;avez pas encore de deck</p>
               <Link href="/create" className="inline-block bg-[#534AB7] hover:bg-[#3C3489] rounded-xl px-6 py-3 font-medium transition-colors">
                 Créer mon premier deck
               </Link>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
-              {decks?.map(deck => {
-                const due = deckDueMap.get(deck.id) || 0
-                return (
-                  <Link key={deck.id} href={`/decks/${deck.id}`} className="relative bg-[#1A1A2E] rounded-2xl p-6 border border-[#534AB7]/20 hover:border-[#534AB7]/60 transition-colors">
-                    {due > 0 && (
-                      <span className="absolute top-3 right-3 bg-[#534AB7] text-white text-xs font-bold rounded-full px-2 py-0.5 leading-tight">
-                        {due}
-                      </span>
-                    )}
-                    <div className="flex items-center gap-3 mb-3">
-                      <span className="text-2xl">{deck.icon}</span>
-                      <h4 className="font-bold truncate">{deck.name}</h4>
-                    </div>
-                    {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                    <p className="text-gray-400 text-sm">{(deck as any).cards?.[0]?.count || 0} cartes</p>
-                  </Link>
-                )
-              })}
-            </div>
+            <>
+              <div className="grid grid-cols-2 gap-4">
+                {decks
+                  ?.slice()
+                  .sort((a, b) => (deckDueMap.get(b.id) || 0) - (deckDueMap.get(a.id) || 0))
+                  .slice(0, 3)
+                  .map(deck => {
+                    const due = deckDueMap.get(deck.id) || 0
+                    return (
+                      <Link key={deck.id} href={`/decks/${deck.id}`} className="relative bg-[#1A1A2E] rounded-2xl p-6 border border-[#534AB7]/20 hover:border-[#534AB7]/60 transition-colors">
+                        {due > 0 && (
+                          <span className="absolute top-3 right-3 bg-[#534AB7] text-white text-xs font-bold rounded-full px-2 py-0.5 leading-tight">
+                            {due}
+                          </span>
+                        )}
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="text-2xl">{deck.icon}</span>
+                          <h4 className="font-bold truncate">{deck.name}</h4>
+                        </div>
+                        {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                        <p className="text-gray-400 text-sm">{(deck as any).cards?.[0]?.count || 0} cartes</p>
+                      </Link>
+                    )
+                  })}
+              </div>
+              <Link href="/decks" className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-[#534AB7] transition-colors py-3">
+                <span>Voir tous les {deckCount} decks</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </>
           )}
         </div>
       </main>
