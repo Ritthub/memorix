@@ -206,8 +206,14 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
     touchStartY.current = null
   }
 
+  // Lock body scroll so pb-16 from layout doesn't allow a 16px body scroll
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = '' }
+  }, [])
+
   if (loading) return (
-    <div className="min-h-screen bg-[#0D0D1A] flex items-center justify-center">
+    <div className="fixed inset-0 bg-[#0D0D1A] flex items-center justify-center">
       <div className="text-[#534AB7] text-xl">Chargement...</div>
     </div>
   )
@@ -278,7 +284,7 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
 
   return (
     <div
-      className="min-h-screen bg-[#0D0D1A] text-white flex flex-col select-none"
+      className="fixed inset-0 bg-[#0D0D1A] text-white flex flex-col select-none overflow-hidden"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
@@ -315,7 +321,7 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
       )}
 
       {/* Card */}
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
         <div className="w-full max-w-lg">
           <div
             onClick={() => !flipped && setFlipped(true)}
@@ -361,8 +367,14 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
 
       {/* Rating buttons */}
       {flipped && (
-        <div className="px-6 py-6 border-t border-[#534AB7]/20">
-          <div className="max-w-lg mx-auto grid grid-cols-4 gap-3">
+        <div className="px-4 pb-4 pt-3 border-t border-[#534AB7]/20">
+          {/* Swipe hints — mobile only, above buttons */}
+          <div className="max-w-lg mx-auto flex justify-between text-xs text-gray-500 mb-2 sm:hidden">
+            <span>← Again</span>
+            <span>Easy →</span>
+          </div>
+          {/* 2×2 grid */}
+          <div className="max-w-lg mx-auto grid grid-cols-2 gap-3">
             {[
               { rating: 1 as Rating, label: 'Again', sub: 'Oublié', color: 'border-red-500/50 hover:bg-red-500/10 text-red-400' },
               { rating: 2 as Rating, label: 'Hard', sub: 'Difficile', color: 'border-orange-500/50 hover:bg-orange-500/10 text-orange-400' },
@@ -373,18 +385,17 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
                 key={rating}
                 onClick={() => handleRating(rating)}
                 disabled={saving}
-                className={`border rounded-xl py-3 px-2 text-center transition-colors disabled:opacity-40 ${color}`}
+                className={`border rounded-xl py-3 px-3 text-center transition-colors disabled:opacity-40 ${color}`}
               >
                 <div className="font-bold text-sm">{label}</div>
-                <div className="text-xs opacity-70 mt-1">{sub}</div>
+                <div className="text-xs opacity-70 mt-0.5">{sub}</div>
+                <div className="text-[10px] opacity-30 font-mono mt-1 hidden sm:block">[{rating}]</div>
               </button>
             ))}
           </div>
-          <p className="text-center text-gray-600 text-xs mt-3 hidden sm:block">
+          {/* Keyboard shortcuts — desktop only */}
+          <p className="text-center text-gray-600 text-xs mt-2 hidden sm:block">
             Espace = retourner · 1 Again · 2 Hard · 3 Good · 4 Easy
-          </p>
-          <p className="text-center text-gray-600 text-xs mt-2 sm:hidden">
-            ← glisser = Again · glisser → = Easy
           </p>
         </div>
       )}
