@@ -12,6 +12,8 @@ type ReviewRow = {
 type HardCard = {
   card_id: string
   lapses: number
+  reps: number
+  failureRate: number
   rating: number
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   cards: any
@@ -20,13 +22,11 @@ type HardCard = {
 type Props = {
   reviews365: ReviewRow[]
   hardCards: HardCard[]
-  totalCards: number
-  mastered: number
   totalReviews: number
   successRate: number
+  streak: number
 }
 
-// Build a day → count map from ISO date strings
 function buildDayMap(reviews: ReviewRow[]): Map<string, number> {
   const map = new Map<string, number>()
   for (const r of reviews) {
@@ -36,10 +36,10 @@ function buildDayMap(reviews: ReviewRow[]): Map<string, number> {
   return map
 }
 
-// Build daily success rate for the last 30 days
-function buildRetentionCurve(reviews: ReviewRow[]): { day: string; rate: number; count: number }[] {
-  const since30 = new Date(Date.now() - 30 * 24 * 3600 * 1000)
-  const recent = reviews.filter(r => new Date(r.reviewed_at) >= since30)
+// Build daily success rate for the last 7 days
+function buildWeeklySuccessRate(reviews: ReviewRow[]): { day: string; label: string; rate: number; count: number }[] {
+  const since7 = new Date(Date.now() - 7 * 24 * 3600 * 1000)
+  const recent = reviews.filter(r => new Date(r.reviewed_at) >= since7)
   const dayMap = new Map<string, { good: number; total: number }>()
   for (const r of recent) {
     const day = r.reviewed_at.slice(0, 10)
@@ -48,12 +48,18 @@ function buildRetentionCurve(reviews: ReviewRow[]): { day: string; rate: number;
     if (r.rating >= 3) entry.good++
     dayMap.set(day, entry)
   }
-  const result: { day: string; rate: number; count: number }[] = []
-  for (let i = 29; i >= 0; i--) {
+  const DAY_LABELS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam']
+  const result: { day: string; label: string; rate: number; count: number }[] = []
+  for (let i = 6; i >= 0; i--) {
     const d = new Date(Date.now() - i * 24 * 3600 * 1000)
     const day = d.toISOString().slice(0, 10)
     const entry = dayMap.get(day)
-    result.push({ day, rate: entry ? entry.good / entry.total : -1, count: entry?.total || 0 })
+    result.push({
+      day,
+      label: DAY_LABELS[d.getDay()],
+      rate: entry ? entry.good / entry.total : -1,
+      count: entry?.total || 0,
+    })
   }
   return result
 }
@@ -66,19 +72,16 @@ function heatColor(count: number): string {
   return '#AFA9EC'
 }
 
-// Generate the 52-week grid (Mon–Sun columns, most recent week last)
 function buildWeekGrid(dayMap: Map<string, number>): { date: string; count: number }[][] {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  // Start on the Monday 52 weeks ago
   const start = new Date(today)
   start.setDate(start.getDate() - 364)
-  // Align to Monday
-  const dow = (start.getDay() + 6) % 7 // 0=Mon
+  const dow = (start.getDay() + 6) % 7
   start.setDate(start.getDate() - dow)
 
   const weeks: { date: string; count: number }[][] = []
-  let current = new Date(start)
+  const current = new Date(start)
   while (current <= today) {
     const week: { date: string; count: number }[] = []
     for (let d = 0; d < 7; d++) {
@@ -94,12 +97,11 @@ function buildWeekGrid(dayMap: Map<string, number>): { date: string; count: numb
 const MONTHS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jui', 'Jul', 'Aoû', 'Sep', 'Oct', 'Nov', 'Déc']
 const DAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 
-export default function StatsView({ reviews365, hardCards, totalCards, mastered, totalReviews, successRate }: Props) {
+export default function StatsView({ reviews365, hardCards, totalReviews, successRate, streak }: Props) {
   const dayMap = buildDayMap(reviews365)
   const weekGrid = buildWeekGrid(dayMap)
-  const retentionCurve = buildRetentionCurve(reviews365)
+  const weeklyRate = buildWeeklySuccessRate(reviews365)
 
-  // Month labels
   const monthLabels: { label: string; col: number }[] = []
   let lastMonth = -1
   weekGrid.forEach((week, i) => {
@@ -110,22 +112,19 @@ export default function StatsView({ reviews365, hardCards, totalCards, mastered,
     }
   })
 
-  const masteredPct = totalCards > 0 ? Math.round((mastered / totalCards) * 100) : 0
-
   return (
     <div className="min-h-screen bg-[#0D0D1A] text-white pb-24">
-      <header className="border-b border-[#534AB7]/20 px-6 py-4 flex items-center gap-4">
+      <header className="border-b border-[#534AB7]/20 px-6 py-4">
         <h1 className="text-xl font-bold text-[#534AB7]">Statistiques</h1>
       </header>
 
       <main className="max-w-2xl mx-auto px-4 py-6 space-y-8">
-        {/* KPIs */}
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {/* 3 KPIs */}
+        <div className="grid grid-cols-3 gap-3">
           {[
-            { label: 'Cartes totales', value: totalCards },
-            { label: 'Maîtrisées', value: `${masteredPct}%` },
-            { label: 'Révisées (365j)', value: totalReviews },
+            { label: 'Révisées (1 an)', value: totalReviews },
             { label: 'Taux de succès', value: `${successRate}%` },
+            { label: 'Streak', value: streak > 0 ? `${streak} 🔥` : '0' },
           ].map(kpi => (
             <div key={kpi.label} className="bg-[#1A1A2E] rounded-2xl p-4 border border-[#534AB7]/20 text-center">
               <div className="text-2xl font-bold text-[#534AB7]">{kpi.value}</div>
@@ -134,12 +133,11 @@ export default function StatsView({ reviews365, hardCards, totalCards, mastered,
           ))}
         </div>
 
-        {/* Heatmap */}
+        {/* Heatmap 52 semaines */}
         <section>
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">Activité de révision</h2>
           <div className="bg-[#1A1A2E] rounded-2xl p-4 border border-[#534AB7]/20 overflow-x-auto">
             <div className="min-w-[560px]">
-              {/* Month labels */}
               <div className="flex mb-1" style={{ paddingLeft: '20px' }}>
                 {weekGrid.map((_, i) => {
                   const ml = monthLabels.find(m => m.col === i)
@@ -151,13 +149,11 @@ export default function StatsView({ reviews365, hardCards, totalCards, mastered,
                 })}
               </div>
               <div className="flex gap-[2px]">
-                {/* Day labels */}
                 <div className="flex flex-col gap-[2px] mr-1">
                   {DAYS.map((d, i) => (
                     <div key={i} className="h-[10px] w-[14px] text-[8px] text-gray-600 flex items-center">{d}</div>
                   ))}
                 </div>
-                {/* Week columns */}
                 {weekGrid.map((week, wi) => (
                   <div key={wi} className="flex flex-col gap-[2px]">
                     {week.map((day, di) => (
@@ -187,53 +183,59 @@ export default function StatsView({ reviews365, hardCards, totalCards, mastered,
           </div>
         </section>
 
-        {/* Retention curve (30 days) */}
+        {/* Graphique barres — 7 derniers jours */}
         <section>
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">Taux de succès — 30 derniers jours</h2>
+          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">Taux de succès — 7 derniers jours</h2>
           <div className="bg-[#1A1A2E] rounded-2xl p-4 border border-[#534AB7]/20">
-            {retentionCurve.every(d => d.rate < 0) ? (
+            {weeklyRate.every(d => d.rate < 0) ? (
               <p className="text-gray-500 text-sm text-center py-6">Pas encore de données de révision.</p>
             ) : (
-              <div className="relative h-36">
-                <svg width="100%" height="100%" viewBox="0 0 600 120" preserveAspectRatio="none">
-                  {/* Grid lines at 25%, 50%, 75%, 100% */}
-                  {[0.25, 0.5, 0.75, 1].map(y => (
-                    <line key={y} x1={0} y1={120 - y * 110} x2={600} y2={120 - y * 110} stroke="#534AB7" strokeWidth={0.5} strokeOpacity={0.2} />
-                  ))}
-                  {/* Bars */}
-                  {retentionCurve.map((d, i) => {
-                    const x = (i / 30) * 600
-                    const w = 600 / 30 - 2
-                    if (d.rate < 0) return null
-                    const h = d.rate * 110
-                    return (
-                      <rect
-                        key={i}
-                        x={x + 1}
-                        y={120 - h}
-                        width={w}
-                        height={h}
-                        rx={2}
-                        fill={d.rate >= 0.7 ? '#534AB7' : d.rate >= 0.5 ? '#7C6FCD' : '#E879F9'}
-                        opacity={0.85}
-                      />
-                    )
-                  })}
-                </svg>
-                {/* Y axis labels */}
-                <div className="absolute top-0 left-0 h-full flex flex-col justify-between pointer-events-none">
-                  <span className="text-[9px] text-gray-600">100%</span>
-                  <span className="text-[9px] text-gray-600">75%</span>
-                  <span className="text-[9px] text-gray-600">50%</span>
-                  <span className="text-[9px] text-gray-600">25%</span>
-                  <span className="text-[9px] text-gray-600">0%</span>
+              <>
+                <div className="relative h-32">
+                  <svg width="100%" height="100%" viewBox="0 0 420 100" preserveAspectRatio="none">
+                    {[0.25, 0.5, 0.75, 1].map(y => (
+                      <line key={y} x1={0} y1={100 - y * 90} x2={420} y2={100 - y * 90} stroke="#534AB7" strokeWidth={0.5} strokeOpacity={0.2} />
+                    ))}
+                    {weeklyRate.map((d, i) => {
+                      const barW = 420 / 7
+                      const x = i * barW + barW * 0.15
+                      const w = barW * 0.7
+                      if (d.rate < 0) return null
+                      const h = d.rate * 90
+                      return (
+                        <rect
+                          key={i}
+                          x={x}
+                          y={100 - h}
+                          width={w}
+                          height={h}
+                          rx={3}
+                          fill={d.rate >= 0.7 ? '#534AB7' : d.rate >= 0.5 ? '#7C6FCD' : '#E879F9'}
+                          opacity={0.85}
+                        />
+                      )
+                    })}
+                  </svg>
+                  <div className="absolute top-0 left-0 h-full flex flex-col justify-between pointer-events-none">
+                    <span className="text-[9px] text-gray-600">100%</span>
+                    <span className="text-[9px] text-gray-600">75%</span>
+                    <span className="text-[9px] text-gray-600">50%</span>
+                    <span className="text-[9px] text-gray-600">25%</span>
+                    <span className="text-[9px] text-gray-600">0%</span>
+                  </div>
                 </div>
-              </div>
+                {/* Day labels */}
+                <div className="flex mt-1">
+                  {weeklyRate.map((d, i) => (
+                    <div key={i} className="flex-1 text-center text-[10px] text-gray-500">{d.label}</div>
+                  ))}
+                </div>
+              </>
             )}
           </div>
         </section>
 
-        {/* Hardest cards */}
+        {/* Top 5 cartes les plus difficiles */}
         <section>
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-3">Cartes les plus difficiles</h2>
           {hardCards.length === 0 ? (
@@ -242,12 +244,14 @@ export default function StatsView({ reviews365, hardCards, totalCards, mastered,
             </div>
           ) : (
             <div className="space-y-2">
-              {hardCards.slice(0, 8).map((hc, i) => (
+              {hardCards.map((hc, i) => (
                 <div key={i} className="bg-[#1A1A2E] rounded-xl p-4 border border-[#534AB7]/20 flex items-start gap-3">
-                  <span className="text-red-400 font-bold text-sm mt-0.5 shrink-0">{hc.lapses}×</span>
-                  <div className="min-w-0">
+                  <span className="text-red-400 font-bold text-sm mt-0.5 shrink-0">
+                    {Math.round(hc.failureRate * 100)}%
+                  </span>
+                  <div className="min-w-0 flex-1">
                     <p className="text-white text-sm font-medium truncate">{hc.cards?.question || '—'}</p>
-                    <p className="text-gray-500 text-xs truncate mt-0.5">{hc.cards?.decks?.name || 'Deck inconnu'}</p>
+                    <p className="text-gray-500 text-xs truncate mt-0.5">{hc.cards?.decks?.name || 'Deck inconnu'} · {hc.lapses} échec{hc.lapses > 1 ? 's' : ''}</p>
                   </div>
                   {hc.cards?.deck_id && (
                     <Link
