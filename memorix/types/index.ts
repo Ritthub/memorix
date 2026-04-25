@@ -4,6 +4,7 @@ export type Theme = {
   name: string
   color: string
   position: number
+  parent_id?: string | null
   created_at: string
 }
 

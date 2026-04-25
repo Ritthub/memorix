@@ -1,6 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import ReviewSelector from './ReviewSelector'
 
 function computeStreak(reviewedAtDates: string[]): number {
   if (reviewedAtDates.length === 0) return 0
@@ -26,12 +27,14 @@ export default async function DashboardPage() {
     { data: profile },
     { data: recentReviews },
     { data: deckDueCards },
+    { data: themes },
   ] = await Promise.all([
-    supabase.from('decks').select('*, cards(count)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
+    supabase.from('decks').select('id, name, icon, theme_id, cards(count)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
     supabase.from('card_reviews').select('id').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
     supabase.from('profiles').select('name').eq('id', user.id).single(),
     supabase.from('card_reviews').select('reviewed_at').eq('user_id', user.id).not('reviewed_at', 'is', null).gte('reviewed_at', new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()),
     supabase.from('card_reviews').select('cards(deck_id)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
+    supabase.from('themes').select('*').eq('user_id', user.id).order('position').throwOnError().catch(() => ({ data: [] })),
   ])
 
   const dueCount = dueCards?.length || 0
@@ -46,6 +49,21 @@ export default async function DashboardPage() {
     const deckId = (r as any).cards?.deck_id
     if (deckId) deckDueMap.set(deckId, (deckDueMap.get(deckId) || 0) + 1)
   }
+
+  // Per-theme due counts (includes sub-themes: each deck points to its direct theme)
+  const themeDueCounts: Record<string, number> = {}
+  let noThemeDue = 0
+  for (const deck of decks || []) {
+    const due = deckDueMap.get(deck.id) || 0
+    if (!due) continue
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const themeId = (deck as any).theme_id
+    if (themeId) themeDueCounts[themeId] = (themeDueCounts[themeId] || 0) + due
+    else noThemeDue += due
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const safeThemes = (themes as any) || []
 
   return (
     <div className="min-h-screen bg-[#0D0D1A] text-white">
@@ -92,22 +110,12 @@ export default async function DashboardPage() {
           </div>
         </div>
 
-        {dueCount > 0 ? (
-          <Link
-            href="/review"
-            className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#534AB7] to-[#7C6FCD] hover:from-[#3C3489] hover:to-[#534AB7] rounded-2xl p-5 font-bold mb-8 transition-all shadow-lg shadow-[#534AB7]/25 text-lg"
-          >
-            <span className="text-2xl">⚡</span>
-            <span>Réviser maintenant</span>
-            <span className="bg-white/20 rounded-full px-3 py-0.5 text-sm font-normal">
-              {dueCount} carte{dueCount > 1 ? 's' : ''}
-            </span>
-          </Link>
-        ) : (
-          <div className="bg-[#1A1A2E] rounded-2xl p-5 text-center mb-8 border border-[#534AB7]/10">
-            <p className="text-gray-400 text-sm">✅ Toutes les révisions du jour sont terminées</p>
-          </div>
-        )}
+        <ReviewSelector
+          dueCount={dueCount}
+          themes={safeThemes}
+          themeDueCounts={themeDueCounts}
+          noThemeDue={noThemeDue}
+        />
 
         <div>
           <div className="flex items-center justify-between mb-4">
@@ -142,8 +150,10 @@ export default async function DashboardPage() {
                           </span>
                         )}
                         <div className="flex items-center gap-3 mb-3">
-                          <span className="text-2xl">{deck.icon}</span>
-                          <h4 className="font-bold truncate">{deck.name}</h4>
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          <span className="text-2xl">{(deck as any).icon}</span>
+                          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+                          <h4 className="font-bold truncate">{(deck as any).name}</h4>
                         </div>
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                         <p className="text-gray-400 text-sm">{(deck as any).cards?.[0]?.count || 0} cartes</p>
