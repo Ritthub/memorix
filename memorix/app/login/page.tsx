@@ -1,11 +1,11 @@
 'use client'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { getAuthCallbackUrl } from './actions'
+import { sendResetEmail } from '../reset-password/actions'
 
-type Mode = 'login' | 'signup'
+type Mode = 'login' | 'signup' | 'forgot'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -31,6 +31,15 @@ export default function LoginPage() {
     setError(null)
     setInfo(null)
 
+    if (mode === 'forgot') {
+      setLoading(true)
+      const { error } = await sendResetEmail(email)
+      setLoading(false)
+      if (error) { setError(error); return }
+      setInfo('Un email de réinitialisation t\'a été envoyé. Clique sur le lien pour choisir un nouveau mot de passe.')
+      return
+    }
+
     if (mode === 'signup') {
       if (password.length < 8) {
         setError('Le mot de passe doit faire au moins 8 caractères.')
@@ -55,23 +64,23 @@ export default function LoginPage() {
         return
       }
       if (data.session) {
-        // Email confirmation disabled — logged in immediately
-        router.push('/')
+        router.push('/dashboard')
         router.refresh()
       } else {
         setInfo('Un email de confirmation t\'a été envoyé. Clique sur le lien pour activer ton compte.')
       }
-    } else {
-      setLoading(true)
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      setLoading(false)
-      if (error) {
-        setError('Email ou mot de passe incorrect.')
-        return
-      }
-      router.push('/')
-      router.refresh()
+      return
     }
+
+    setLoading(true)
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    setLoading(false)
+    if (error) {
+      setError('Email ou mot de passe incorrect.')
+      return
+    }
+    router.push('/dashboard')
+    router.refresh()
   }
 
   return (
@@ -83,27 +92,47 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-[#1A1A2E] border border-[#534AB7]/30 rounded-2xl p-8">
-          {/* Tabs */}
-          <div className="flex bg-[#0D0D1A] rounded-xl p-1 mb-6">
-            <button
-              type="button"
-              onClick={() => switchMode('login')}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                mode === 'login' ? 'bg-[#534AB7] text-white' : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              Connexion
-            </button>
-            <button
-              type="button"
-              onClick={() => switchMode('signup')}
-              className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
-                mode === 'signup' ? 'bg-[#534AB7] text-white' : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              Créer un compte
-            </button>
-          </div>
+          {mode !== 'forgot' && (
+            <div className="flex bg-[#0D0D1A] rounded-xl p-1 mb-6">
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  mode === 'login' ? 'bg-[#534AB7] text-white' : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                Connexion
+              </button>
+              <button
+                type="button"
+                onClick={() => switchMode('signup')}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  mode === 'signup' ? 'bg-[#534AB7] text-white' : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                Créer un compte
+              </button>
+            </div>
+          )}
+
+          {mode === 'forgot' && (
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => switchMode('login')}
+                className="inline-flex items-center gap-2 text-gray-500 hover:text-white text-sm transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m7-7l-7 7 7 7" />
+                </svg>
+                Retour à la connexion
+              </button>
+              <h2 className="text-lg font-bold mt-4 mb-1">Mot de passe oublié</h2>
+              <p className="text-gray-400 text-sm">
+                Saisis ton email et on t'envoie un lien pour choisir un nouveau mot de passe.
+              </p>
+            </div>
+          )}
 
           {info ? (
             <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-5 text-center">
@@ -124,18 +153,22 @@ export default function LoginPage() {
                   className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors"
                 />
               </div>
-              <div>
-                <label className="text-gray-400 text-sm mb-1.5 block">Mot de passe</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={e => setPassword(e.target.value)}
-                  placeholder={mode === 'signup' ? 'Au moins 8 caractères' : '••••••••'}
-                  required
-                  autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                  className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors"
-                />
-              </div>
+
+              {mode !== 'forgot' && (
+                <div>
+                  <label className="text-gray-400 text-sm mb-1.5 block">Mot de passe</label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={e => setPassword(e.target.value)}
+                    placeholder={mode === 'signup' ? 'Au moins 8 caractères' : '••••••••'}
+                    required
+                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                    className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors"
+                  />
+                </div>
+              )}
+
               {mode === 'signup' && (
                 <div>
                   <label className="text-gray-400 text-sm mb-1.5 block">Confirmer le mot de passe</label>
@@ -162,17 +195,18 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 text-white rounded-xl py-3 font-medium transition-colors"
               >
-                {loading ? '…' : mode === 'login' ? 'Se connecter' : 'Créer le compte'}
+                {loading ? '…' : mode === 'login' ? 'Se connecter' : mode === 'signup' ? 'Créer le compte' : 'Envoyer le lien'}
               </button>
 
               {mode === 'login' && (
                 <div className="text-center">
-                  <Link
-                    href="/reset-password"
+                  <button
+                    type="button"
+                    onClick={() => switchMode('forgot')}
                     className="text-xs text-gray-500 hover:text-[#534AB7] transition-colors"
                   >
                     Mot de passe oublié ?
-                  </Link>
+                  </button>
                 </div>
               )}
             </form>
