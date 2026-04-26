@@ -29,10 +29,13 @@ export async function proxy(request: NextRequest) {
     // malformed or missing session cookie — treat as unauthenticated
   }
 
+  const { pathname } = request.nextUrl
   if (!user &&
-      !request.nextUrl.pathname.startsWith('/login') &&
-      !request.nextUrl.pathname.startsWith('/auth') &&
-      !request.nextUrl.pathname.startsWith('/onboarding')) {
+      !pathname.startsWith('/login') &&
+      !pathname.startsWith('/auth') &&
+      !pathname.startsWith('/onboarding') &&
+      !pathname.startsWith('/reset-password') &&
+      !pathname.startsWith('/update-password')) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
@@ -40,6 +43,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|.*\\.svg$|.*\\.png$|.*\\.ico$).*)'],
 }
 
