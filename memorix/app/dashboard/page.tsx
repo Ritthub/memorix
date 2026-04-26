@@ -34,14 +34,14 @@ export default async function DashboardPage() {
     supabase.from('profiles').select('name').eq('id', user.id).single(),
     supabase.from('card_reviews').select('reviewed_at').eq('user_id', user.id).not('reviewed_at', 'is', null).gte('reviewed_at', new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()),
     supabase.from('card_reviews').select('cards(deck_id)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
-    supabase.from('themes').select('*').eq('user_id', user.id).order('position').throwOnError().catch(() => ({ data: [] })),
+    supabase.from('themes').select('*').eq('user_id', user.id).order('position'),
   ])
 
   const dueCount = dueCards?.length || 0
   const deckCount = decks?.length || 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const firstName = (profile as any)?.name?.split(' ')[0] || ''
-  const streak = computeStreak((recentReviews || []).map(r => r.reviewed_at as string))
+  const streak = computeStreak((recentReviews || []).map((r: { reviewed_at: string | null }) => r.reviewed_at as string))
 
   const deckDueMap = new Map<string, number>()
   for (const r of deckDueCards || []) {
@@ -138,9 +138,9 @@ export default async function DashboardPage() {
               <div className="grid grid-cols-2 gap-4">
                 {decks
                   ?.slice()
-                  .sort((a, b) => (deckDueMap.get(b.id) || 0) - (deckDueMap.get(a.id) || 0))
+                  .sort((a: { id: string }, b: { id: string }) => (deckDueMap.get(b.id) || 0) - (deckDueMap.get(a.id) || 0))
                   .slice(0, 3)
-                  .map(deck => {
+                  .map((deck: { id: string }) => {
                     const due = deckDueMap.get(deck.id) || 0
                     return (
                       <Link key={deck.id} href={`/decks/${deck.id}`} className="relative bg-[#1A1A2E] rounded-2xl p-6 border border-[#534AB7]/20 hover:border-[#534AB7]/60 transition-colors">

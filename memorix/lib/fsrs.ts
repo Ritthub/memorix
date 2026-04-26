@@ -1,4 +1,4 @@
-import { createEmptyCard, fsrs, generatorParameters, Rating, State } from 'ts-fsrs'
+import { createEmptyCard, fsrs, generatorParameters, Grade, State } from 'ts-fsrs'
 import { CardReview, Rating as AppRating } from '@/types'
 
 interface ScheduleOptions {
@@ -35,7 +35,7 @@ export function scheduleCard(
     last_review: review.reviewed_at ? new Date(review.reviewed_at) : undefined,
   }
 
-  const fsrsRating = rating as unknown as Rating
+  const fsrsRating = rating as unknown as Grade
   const results = scheduler.repeat(card, new Date())
   const scheduled = results[fsrsRating].card
 

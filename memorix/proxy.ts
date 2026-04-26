@@ -21,7 +21,13 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  let user = null
+  try {
+    const { data } = await supabase.auth.getUser()
+    user = data.user
+  } catch {
+    // malformed or missing session cookie — treat as unauthenticated
+  }
 
   if (!user &&
       !request.nextUrl.pathname.startsWith('/login') &&
