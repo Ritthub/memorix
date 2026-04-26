@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { Theme, Deck } from '@/types'
 import {
-  DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent,
+  DndContext, DragEndEvent, DragOverlay, DragStartEvent,
   PointerSensor, TouchSensor, useSensor, useSensors, closestCenter, useDroppable,
 } from '@dnd-kit/core'
 import {
@@ -45,7 +45,8 @@ function DeckRow({
   const handleTouchStart = () => {
     timerRef.current = setTimeout(() => onOptionsClick(deck, null), 500)
   }
-  const handleTouchEnd = () => { if (timerRef.current) clearTimeout(timerRef.current) }
+  const handleTouchEnd = () => { if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null } }
+  const handleTouchMove = () => { if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null } }
 
   const handleMenuClick = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -71,6 +72,7 @@ function DeckRow({
       className="flex items-center gap-3 bg-[#1A1A2E] rounded-xl p-3 border border-[#534AB7]/20 hover:border-[#534AB7]/50 transition-colors group"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
+      onTouchMove={handleTouchMove}
       onContextMenu={e => { e.preventDefault(); onOptionsClick(deck, { x: e.clientX - 104, y: e.clientY }) }}
     >
       <button
@@ -184,9 +186,9 @@ function ThemeSection({
           <SortableContext items={deckIds} strategy={verticalListSortingStrategy}>
             <div
               ref={setNodeRef}
-              className={`space-y-1.5 min-h-[4px] rounded-xl transition-colors ${isSubTheme ? 'pl-3' : 'pl-4'} ${
+              className={`space-y-1.5 rounded-xl transition-colors ${isSubTheme ? 'pl-3' : 'pl-4'} ${
                 isOver ? 'bg-[#534AB7]/10 ring-1 ring-[#534AB7]/40' : ''
-              } ${isDragging && directDecks.length === 0 ? 'min-h-[44px]' : ''}`}
+              } ${directDecks.length === 0 ? 'min-h-[44px]' : 'min-h-[4px]'}`}
             >
               {directDecks.map(deck => (
                 <DeckRow key={deck.id} deck={deck} onOptionsClick={onOptionsClick} />
@@ -230,7 +232,8 @@ function KanbanCard({ deck, onOptionsClick }: { deck: DeckWithMeta; onOptionsCli
       {...listeners}
       className="bg-[#1A1A2E] rounded-xl p-3 border border-[#534AB7]/20 cursor-grab active:cursor-grabbing touch-none"
       onTouchStart={() => { timerRef.current = setTimeout(() => onOptionsClick(deck, null), 500) }}
-      onTouchEnd={() => { if (timerRef.current) clearTimeout(timerRef.current) }}
+      onTouchEnd={() => { if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null } }}
+      onTouchMove={() => { if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null } }}
     >
       <div className="flex items-center gap-2 mb-1">
         <span className="text-lg">{deck.icon || '📚'}</span>
@@ -363,22 +366,7 @@ export default function DecksLibrary({ initialThemes, initialDecks, userId }: Pr
     if (deck) setActiveDeck(deck)
   }
 
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event
-    if (!over) return
-    const activeId = active.id as string
-    const overId = over.id as string
-    if (activeId === overId) return
-    const activeDeckObj = decks.find(d => d.id === activeId)
-    if (!activeDeckObj) return
-    const targetThemeId = resolveThemeId(overId)
-    if (targetThemeId === undefined) return
-    if ((activeDeckObj.theme_id || null) !== targetThemeId) {
-      setDecks(prev => prev.map(d => d.id === activeId ? { ...d, theme_id: targetThemeId } : d))
-    }
-  }
-
-  const handleDragEnd = async (event: DragEndEvent) => {
+const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     setActiveDeck(null)
     if (!over) return
@@ -589,7 +577,6 @@ export default function DecksLibrary({ initialThemes, initialDecks, userId }: Pr
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
           onDragEnd={handleDragEnd}
         >
           {view === 'list' ? (

@@ -33,6 +33,13 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
+  // Change password
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [passwordSaving, setPasswordSaving] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSaved, setPasswordSaved] = useState(false)
+
   async function saveProfile() {
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
@@ -42,6 +49,20 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
     setSaving(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  async function savePassword() {
+    setPasswordError(null)
+    if (newPassword.length < 8) { setPasswordError('Au moins 8 caractères.'); return }
+    if (newPassword !== confirmPassword) { setPasswordError('Les mots de passe ne correspondent pas.'); return }
+    setPasswordSaving(true)
+    const { error } = await supabase.auth.updateUser({ password: newPassword })
+    setPasswordSaving(false)
+    if (error) { setPasswordError(error.message); return }
+    setNewPassword('')
+    setConfirmPassword('')
+    setPasswordSaved(true)
+    setTimeout(() => setPasswordSaved(false), 2000)
   }
 
   async function signOut() {
@@ -110,6 +131,45 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
                 ☀️ Clair
               </button>
             </div>
+          </div>
+        </section>
+
+        {/* Change password */}
+        <section className="bg-[#1A1A2E] rounded-2xl p-6 border border-[#534AB7]/20">
+          <h2 className="font-semibold mb-4 text-gray-300">Mot de passe</h2>
+          <div className="space-y-3">
+            <div>
+              <label className="text-gray-400 text-sm mb-1 block">Nouveau mot de passe</label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="Au moins 8 caractères"
+                autoComplete="new-password"
+                className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors text-sm"
+              />
+            </div>
+            <div>
+              <label className="text-gray-400 text-sm mb-1 block">Confirmer</label>
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors text-sm"
+              />
+            </div>
+            {passwordError && (
+              <p className="text-red-400 text-xs bg-red-500/10 rounded-xl px-4 py-2.5">{passwordError}</p>
+            )}
+            <button
+              onClick={savePassword}
+              disabled={passwordSaving || !newPassword}
+              className="bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 rounded-xl px-6 py-2.5 font-medium text-sm transition-colors"
+            >
+              {passwordSaved ? '✓ Mot de passe mis à jour' : passwordSaving ? 'Sauvegarde…' : 'Changer le mot de passe'}
+            </button>
           </div>
         </section>
 
