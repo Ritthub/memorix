@@ -21,6 +21,13 @@ export async function proxy(request: NextRequest) {
     }
   )
 
+  const { pathname } = request.nextUrl
+
+  // Serve static/public files without auth check
+  if (/\.(?:json|svg|png|ico|txt|xml|webmanifest)$/.test(pathname)) {
+    return supabaseResponse
+  }
+
   let user = null
   try {
     const { data } = await supabase.auth.getUser()
@@ -29,7 +36,6 @@ export async function proxy(request: NextRequest) {
     // malformed or missing session cookie — treat as unauthenticated
   }
 
-  const { pathname } = request.nextUrl
   if (!user &&
       !pathname.startsWith('/login') &&
       !pathname.startsWith('/auth') &&
@@ -43,6 +49,6 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|.*\\.svg$|.*\\.png$|.*\\.ico$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 }
 
