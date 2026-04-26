@@ -1,10 +1,9 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase'
+import { sendResetEmail } from './actions'
 
 export default function ResetPasswordPage() {
-  const supabase = createClient()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [sent, setSent] = useState(false)
@@ -14,12 +13,9 @@ export default function ResetPasswordPage() {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${siteUrl}/auth/callback?type=recovery`,
-    })
+    const { error } = await sendResetEmail(email)
     setLoading(false)
-    if (error) { setError(error.message); return }
+    if (error) { setError(error); return }
     setSent(true)
   }
 
