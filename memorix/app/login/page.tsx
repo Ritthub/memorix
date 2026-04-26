@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
+import { getAuthCallbackUrl } from './actions'
 
 type Mode = 'login' | 'signup'
 
@@ -40,10 +41,11 @@ export default function LoginPage() {
         return
       }
       setLoading(true)
+      const callbackUrl = await getAuthCallbackUrl()
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/auth/callback` },
+        options: { emailRedirectTo: callbackUrl },
       })
       setLoading(false)
       if (error) {
