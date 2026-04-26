@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const redirectUrl = type === 'recovery'
-      ? `${origin}/update-password`
+      ? `${origin}/reset-password`
       : `${origin}/`
 
     // Create the response first so we can attach Set-Cookie headers to it
