@@ -323,7 +323,7 @@ function CustomReviewInner() {
           </button>
           {flipped && (
             <div className="mt-4 bg-[#0F0F1F] rounded-3xl p-8 border border-[#334155] min-h-[180px] flex flex-col items-center justify-center gap-3">
-              <p className="text-lg text-center leading-relaxed">{card.answer}</p>
+              <p className="text-lg text-center leading-relaxed whitespace-pre-wrap">{card.answer}</p>
               {card.explanation && <p className="text-sm text-gray-500 text-center italic">{card.explanation}</p>}
             </div>
           )}

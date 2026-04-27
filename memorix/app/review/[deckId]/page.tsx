@@ -383,7 +383,7 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
               <div style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
                 className="absolute inset-0 bg-[#1E293B] rounded-[20px] border border-[#334155] p-8 flex flex-col items-center justify-center text-center">
                 <div className="text-[10px] text-[#475569] uppercase tracking-[0.04em] font-medium mb-6">Réponse</div>
-                <p className="text-2xl font-bold text-[#818CF8] leading-relaxed">{card.answer}</p>
+                <p className="text-2xl font-bold text-[#818CF8] leading-relaxed whitespace-pre-wrap">{card.answer}</p>
                 {card.explanation && <p className="text-[#94A3B8] text-sm mt-4">{card.explanation}</p>}
               </div>
             </div>
