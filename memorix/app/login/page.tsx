@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { getAuthCallbackUrl } from './actions'
 import { sendResetEmail } from '../reset-password/actions'
@@ -9,8 +9,10 @@ type Mode = 'login' | 'signup' | 'forgot'
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const linkExpired = searchParams.get('message') === 'link_expired'
   const supabase = createClient()
-  const [mode, setMode] = useState<Mode>('login')
+  const [mode, setMode] = useState<Mode>(linkExpired ? 'forgot' : 'login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
@@ -127,6 +129,11 @@ export default function LoginPage() {
                 </svg>
                 Retour à la connexion
               </button>
+              {linkExpired && (
+                <div className="mt-4 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 text-amber-300 text-sm">
+                  Votre lien a expiré. Demandez-en un nouveau ci-dessous.
+                </div>
+              )}
               <h2 className="text-lg font-bold mt-4 mb-1">Mot de passe oublié</h2>
               <p className="text-gray-400 text-sm">
                 Saisis ton email et on t'envoie un lien pour choisir un nouveau mot de passe.

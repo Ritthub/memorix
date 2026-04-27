@@ -6,6 +6,13 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const type = searchParams.get('type')
 
+  if (
+    searchParams.get('error') === 'access_denied' &&
+    searchParams.get('error_code') === 'otp_expired'
+  ) {
+    return NextResponse.redirect(`${origin}/login?message=link_expired`)
+  }
+
   if (code) {
     const redirectUrl = type === 'recovery'
       ? `${origin}/reset-password`
