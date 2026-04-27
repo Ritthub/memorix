@@ -64,16 +64,25 @@ function buildTree(themes: Theme[]): TreeNode[] {
   const map = new Map<string, TreeNode>()
   for (const t of themes) map.set(t.id, { ...t, children: [], depth: 0 })
   const roots: TreeNode[] = []
+
+  // First pass: build parent–child links only
   for (const t of themes) {
     const node = map.get(t.id)!
     if (t.parent_id && map.has(t.parent_id)) {
-      const parent = map.get(t.parent_id)!
-      node.depth = parent.depth + 1
-      parent.children.push(node)
+      map.get(t.parent_id)!.children.push(node)
     } else {
       roots.push(node)
     }
   }
+
+  // Second pass: BFS from roots so every depth is correct regardless of DB order
+  const queue: Array<{ node: TreeNode; depth: number }> = roots.map(n => ({ node: n, depth: 0 }))
+  while (queue.length) {
+    const { node, depth } = queue.shift()!
+    node.depth = depth
+    node.children.forEach(child => queue.push({ node: child, depth: depth + 1 }))
+  }
+
   const sort = (nodes: TreeNode[]): TreeNode[] => {
     nodes.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
     nodes.forEach(n => sort(n.children))
@@ -153,7 +162,7 @@ function DeckRow({ deck, depth }: { deck: DeckWithMeta; depth: number }) {
       )}
       <button
         onClick={e => onDeckOptions(deck, e.currentTarget as HTMLButtonElement)}
-        className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-gray-400 transition-opacity p-1 flex-shrink-0"
+        className="text-gray-600 hover:text-gray-400 transition-opacity p-1 flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
           <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
@@ -262,8 +271,8 @@ function ThemeNode({ node }: { node: TreeNode }) {
             </span>
           )}
 
-          {/* Hover actions */}
-          <div className="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 transition-opacity flex-shrink-0">
+          {/* Hover actions — always visible on mobile, hover-only on desktop */}
+          <div className="flex items-center gap-0.5 transition-opacity flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
             <Link
               href={`/review/theme/${node.id}`}
               onClick={e => e.stopPropagation()}
