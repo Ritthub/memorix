@@ -15,7 +15,7 @@ export default async function DecksPage() {
     { data: decks },
     { data: deckDueCards },
   ] = await Promise.all([
-    supabase.from('themes').select('*').eq('user_id', user.id).order('position'),
+    supabase.from('themes').select('id, name, color, position, parent_id').eq('user_id', user.id).order('position'),
     supabase
       .from('decks')
       .select('*, cards(count)')
