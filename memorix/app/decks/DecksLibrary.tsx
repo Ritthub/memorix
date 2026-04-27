@@ -417,15 +417,17 @@ const handleDragEnd = async (event: DragEndEvent) => {
   const handleCreateTheme = async () => {
     if (!newThemeName.trim()) return
     setCreateThemeError(null)
+    const insertPayload: Record<string, unknown> = {
+      user_id: userId,
+      name: newThemeName.trim(),
+      color: newThemeColor,
+      position: themes.length,
+    }
+    if (newThemeParent) insertPayload.parent_id = newThemeParent
+
     const { data, error } = await supabase
       .from('themes')
-      .insert({
-        user_id: userId,
-        name: newThemeName.trim(),
-        color: newThemeColor,
-        position: themes.length,
-        parent_id: newThemeParent || null,
-      })
+      .insert(insertPayload)
       .select()
       .single()
     if (error) {
