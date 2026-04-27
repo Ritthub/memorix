@@ -3,7 +3,6 @@ import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { getAuthCallbackUrl } from './actions'
-import { sendResetEmail } from '../reset-password/actions'
 
 type Mode = 'login' | 'signup' | 'forgot'
 
@@ -35,9 +34,12 @@ export default function LoginPage() {
 
     if (mode === 'forgot') {
       setLoading(true)
-      const { error } = await sendResetEmail(email)
+      const callbackUrl = await getAuthCallbackUrl()
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${callbackUrl}?type=recovery`,
+      })
       setLoading(false)
-      if (error) { setError(error); return }
+      if (error) { setError(error.message); return }
       setInfo('Un email de réinitialisation t\'a été envoyé. Clique sur le lien pour choisir un nouveau mot de passe.')
       return
     }
