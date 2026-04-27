@@ -85,10 +85,9 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
         // Free mode: all reviews for this deck, no date constraint, shuffle randomly
         const { data: allReviews } = await supabase
           .from('card_reviews')
-          .select('*, cards(*)')
+          .select('*, cards!inner(*)')
           .eq('user_id', user.id)
           .eq('cards.deck_id', p.deckId)
-          .not('cards', 'is', null)
 
         if (allReviews && allReviews.length > 0) {
           const rows = allReviews as DueRow[]
@@ -103,11 +102,10 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
         // Normal mode: only due cards
         const { data: dueReviews } = await supabase
           .from('card_reviews')
-          .select('*, cards(*)')
+          .select('*, cards!inner(*)')
           .eq('user_id', user.id)
           .lte('scheduled_at', new Date().toISOString())
           .eq('cards.deck_id', p.deckId)
-          .not('cards', 'is', null)
 
         if (dueReviews && dueReviews.length > 0) {
           const rows = dueReviews as DueRow[]

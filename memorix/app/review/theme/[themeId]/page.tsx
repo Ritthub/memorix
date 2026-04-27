@@ -78,10 +78,9 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
       if (isFreeMode) {
         const { data: allReviews } = await supabase
           .from('card_reviews')
-          .select('*, cards(*)')
+          .select('*, cards!inner(*)')
           .eq('user_id', user.id)
           .in('cards.deck_id', deckIds)
-          .not('cards', 'is', null)
 
         type DueRow = { cards: (Card & { deck_id: string }) | null } & CardReview
         const rows = (allReviews || []) as DueRow[]
@@ -93,11 +92,10 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
       } else {
         const { data: dueReviews } = await supabase
           .from('card_reviews')
-          .select('*, cards(*)')
+          .select('*, cards!inner(*)')
           .eq('user_id', user.id)
           .lte('scheduled_at', new Date().toISOString())
           .in('cards.deck_id', deckIds)
-          .not('cards', 'is', null)
 
         if (dueReviews && dueReviews.length > 0) {
           type DueRow = { cards: (Card & { deck_id: string }) | null } & CardReview

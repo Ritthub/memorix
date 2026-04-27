@@ -91,11 +91,10 @@ function CustomReviewInner() {
 
       const { data: dueReviews } = await supabase
         .from('card_reviews')
-        .select('*, cards(*)')
+        .select('*, cards!inner(*)')
         .eq('user_id', user.id)
         .lte('scheduled_at', new Date().toISOString())
         .in('cards.deck_id', deckIds)
-        .not('cards', 'is', null)
 
       if (dueReviews?.length) {
         type DueRow = { cards: (Card & { deck_id: string }) | null } & CardReview
