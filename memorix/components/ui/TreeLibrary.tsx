@@ -61,6 +61,7 @@ interface Ctx {
   onAddCard: (deckId: string, q: string, a: string) => Promise<void>
   onEditCard: (cardId: string, deckId: string, q: string, a: string) => Promise<void>
   onDeleteCard: (cardId: string, deckId: string) => Promise<void>
+  onToggleAllDecksInTheme: (node: TreeNode) => void
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -116,6 +117,12 @@ function flattenTree(nodes: TreeNode[]): Array<{ theme: Theme; depth: number }> 
   }
   nodes.forEach(walk)
   return result
+}
+
+function getDeckIdsInSubtree(node: TreeNode, decksMap: Map<string | null, DeckWithMeta[]>): string[] {
+  const ids: string[] = (decksMap.get(node.id) || []).map(d => d.id)
+  node.children.forEach(child => ids.push(...getDeckIdsInSubtree(child, decksMap)))
+  return ids
 }
 
 function isAncestor(themes: Theme[], ancestorId: string, descendantId: string): boolean {
@@ -446,7 +453,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
     decksMap, collapsed, editingId, editValue, deletingThemeId, colorPickerId,
     onToggle, onEditStart, onEditChange, onEditCommit, onEditCancel,
     onCreateChild, onDeleteThemeStart, onDeleteThemeCancel, onDeleteThemeConfirm,
-    onColorToggle, onColorChange,
+    onColorToggle, onColorChange, expandedDecks, onToggleAllDecksInTheme,
   } = useLib()
 
   const {
@@ -463,6 +470,8 @@ function ThemeNode({ node }: { node: TreeNode }) {
 
   const directDecks = decksMap.get(node.id) || []
   const due = subtreeDue(node, decksMap)
+  const subtreeDeckIds = getDeckIdsInSubtree(node, decksMap)
+  const allCardsExpanded = subtreeDeckIds.length > 0 && subtreeDeckIds.every(id => expandedDecks.has(id))
   const directDeckIds = directDecks.map(d => `deck:${d.id}`)
   const childThemeIds = node.children.map(c => `theme:${c.id}`)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -565,6 +574,19 @@ function ThemeNode({ node }: { node: TreeNode }) {
 
           {/* Hover actions */}
           <div className="flex items-center gap-0.5 transition-opacity flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+            {subtreeDeckIds.length > 0 && (
+              <button
+                onClick={() => onToggleAllDecksInTheme(node)}
+                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${allCardsExpanded ? 'text-[#818CF8]' : 'text-gray-600 hover:text-[#818CF8]'}`}
+                title={allCardsExpanded ? 'Masquer toutes les cartes' : 'Voir toutes les cartes'}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                  <rect x="3" y="3" width="8" height="5" rx="1"/><rect x="13" y="3" width="8" height="5" rx="1"/>
+                  <rect x="3" y="11" width="8" height="5" rx="1"/><rect x="13" y="11" width="8" height="5" rx="1"/>
+                  <rect x="3" y="19" width="18" height="2" rx="1"/>
+                </svg>
+              </button>
+            )}
             <Link
               href={`/review/theme/${node.id}`}
               onClick={e => e.stopPropagation()}
@@ -848,6 +870,21 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     await supabase.from('cards').delete().eq('id', cardId)
   }, [supabase])
 
+  const onToggleAllDecksInTheme = useCallback((node: TreeNode) => {
+    const allIds = getDeckIdsInSubtree(node, decksMap)
+    if (allIds.length === 0) return
+    const allExpanded = allIds.every(id => expandedDecks.has(id))
+    setExpandedDecks(prev => {
+      const next = new Set(prev)
+      if (allExpanded) allIds.forEach(id => next.delete(id))
+      else allIds.forEach(id => next.add(id))
+      return next
+    })
+    if (!allExpanded) {
+      allIds.forEach(id => { if (!deckCards.has(id)) loadDeckCards(id) })
+    }
+  }, [decksMap, expandedDecks, deckCards, loadDeckCards])
+
   // ── Create root theme ──────────────────────────────────────────────────────
 
   const handleCreateRootTheme = async () => {
@@ -981,7 +1018,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     onCreateChild, onDeleteThemeStart, onDeleteThemeCancel, onDeleteThemeConfirm,
     onColorToggle, onColorChange, onDeckOptions,
     userId, expandedDecks, deckCards, loadingDecks,
-    onToggleDeck, onAddCard, onEditCard, onDeleteCard,
+    onToggleDeck, onAddCard, onEditCard, onDeleteCard, onToggleAllDecksInTheme,
   }
 
   const unthemedDecks = decksMap.get(null) || []

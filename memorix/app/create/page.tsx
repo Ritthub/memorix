@@ -16,6 +16,7 @@ function CreatePageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const existingDeckId = searchParams.get('deckId')
+  const themeId = searchParams.get('themeId')
   const supabase = createClient()
 
   const [step, setStep] = useState<'deck' | 'cards'>(existingDeckId ? 'cards' : 'deck')
@@ -158,7 +159,7 @@ function CreatePageInner() {
 
     const { data: newDeck, error: deckError } = await supabase
       .from('decks')
-      .insert({ name: wikiDeckName || wikiTitle, description: 'Importé depuis Wikipedia', icon: '🌍', color: '#4338CA', user_id: user.id })
+      .insert({ name: wikiDeckName || wikiTitle, description: 'Importé depuis Wikipedia', icon: '🌍', color: '#4338CA', user_id: user.id, ...(themeId ? { theme_id: themeId } : {}) })
       .select()
       .single()
     if (deckError || !newDeck) { setLoading(false); return }
@@ -226,7 +227,7 @@ function CreatePageInner() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-    const { data, error } = await supabase.from('decks').insert({ ...deck, user_id: user.id }).select().single()
+    const { data, error } = await supabase.from('decks').insert({ ...deck, user_id: user.id, ...(themeId ? { theme_id: themeId } : {}) }).select().single()
     if (!error && data) { setDeckId(data.id); setStep('cards') }
     setLoading(false)
   }
