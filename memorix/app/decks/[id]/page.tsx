@@ -16,10 +16,10 @@ export default async function DeckPage({ params }: { params: { id: string } }) {
     .eq('id', id)
     .single()
 
-  // No archived filter — column may not exist yet. Filter client-side in DeckManager.
+  // Use * to avoid errors if archived/archived_at/auto_delete_at columns don't exist yet.
   const { data: allCards } = await supabase
     .from('cards')
-    .select('id, question, answer, explanation, theme, difficulty, created_by_ai, user_edited, archived, archived_at, auto_delete_at, card_reviews(id, state)')
+    .select('*, card_reviews(id, state)')
     .eq('deck_id', id)
     .order('created_at', { ascending: false })
 
