@@ -7,6 +7,17 @@ interface ScheduleOptions {
   successRate?: number
 }
 
+export interface ReviewHistoryItem {
+  rating: number
+  scheduled_days: number
+}
+
+export function shouldAutoEasy(history: ReviewHistoryItem[], currentScheduledDays: number): boolean {
+  if (history.length < 3) return false
+  const lastThree = history.slice(-3)
+  return lastThree.every(r => r.rating === 3) && currentScheduledDays > 14
+}
+
 export function scheduleCard(
   review: Partial<CardReview>,
   rating: AppRating,

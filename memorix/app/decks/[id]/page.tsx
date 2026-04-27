@@ -21,6 +21,7 @@ export default async function DeckPage({ params }: { params: { id: string } }) {
     .from('cards')
     .select('id, question, answer, explanation, theme, difficulty, created_by_ai, user_edited, card_reviews(id, state)')
     .eq('deck_id', id)
+    .eq('archived', false)
     .order('created_at', { ascending: false })
 
   const { data: dueReviews } = await supabase

@@ -12,7 +12,11 @@ type Card = {
   theme?: string
   difficulty: number
   created_by_ai: boolean
-  card_reviews?: any[]
+  user_edited: boolean
+  archived?: boolean
+  archived_at?: string | null
+  auto_delete_at?: string | null
+  card_reviews?: { id: string; state: string }[]
 }
 
 type Deck = {
@@ -48,6 +52,11 @@ export default function DeckManager({
   const [inlineSaved, setInlineSaved] = useState(false)
   const inlineQRef = useRef<HTMLTextAreaElement>(null)
   const inlineARef = useRef<HTMLTextAreaElement>(null)
+
+  // Archive section
+  const [showArchived, setShowArchived] = useState(false)
+  const [archivedCards, setArchivedCards] = useState<Card[]>([])
+  const [archivedLoading, setArchivedLoading] = useState(false)
 
   const allSelected = selected.size === cards.length && cards.length > 0
 
@@ -95,7 +104,6 @@ export default function DeckManager({
     const q = inlineQ.trim()
     const a = inlineA.trim()
 
-    // Optimistic update — add to top of list with temp id
     const tempId = `temp-${Date.now()}`
     setCards(prev => [{ id: tempId, question: q, answer: a, difficulty: 1, created_by_ai: false, user_edited: false }, ...prev])
     setInlineQ('')
@@ -119,6 +127,46 @@ export default function DeckManager({
         scheduled_at: new Date().toISOString(),
       })
     }
+  }
+
+  async function loadArchived() {
+    setArchivedLoading(true)
+    const { data } = await supabase
+      .from('cards')
+      .select('id, question, answer, explanation, theme, difficulty, created_by_ai, user_edited, archived, archived_at, auto_delete_at')
+      .eq('deck_id', deck.id)
+      .eq('archived', true)
+      .order('archived_at', { ascending: false })
+    setArchivedCards(data || [])
+    setArchivedLoading(false)
+  }
+
+  async function toggleArchivedSection() {
+    if (!showArchived && archivedCards.length === 0) {
+      await loadArchived()
+    }
+    setShowArchived(prev => !prev)
+  }
+
+  async function restoreCard(cardId: string) {
+    await supabase.from('cards').update({ archived: false, archived_at: null, auto_delete_at: null }).eq('id', cardId)
+    const restored = archivedCards.find(c => c.id === cardId)
+    if (restored) {
+      setArchivedCards(prev => prev.filter(c => c.id !== cardId))
+      setCards(prev => [{ ...restored, archived: false, archived_at: null, auto_delete_at: null }, ...prev])
+    }
+  }
+
+  async function deleteArchivedCard(cardId: string) {
+    if (!confirm('Supprimer définitivement cette carte ?')) return
+    await supabase.from('card_reviews').delete().eq('card_id', cardId)
+    await supabase.from('cards').delete().eq('id', cardId)
+    setArchivedCards(prev => prev.filter(c => c.id !== cardId))
+  }
+
+  function daysUntilDeletion(auto_delete_at: string | null | undefined): number | null {
+    if (!auto_delete_at) return null
+    return Math.ceil((new Date(auto_delete_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
   }
 
   const cardCount = cards.length
@@ -286,6 +334,77 @@ export default function DeckManager({
             </div>
           </div>
         </div>
+
+        {/* Section Archivées */}
+        <div className="mt-8">
+          <button
+            onClick={toggleArchivedSection}
+            className="flex items-center gap-2 text-sm text-[#64748B] hover:text-[#94A3B8] transition-colors w-full text-left"
+          >
+            <svg
+              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
+              className={`transition-transform ${showArchived ? 'rotate-90' : ''}`}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+            <span>
+              Archivées{archivedCards.length > 0 ? ` (${archivedCards.length})` : ''}
+              {archivedCards.length > 0 && (() => {
+                const soonest = archivedCards
+                  .map(c => daysUntilDeletion(c.auto_delete_at))
+                  .filter((d): d is number => d !== null)
+                  .sort((a, b) => a - b)[0]
+                return soonest !== undefined
+                  ? <span className="text-[#475569]"> · se suppriment dans {soonest} j</span>
+                  : null
+              })()}
+            </span>
+          </button>
+
+          {showArchived && (
+            <div className="mt-3 space-y-2">
+              {archivedLoading && (
+                <p className="text-gray-500 text-sm text-center py-4">Chargement…</p>
+              )}
+              {!archivedLoading && archivedCards.length === 0 && (
+                <p className="text-gray-500 text-sm text-center py-4">Aucune carte archivée</p>
+              )}
+              {archivedCards.map(card => {
+                const days = daysUntilDeletion(card.auto_delete_at)
+                return (
+                  <div key={card.id} className="opacity-50 bg-[#1E293B] rounded-xl p-4 border border-[#334155]">
+                    <div className="flex items-start gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm mb-0.5">{card.question}</p>
+                        <p className="text-[#818CF8] text-xs">{card.answer}</p>
+                        {days !== null && (
+                          <p className={`text-xs mt-1.5 ${days <= 7 ? 'text-red-400' : 'text-[#475569]'}`}>
+                            Suppression dans {days} jour{days > 1 ? 's' : ''}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex flex-col gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={() => restoreCard(card.id)}
+                          className="text-xs px-2.5 py-1 border border-[#334155] hover:border-[#818CF8] hover:text-[#818CF8] rounded-lg transition-colors text-gray-400"
+                        >
+                          Restaurer
+                        </button>
+                        <button
+                          onClick={() => deleteArchivedCard(card.id)}
+                          className="text-xs px-2.5 py-1 border border-red-900/40 hover:border-red-400 text-red-500 hover:text-red-400 rounded-lg transition-colors"
+                        >
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
       </div>
 
       {/* Modal édition */}

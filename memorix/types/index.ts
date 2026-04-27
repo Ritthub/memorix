@@ -47,6 +47,9 @@ export type Card = {
   user_edit_hint?: string
   created_at: string
   review?: CardReview
+  archived?: boolean
+  archived_at?: string | null
+  auto_delete_at?: string | null
 }
 
 export type CardReview = {
