@@ -79,26 +79,24 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      type DueRow = { cards: (Card & { deck_id: string }) | null } & CardReview
-
       if (isFreeMode) {
-        // Free mode: all reviews for this deck, no date constraint, shuffle randomly
-        const { data: allReviews } = await supabase
-          .from('card_reviews')
-          .select('*, cards!inner(*)')
-          .eq('user_id', user.id)
-          .eq('cards.deck_id', p.deckId)
+        // Free mode: load directly from cards table — avoids embedded-filter issues
+        type CardRow = Card & { deck_id: string; card_reviews: CardReview[] }
+        const { data: freeCards } = await supabase
+          .from('cards')
+          .select('*, card_reviews!inner(*)')
+          .eq('deck_id', p.deckId)
+          .eq('card_reviews.user_id', user.id)
 
-        if (allReviews && allReviews.length > 0) {
-          const rows = allReviews as DueRow[]
-          const cardsWithReviews = rows
-            .filter(r => r.cards && !r.cards.archived)
-            .map(r => ({ ...r.cards!, review: r as CardReview }))
-          // Shuffle randomly for free review
-          const shuffled = [...cardsWithReviews].sort(() => Math.random() - 0.5)
-          setCards(shuffled as Card[])
+        if (freeCards && freeCards.length > 0) {
+          const rows = freeCards as CardRow[]
+          const active = rows
+            .filter(c => !c.archived)
+            .map(({ card_reviews, ...c }) => ({ ...c, review: card_reviews[0] as CardReview })) as Card[]
+          setCards([...active].sort(() => Math.random() - 0.5))
         }
       } else {
+        type DueRow = { cards: (Card & { deck_id: string }) | null } & CardReview
         // Normal mode: only due cards
         const { data: dueReviews } = await supabase
           .from('card_reviews')
