@@ -327,7 +327,15 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
             )}
             <span className="text-[#64748B] text-sm">{current + 1} / {cards.length}</span>
           </div>
-          <div className="w-8" />
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('memorix:quickadd:open', { detail: { deckId, locked: true } }))}
+            className="w-8 h-8 flex items-center justify-center text-[#64748B] hover:text-[#818CF8] opacity-60 hover:opacity-100 transition-all rounded-lg hover:bg-white/5"
+            title="Ajouter une carte"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+          </button>
         </div>
         <div className="max-w-lg mx-auto mt-3">
           <div className="h-0.5 bg-[#334155] rounded-full overflow-hidden">

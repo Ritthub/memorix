@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
@@ -42,6 +42,13 @@ export default function DeckManager({
   const [deleting, setDeleting] = useState(false)
   const [saving, setSaving] = useState(false)
 
+  // Inline quick-add
+  const [inlineQ, setInlineQ] = useState('')
+  const [inlineA, setInlineA] = useState('')
+  const [inlineSaved, setInlineSaved] = useState(false)
+  const inlineQRef = useRef<HTMLTextAreaElement>(null)
+  const inlineARef = useRef<HTMLTextAreaElement>(null)
+
   const allSelected = selected.size === cards.length && cards.length > 0
 
   function toggleSelect(id: string) {
@@ -81,6 +88,37 @@ export default function DeckManager({
     setCards(cards.map(c => c.id === editingCard.id ? { ...c, ...editingCard } : c))
     setEditingCard(null)
     setSaving(false)
+  }
+
+  async function saveInline() {
+    if (!inlineQ.trim() || !inlineA.trim()) return
+    const q = inlineQ.trim()
+    const a = inlineA.trim()
+
+    // Optimistic update — add to top of list with temp id
+    const tempId = `temp-${Date.now()}`
+    setCards(prev => [{ id: tempId, question: q, answer: a, difficulty: 1, created_by_ai: false, user_edited: false }, ...prev])
+    setInlineQ('')
+    setInlineA('')
+    setInlineSaved(true)
+    setTimeout(() => setInlineSaved(false), 2000)
+    inlineQRef.current?.focus()
+
+    const { data: card } = await supabase
+      .from('cards')
+      .insert({ deck_id: deck.id, question: q, answer: a, difficulty: 1, created_by_ai: false, user_edited: false })
+      .select('id')
+      .single()
+
+    if (card) {
+      setCards(prev => prev.map(c => c.id === tempId ? { ...c, id: card.id } : c))
+      await supabase.from('card_reviews').insert({
+        card_id: card.id,
+        user_id: userId,
+        state: 'new',
+        scheduled_at: new Date().toISOString(),
+      })
+    }
   }
 
   const cardCount = cards.length
@@ -203,14 +241,51 @@ export default function DeckManager({
         </div>
 
         {cards.length === 0 && (
-          <div className="text-center py-16 text-gray-500">
+          <div className="text-center py-10 text-gray-500">
             <div className="text-4xl mb-4">📭</div>
             <p>Aucune carte dans ce deck</p>
-            <Link href={`/create?deckId=${deck.id}`} className="inline-block mt-4 text-[#4338CA] hover:text-[#818CF8] transition-colors">
-              + Ajouter des cartes
-            </Link>
           </div>
         )}
+
+        {/* Inline quick-add */}
+        <div className="mt-4 rounded-xl border-2 border-dashed border-[#334155] focus-within:border-solid focus-within:border-[#818CF8] transition-colors p-3">
+          <div className="flex flex-col sm:flex-row gap-2">
+            <textarea
+              ref={inlineQRef}
+              value={inlineQ}
+              onChange={e => setInlineQ(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Tab') { e.preventDefault(); inlineARef.current?.focus() }
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); saveInline() }
+              }}
+              placeholder="Question…"
+              rows={1}
+              className="flex-1 bg-transparent text-sm text-[#F1F5F9] placeholder-[#475569] outline-none resize-none"
+            />
+            <textarea
+              ref={inlineARef}
+              value={inlineA}
+              onChange={e => setInlineA(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveInline() }
+                if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); saveInline() }
+              }}
+              placeholder="Réponse…"
+              rows={1}
+              className="flex-1 bg-transparent text-sm text-[#818CF8] placeholder-[#475569] outline-none resize-none"
+            />
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {inlineSaved && <span className="text-green-400 text-xs">✓ Carte ajoutée</span>}
+              <button
+                onClick={saveInline}
+                disabled={!inlineQ.trim() || !inlineA.trim()}
+                className="w-7 h-7 flex items-center justify-center bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-lg text-white text-base leading-none transition-colors flex-shrink-0"
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Modal édition */}

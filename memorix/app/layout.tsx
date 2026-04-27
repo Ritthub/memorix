@@ -3,6 +3,7 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import MobileNav from '@/components/MobileNav'
 import ThemeProvider from '@/components/ThemeProvider'
+import QuickAdd from '@/components/ui/QuickAdd'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
@@ -40,6 +41,7 @@ export default function RootLayout({
         <ThemeProvider />
         {children}
         <MobileNav />
+        <QuickAdd />
       </body>
     </html>
   )
