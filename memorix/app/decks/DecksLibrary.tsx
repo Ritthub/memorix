@@ -168,19 +168,23 @@ function ThemeSection({
 
       {!collapsed && (
         <>
-          {/* Sub-themes (only for parent sections) */}
-          {!isSubTheme && subThemes && subThemes.map(sub => (
-            <ThemeSection
-              key={sub.id}
-              theme={sub}
-              directDecks={subThemeDecksMap?.get(sub.id) || []}
-              isSubTheme
-              collapsed={subCollapsed?.[sub.id] ?? false}
-              onToggle={() => onSubToggle?.(sub.id)}
-              onOptionsClick={onOptionsClick}
-              isDragging={isDragging}
-            />
-          ))}
+          {/* Sub-themes nested under parent, with a colored connecting line */}
+          {!isSubTheme && subThemes && subThemes.length > 0 && (
+            <div className="ml-3 border-l-2 pl-1 mt-1 mb-1" style={{ borderColor: `${color}40` }}>
+              {subThemes.map(sub => (
+                <ThemeSection
+                  key={sub.id}
+                  theme={sub}
+                  directDecks={subThemeDecksMap?.get(sub.id) || []}
+                  isSubTheme
+                  collapsed={subCollapsed?.[sub.id] ?? false}
+                  onToggle={() => onSubToggle?.(sub.id)}
+                  onOptionsClick={onOptionsClick}
+                  isDragging={isDragging}
+                />
+              ))}
+            </div>
+          )}
 
           {/* Decks in this theme (or sub-theme) */}
           <SortableContext items={deckIds} strategy={verticalListSortingStrategy}>
@@ -609,8 +613,16 @@ const handleDragEnd = async (event: DragEndEvent) => {
             </div>
           ) : (
             <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4">
-              {themes.map(theme => (
-                <KanbanColumn key={theme.id} theme={theme} decks={groupedDecks.get(theme.id) || []} onOptionsClick={openOptions} />
+              {parentThemes.map(theme => (
+                <KanbanColumn
+                  key={theme.id}
+                  theme={theme}
+                  decks={[
+                    ...(groupedDecks.get(theme.id) || []),
+                    ...subThemesByParent(theme.id).flatMap(sub => groupedDecks.get(sub.id) || []),
+                  ]}
+                  onOptionsClick={openOptions}
+                />
               ))}
               <KanbanColumn theme={null} decks={groupedDecks.get(null) || []} onOptionsClick={openOptions} />
             </div>
