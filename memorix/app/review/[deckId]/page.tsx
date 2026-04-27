@@ -66,6 +66,7 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
   const [showConfetti, setShowConfetti] = useState(false)
   const [failedCards, setFailedCards] = useState<Card[]>([])
   const [passNumber, setPassNumber] = useState(1)
+  const ratingHistoryRef = useRef<Map<string, number[]>>(new Map())
   // Swipe tracking
   const touchStartX = useRef<number | null>(null)
   const touchStartY = useRef<number | null>(null)
@@ -91,31 +92,39 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
           .filter(r => r.cards)
           .map(r => ({ ...r.cards, review: r }))
         setCards(buildSession(cardsWithReviews))
+
+        // Batch-load rating history for all session cards in one query
+        const cardIds = cardsWithReviews.map(c => c.id)
+        const { data: hist } = await supabase
+          .from('card_reviews')
+          .select('card_id, rating')
+          .eq('user_id', user.id)
+          .in('card_id', cardIds)
+          .not('reviewed_at', 'is', null)
+          .order('reviewed_at', { ascending: true })
+        const map = new Map<string, number[]>()
+        for (const h of hist || []) {
+          if (!map.has(h.card_id)) map.set(h.card_id, [])
+          map.get(h.card_id)!.push(h.rating || 0)
+        }
+        ratingHistoryRef.current = map
       }
       setLoading(false)
     }
     loadCards()
   }, [])
 
-  const handleRating = useCallback(async (rating: Rating) => {
+  const handleRating = useCallback((rating: Rating) => {
     if (saving) return
     setSaving(true)
 
     const card = cards[current]
     const review = card.review as CardReview
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
 
-    const { data: history } = await supabase
-      .from('card_reviews')
-      .select('rating')
-      .eq('card_id', card.id)
-      .eq('user_id', user.id)
-      .order('reviewed_at', { ascending: true })
-      .limit(10)
-
-    const successRate = history && history.length > 0
-      ? history.filter(r => (r.rating || 0) >= 2).length / history.length
+    // Use pre-loaded history — no DB round-trip
+    const history = ratingHistoryRef.current.get(card.id) || []
+    const successRate = history.length > 0
+      ? history.filter(r => r >= 2).length / history.length
       : 1.0
 
     const nextReview = scheduleCard(review, rating, 0.9, {
@@ -124,10 +133,12 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
       successRate,
     })
 
-    await supabase
+    // Fire DB update in background — UI doesn't wait
+    supabase
       .from('card_reviews')
       .update({ ...nextReview, reviewed_at: new Date().toISOString(), rating })
       .eq('id', review.id)
+      .then(({ error }) => { if (error) console.error('rating save failed:', error) })
 
     setStats(s => {
       const key = rating === 1 ? 'again' : rating === 2 ? 'hard' : rating === 3 ? 'good' : 'easy'
