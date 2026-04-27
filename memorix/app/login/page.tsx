@@ -1,12 +1,12 @@
 'use client'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { getAuthCallbackUrl } from './actions'
 
 type Mode = 'login' | 'signup' | 'forgot'
 
-export default function LoginPage() {
+function LoginInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const linkExpired = searchParams.get('message') === 'link_expired'
@@ -223,5 +223,13 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#0D0D1A]" />}>
+      <LoginInner />
+    </Suspense>
   )
 }
