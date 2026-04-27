@@ -77,7 +77,7 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
 
   if (dueCount === 0) {
     return (
-      <div className="bg-[#1A1A2E] rounded-2xl p-5 text-center mb-8 border border-[#534AB7]/10">
+      <div className="bg-[#1E293B] rounded-2xl p-5 text-center mb-8 border border-[#1E293B]">
         <p className="text-gray-400 text-sm">✅ Toutes les révisions du jour sont terminées</p>
       </div>
     )
@@ -88,7 +88,7 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
     return (
       <a
         href="/review"
-        className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#534AB7] to-[#7C6FCD] hover:from-[#3C3489] hover:to-[#534AB7] rounded-2xl p-5 font-bold mb-8 transition-all shadow-lg shadow-[#534AB7]/25 text-lg"
+        className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#4338CA] to-[#7C6FCD] hover:from-[#3730A3] hover:to-[#4338CA] rounded-2xl p-5 font-bold mb-8 transition-all shadow-lg shadow-[#4338CA]/25 text-lg"
       >
         <span className="text-2xl">⚡</span>
         <span>Réviser maintenant</span>
@@ -102,7 +102,7 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
       <div className="flex gap-3 mb-8">
         <a
           href="/review"
-          className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-[#534AB7] to-[#7C6FCD] hover:from-[#3C3489] hover:to-[#534AB7] rounded-2xl p-4 font-bold transition-all shadow-lg shadow-[#534AB7]/25"
+          className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-[#4338CA] to-[#7C6FCD] hover:from-[#3730A3] hover:to-[#4338CA] rounded-2xl p-4 font-bold transition-all shadow-lg shadow-[#4338CA]/25"
         >
           <span>⚡</span>
           <span>Tout réviser</span>
@@ -110,7 +110,7 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
         </a>
         <button
           onClick={() => setOpen(true)}
-          className="bg-[#1A1A2E] border border-[#534AB7]/40 hover:border-[#534AB7] rounded-2xl px-4 py-4 transition-colors"
+          className="bg-[#1E293B] border border-[#4338CA]/40 hover:border-[#4338CA] rounded-2xl px-4 py-4 transition-colors"
           title="Choisir les thèmes"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -122,11 +122,11 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setOpen(false)}>
           <div
-            className="bg-[#1A1A2E] rounded-t-3xl sm:rounded-2xl w-full max-w-sm border border-[#534AB7]/30 max-h-[85vh] flex flex-col"
+            className="bg-[#1E293B] rounded-t-3xl sm:rounded-2xl w-full max-w-sm border border-[#334155] max-h-[85vh] flex flex-col"
             onClick={e => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="px-6 pt-5 pb-4 border-b border-[#534AB7]/10 flex-shrink-0">
+            <div className="px-6 pt-5 pb-4 border-b border-[#1E293B] flex-shrink-0">
               <h2 className="text-lg font-bold">Choisir les thèmes</h2>
               <p className="text-gray-500 text-xs mt-0.5">Sélectionne ce que tu veux réviser</p>
             </div>
@@ -136,18 +136,18 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
               {/* All toggle */}
               <button
                 onClick={toggleAll}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[#534AB7]/10 transition-colors"
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[#312E81]/20 transition-colors"
               >
                 <span className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                  allSelected ? 'bg-[#534AB7] border-[#534AB7]' : 'border-gray-600'
+                  allSelected ? 'bg-[#4338CA] border-[#4338CA]' : 'border-gray-600'
                 }`}>
                   {allSelected && <svg width="12" height="12" viewBox="0 0 12 12" fill="white"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>}
                 </span>
                 <span className="font-semibold flex-1 text-sm text-left">Toutes les cartes</span>
-                <span className="text-xs text-gray-500 bg-[#534AB7]/20 rounded-full px-2 py-0.5">{dueCount}</span>
+                <span className="text-xs text-gray-500 bg-[#312E81]/30 rounded-full px-2 py-0.5">{dueCount}</span>
               </button>
 
-              <div className="border-t border-[#534AB7]/10 my-1" />
+              <div className="border-t border-[#1E293B] my-1" />
 
               {/* Parent themes */}
               {parentThemes.map(theme => {
@@ -163,10 +163,10 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
                     <div className="flex items-center">
                       <button
                         onClick={() => toggleParent(theme)}
-                        className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#534AB7]/10 transition-colors"
+                        className="flex-1 flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#312E81]/20 transition-colors"
                       >
                         <span className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                          allOn ? 'bg-[#534AB7] border-[#534AB7]' : someOn ? 'bg-[#534AB7]/40 border-[#534AB7]/40' : 'border-gray-600'
+                          allOn ? 'bg-[#4338CA] border-[#4338CA]' : someOn ? 'bg-[#4338CA]/40 border-[#4338CA]/40' : 'border-gray-600'
                         }`}>
                           {allOn && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                           {!allOn && someOn && <span className="w-2 h-2 bg-white rounded-sm" />}
@@ -198,10 +198,10 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
                         <button
                           key={sub.id}
                           onClick={() => toggle(sub.id)}
-                          className="w-full flex items-center gap-3 pl-8 pr-3 py-2 rounded-xl hover:bg-[#534AB7]/10 transition-colors"
+                          className="w-full flex items-center gap-3 pl-8 pr-3 py-2 rounded-xl hover:bg-[#312E81]/20 transition-colors"
                         >
                           <span className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                            selected.has(sub.id) ? 'bg-[#534AB7] border-[#534AB7]' : 'border-gray-600'
+                            selected.has(sub.id) ? 'bg-[#4338CA] border-[#4338CA]' : 'border-gray-600'
                           }`}>
                             {selected.has(sub.id) && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                           </span>
@@ -219,10 +219,10 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
               {noThemeDue > 0 && (
                 <button
                   onClick={() => toggle('none')}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#534AB7]/10 transition-colors"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[#312E81]/20 transition-colors"
                 >
                   <span className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    selected.has('none') ? 'bg-[#534AB7] border-[#534AB7]' : 'border-gray-600'
+                    selected.has('none') ? 'bg-[#4338CA] border-[#4338CA]' : 'border-gray-600'
                   }`}>
                     {selected.has('none') && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                   </span>
@@ -234,11 +234,11 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
             </div>
 
             {/* Footer */}
-            <div className="px-6 py-4 border-t border-[#534AB7]/10 flex-shrink-0">
+            <div className="px-6 py-4 border-t border-[#1E293B] flex-shrink-0">
               <button
                 onClick={handleStart}
                 disabled={selected.size === 0}
-                className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 rounded-xl py-3.5 font-bold transition-colors"
+                className="w-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-xl py-3.5 font-bold transition-colors"
               >
                 Réviser {selectedDue() > 0 ? `— ${selectedDue()} carte${selectedDue() > 1 ? 's' : ''}` : 'la sélection'}
               </button>

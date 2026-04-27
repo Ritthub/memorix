@@ -66,26 +66,26 @@ export default async function DashboardPage() {
   const safeThemes = (themes as any) || []
 
   return (
-    <div className="min-h-screen bg-[#0D0D1A] text-white">
-      <header className="border-b border-[#534AB7]/20 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#534AB7]">Memorix</h1>
+    <div className="min-h-screen bg-[#0F172A] text-[#F1F5F9]">
+      <header className="border-b border-[#1E293B] px-6 py-4 flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-[#818CF8]">Memorix</h1>
         <div className="flex items-center gap-3">
           {streak > 0 && (
-            <div className="flex items-center gap-1.5 bg-[#534AB7]/20 border border-[#534AB7]/40 rounded-full px-3 py-1">
+            <div className="flex items-center gap-1.5 bg-[#0E7490]/20 border border-[#06B6D4]/30 rounded-full px-3 py-1">
               <span>🔥</span>
-              <span className="text-[#AFA9EC] font-bold text-sm">{streak} j</span>
+              <span className="text-[#06B6D4] font-bold text-sm">{streak} j</span>
             </div>
           )}
-          <Link href="/settings" className="text-gray-400 hover:text-white transition-colors text-sm">Paramètres</Link>
+          <Link href="/settings" className="text-[#64748B] hover:text-[#F1F5F9] transition-colors text-sm">Paramètres</Link>
         </div>
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-8">
         <div className="mb-8">
-          <h2 className="text-3xl font-bold mb-1">
+          <h2 className="text-3xl font-semibold mb-1 text-[#F1F5F9]">
             Bonjour{firstName ? `, ${firstName}` : ''} 👋
           </h2>
-          <p className="text-gray-400">
+          <p className="text-[#94A3B8]">
             {dueCount > 0
               ? `Vous avez ${dueCount} carte${dueCount > 1 ? 's' : ''} à réviser aujourd'hui.`
               : 'Aucune carte à réviser pour le moment. Beau travail !'}
@@ -93,20 +93,20 @@ export default async function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-[#1A1A2E] rounded-2xl p-5 border border-[#534AB7]/20">
-            <div className="text-3xl font-bold text-[#534AB7]">{dueCount}</div>
-            <div className="text-gray-400 text-sm mt-1">Cartes dues</div>
+          <div className="bg-[#1E293B] rounded-2xl p-5 border border-[#334155]">
+            <div className="text-3xl font-bold text-[#818CF8]">{dueCount}</div>
+            <div className="text-[#94A3B8] text-sm mt-1">Cartes dues</div>
           </div>
-          <div className="bg-[#1A1A2E] rounded-2xl p-5 border border-[#534AB7]/20">
-            <div className="text-3xl font-bold text-[#534AB7]">{deckCount}</div>
-            <div className="text-gray-400 text-sm mt-1">Decks actifs</div>
+          <div className="bg-[#1E293B] rounded-2xl p-5 border border-[#334155]">
+            <div className="text-3xl font-bold text-[#818CF8]">{deckCount}</div>
+            <div className="text-[#94A3B8] text-sm mt-1">Decks actifs</div>
           </div>
-          <div className="bg-[#1A1A2E] rounded-2xl p-5 border border-[#534AB7]/40 bg-[#534AB7]/5">
+          <div className="bg-[#1E293B] rounded-2xl p-5 border border-[#4338CA]/40 bg-[#312E81]/20">
             <div className="flex items-center gap-2">
-              <span className="text-3xl font-bold text-[#534AB7]">{streak}</span>
+              <span className="text-3xl font-bold text-[#818CF8]">{streak}</span>
               <span className="text-2xl">🔥</span>
             </div>
-            <div className="text-gray-400 text-sm mt-1">Jours de suite</div>
+            <div className="text-[#94A3B8] text-sm mt-1">Jours de suite</div>
           </div>
         </div>
 
@@ -120,16 +120,16 @@ export default async function DashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-bold">À réviser en priorité</h3>
-            <Link href="/decks" className="text-[#534AB7] hover:text-[#AFA9EC] text-sm transition-colors">
+            <Link href="/decks" className="text-[#4338CA] hover:text-[#818CF8] text-sm transition-colors">
               Voir toute la bibliothèque →
             </Link>
           </div>
 
           {deckCount === 0 ? (
-            <div className="bg-[#1A1A2E] rounded-2xl p-10 text-center border border-[#534AB7]/20">
+            <div className="bg-[#1E293B] rounded-2xl p-10 text-center border border-[#334155]">
               <div className="text-4xl mb-4">📚</div>
               <p className="text-gray-400 mb-4">Vous n&apos;avez pas encore de deck</p>
-              <Link href="/create" className="inline-block bg-[#534AB7] hover:bg-[#3C3489] rounded-xl px-6 py-3 font-medium transition-colors">
+              <Link href="/create" className="inline-block bg-[#4338CA] hover:bg-[#3730A3] rounded-xl px-6 py-3 font-medium transition-colors">
                 Créer mon premier deck
               </Link>
             </div>
@@ -143,9 +143,9 @@ export default async function DashboardPage() {
                   .map((deck: { id: string }) => {
                     const due = deckDueMap.get(deck.id) || 0
                     return (
-                      <Link key={deck.id} href={`/decks/${deck.id}`} className="relative bg-[#1A1A2E] rounded-2xl p-6 border border-[#534AB7]/20 hover:border-[#534AB7]/60 transition-colors">
+                      <Link key={deck.id} href={`/decks/${deck.id}`} className="relative bg-[#1E293B] rounded-2xl p-6 border border-[#334155] hover:border-[#818CF8]/50 transition-all duration-150">
                         {due > 0 && (
-                          <span className="absolute top-3 right-3 bg-[#534AB7] text-white text-xs font-bold rounded-full px-2 py-0.5 leading-tight">
+                          <span className="absolute top-3 right-3 bg-[#312E81] text-[#C7D2FE] text-xs font-bold rounded-full px-2 py-0.5 leading-tight">
                             {due}
                           </span>
                         )}
@@ -161,7 +161,7 @@ export default async function DashboardPage() {
                     )
                   })}
               </div>
-              <Link href="/decks" className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-[#534AB7] transition-colors py-3">
+              <Link href="/decks" className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500 hover:text-[#4338CA] transition-colors py-3">
                 <span>Voir tous les {deckCount} decks</span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />

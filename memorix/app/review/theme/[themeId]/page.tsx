@@ -9,7 +9,7 @@ import { Card, CardReview, Rating } from '@/types'
 
 function Confetti({ active }: { active: boolean }) {
   const PIECES = 60
-  const colors = ['#534AB7', '#AFA9EC', '#7C6FCD', '#E879F9', '#34D399', '#FBBF24']
+  const colors = ['#4338CA', '#818CF8', '#7C6FCD', '#E879F9', '#34D399', '#FBBF24']
   const pieces = useRef(
     Array.from({ length: PIECES }, (_, i) => ({
       x: Math.random() * 100,
@@ -225,8 +225,8 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
   }, [])
 
   if (loading) return (
-    <div className="fixed inset-0 bg-[#0D0D1A] flex items-center justify-center">
-      <div className="text-[#534AB7] text-xl">Chargement...</div>
+    <div className="fixed inset-0 bg-[#0F172A] flex items-center justify-center">
+      <div className="text-[#4338CA] text-xl">Chargement...</div>
     </div>
   )
 
@@ -234,7 +234,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
     const msg = sessionMessage(stats)
     const total = stats.again + stats.hard + stats.good + stats.easy
     return (
-      <div className="min-h-screen bg-[#0D0D1A] text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
         <Confetti active={showConfetti} />
         <div className="max-w-md w-full text-center">
           <div className="text-7xl mb-4 animate-bounce-once">{msg.emoji}</div>
@@ -248,7 +248,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
               { label: 'Good', value: stats.good, color: 'text-green-400' },
               { label: 'Easy', value: stats.easy, color: 'text-blue-400' },
             ].map(s => (
-              <div key={s.label} className="bg-[#1A1A2E] rounded-xl p-4 border border-[#534AB7]/20">
+              <div key={s.label} className="bg-[#1E293B] rounded-xl p-4 border border-[#334155]">
                 <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
                 <div className="text-gray-400 text-xs mt-1">{s.label}</div>
               </div>
@@ -257,13 +257,13 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
           <div className="flex gap-4">
             <button
               onClick={() => router.push(`/themes/${themeId}`)}
-              className="flex-1 border border-[#534AB7]/30 hover:border-[#534AB7] rounded-xl py-3 text-gray-400 hover:text-white transition-colors"
+              className="flex-1 border border-[#334155] hover:border-[#4338CA] rounded-xl py-3 text-gray-400 hover:text-white transition-colors"
             >
               Voir le thème
             </button>
             <button
               onClick={() => router.push('/dashboard')}
-              className="flex-1 bg-[#534AB7] hover:bg-[#3C3489] rounded-xl py-3 font-medium transition-colors"
+              className="flex-1 bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-3 font-medium transition-colors"
             >
               Dashboard
             </button>
@@ -274,12 +274,12 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
   }
 
   if (cards.length === 0) return (
-    <div className="min-h-screen bg-[#0D0D1A] text-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
       <div className="text-center">
         <div className="text-4xl mb-4">✅</div>
         <h1 className="text-2xl font-bold mb-2">Rien à réviser !</h1>
         <p className="text-gray-400 mb-6">Toutes les cartes du thème sont à jour.</p>
-        <button onClick={() => router.push(`/themes/${themeId}`)} className="bg-[#534AB7] hover:bg-[#3C3489] rounded-xl px-6 py-3 transition-colors">
+        <button onClick={() => router.push(`/themes/${themeId}`)} className="bg-[#4338CA] hover:bg-[#3730A3] rounded-xl px-6 py-3 transition-colors">
           Retour au thème
         </button>
       </div>
@@ -291,17 +291,17 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
 
   return (
     <div
-      className="fixed inset-0 bg-[#0D0D1A] text-white flex flex-col select-none overflow-hidden"
+      className="fixed inset-0 bg-[#0F172A] text-white flex flex-col select-none overflow-hidden"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      <div className="px-6 py-4 border-b border-[#534AB7]/20">
+      <div className="px-6 py-4 border-b border-[#334155]">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <button onClick={() => router.push(`/themes/${themeId}`)} className="text-gray-400 hover:text-white transition-colors">✕</button>
           <div className="text-center">
             {passNumber > 1 && (
-              <div className="text-[#AFA9EC] text-xs font-semibold mb-0.5">
+              <div className="text-[#818CF8] text-xs font-semibold mb-0.5">
                 Passage {passNumber} — {cards.length} carte{cards.length > 1 ? 's' : ''} à retravailler
               </div>
             )}
@@ -310,8 +310,8 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
           <div className="w-8" />
         </div>
         <div className="max-w-lg mx-auto mt-3">
-          <div className="h-1 bg-[#1A1A2E] rounded-full overflow-hidden">
-            <div className="h-full bg-[#534AB7] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+          <div className="h-1 bg-[#1E293B] rounded-full overflow-hidden">
+            <div className="h-full bg-[#4338CA] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
         </div>
       </div>
@@ -331,9 +331,9 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
             className="w-full"
             disabled={flipped}
           >
-            <div className="bg-[#1A1A2E] rounded-3xl p-8 border border-[#534AB7]/30 min-h-[240px] flex flex-col items-center justify-center gap-4 shadow-xl shadow-[#534AB7]/10">
+            <div className="bg-[#1E293B] rounded-3xl p-8 border border-[#334155] min-h-[240px] flex flex-col items-center justify-center gap-4 shadow-xl shadow-[#4338CA]/10">
               {card.theme && (
-                <span className="text-xs text-[#AFA9EC] font-medium uppercase tracking-widest opacity-70">{card.theme}</span>
+                <span className="text-xs text-[#818CF8] font-medium uppercase tracking-widest opacity-70">{card.theme}</span>
               )}
               <p className="text-xl font-semibold text-center leading-relaxed">{card.question}</p>
               {!flipped && <p className="text-gray-600 text-sm mt-2">Appuyer pour révéler</p>}
@@ -341,7 +341,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
           </button>
 
           {flipped && (
-            <div className="mt-4 bg-[#0F0F1F] rounded-3xl p-8 border border-[#534AB7]/20 min-h-[180px] flex flex-col items-center justify-center gap-3">
+            <div className="mt-4 bg-[#0F0F1F] rounded-3xl p-8 border border-[#334155] min-h-[180px] flex flex-col items-center justify-center gap-3">
               <p className="text-lg text-center leading-relaxed">{card.answer}</p>
               {card.explanation && (
                 <p className="text-sm text-gray-500 text-center mt-2 italic">{card.explanation}</p>
@@ -352,7 +352,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
       </div>
 
       {flipped && (
-        <div className="px-6 py-4 border-t border-[#534AB7]/20">
+        <div className="px-6 py-4 border-t border-[#334155]">
           <div className="max-w-lg mx-auto grid grid-cols-4 gap-3">
             {[
               { label: 'Again', rating: 1 as Rating, color: 'bg-red-500/20 hover:bg-red-500/40 border-red-500/30 text-red-300' },
@@ -375,11 +375,11 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
       )}
 
       {!flipped && (
-        <div className="px-6 py-4 border-t border-[#534AB7]/20">
+        <div className="px-6 py-4 border-t border-[#334155]">
           <div className="max-w-lg mx-auto">
             <button
               onClick={() => setFlipped(true)}
-              className="w-full bg-[#534AB7] hover:bg-[#3C3489] rounded-2xl py-4 font-semibold transition-colors"
+              className="w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-2xl py-4 font-semibold transition-colors"
             >
               Révéler la réponse
             </button>

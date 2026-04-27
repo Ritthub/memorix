@@ -9,7 +9,7 @@ import { Card, CardReview, Rating } from '@/types'
 // Simple confetti burst
 function Confetti({ active }: { active: boolean }) {
   const PIECES = 60
-  const colors = ['#534AB7', '#AFA9EC', '#7C6FCD', '#E879F9', '#34D399', '#FBBF24']
+  const colors = ['#4338CA', '#818CF8', '#7C6FCD', '#E879F9', '#34D399', '#FBBF24']
   const pieces = useRef(
     Array.from({ length: PIECES }, (_, i) => ({
       x: Math.random() * 100,
@@ -234,8 +234,8 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
   }, [])
 
   if (loading) return (
-    <div className="fixed inset-0 bg-[#0D0D1A] flex items-center justify-center">
-      <div className="text-[#534AB7] text-xl">Chargement...</div>
+    <div className="fixed inset-0 bg-[#0F172A] flex items-center justify-center">
+      <div className="text-[#818CF8] text-xl">Chargement...</div>
     </div>
   )
 
@@ -243,7 +243,7 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
     const msg = sessionMessage(stats)
     const total = stats.again + stats.hard + stats.good + stats.easy
     return (
-      <div className="min-h-screen bg-[#0D0D1A] text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
         <Confetti active={showConfetti} />
         <div className="max-w-md w-full text-center">
           <div className="text-7xl mb-4 animate-bounce-once">{msg.emoji}</div>
@@ -253,14 +253,14 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
 
           <div className="grid grid-cols-4 gap-3 mb-8">
             {[
-              { label: 'Again', value: stats.again, color: 'text-red-400' },
-              { label: 'Hard', value: stats.hard, color: 'text-orange-400' },
-              { label: 'Good', value: stats.good, color: 'text-green-400' },
-              { label: 'Easy', value: stats.easy, color: 'text-blue-400' },
+              { label: 'Again', value: stats.again, bg: '#2D1515', text: '#FCA5A5', border: '#991B1B' },
+              { label: 'Hard',  value: stats.hard,  bg: '#1E293B', text: '#94A3B8', border: '#334155' },
+              { label: 'Good',  value: stats.good,  bg: '#0C4A6E', text: '#BAE6FD', border: '#0369A1' },
+              { label: 'Easy',  value: stats.easy,  bg: '#312E81', text: '#C7D2FE', border: '#4338CA' },
             ].map(s => (
-              <div key={s.label} className="bg-[#1A1A2E] rounded-xl p-4 border border-[#534AB7]/20">
-                <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-                <div className="text-gray-400 text-xs mt-1">{s.label}</div>
+              <div key={s.label} className="rounded-xl p-4 border" style={{ background: s.bg, borderColor: s.border }}>
+                <div className="text-2xl font-bold" style={{ color: s.text }}>{s.value}</div>
+                <div className="text-xs mt-1 opacity-70" style={{ color: s.text }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -268,13 +268,13 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
           <div className="flex gap-4">
             <button
               onClick={() => router.push(`/decks/${deckId}`)}
-              className="flex-1 border border-[#534AB7]/30 hover:border-[#534AB7] rounded-xl py-3 text-gray-400 hover:text-white transition-colors"
+              className="flex-1 border border-[#334155] hover:border-[#818CF8]/50 rounded-xl py-3 text-[#94A3B8] hover:text-[#F1F5F9] transition-all duration-150"
             >
               Voir le deck
             </button>
             <button
               onClick={() => router.push('/dashboard')}
-              className="flex-1 bg-[#534AB7] hover:bg-[#3C3489] rounded-xl py-3 font-medium transition-colors"
+              className="flex-1 bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-3 font-medium transition-all duration-150 text-[#E0E7FF]"
             >
               Dashboard
             </button>
@@ -285,14 +285,14 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
   }
 
   if (cards.length === 0) return (
-    <div className="min-h-screen bg-[#0D0D1A] text-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
       <div className="text-center">
         <div className="text-4xl mb-4">✅</div>
         <h1 className="text-2xl font-bold mb-2">Rien à réviser !</h1>
         <p className="text-gray-400 mb-6">Toutes les cartes sont à jour.</p>
         <button
           onClick={() => router.push('/dashboard')}
-          className="bg-[#534AB7] hover:bg-[#3C3489] rounded-xl px-6 py-3 transition-colors"
+          className="bg-[#4338CA] hover:bg-[#3730A3] rounded-xl px-6 py-3 transition-colors"
         >
           Retour au dashboard
         </button>
@@ -305,34 +305,34 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
 
   return (
     <div
-      className="fixed inset-0 bg-[#0D0D1A] text-white flex flex-col select-none overflow-hidden"
+      className="fixed inset-0 bg-[#0F172A] text-white flex flex-col select-none overflow-hidden"
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[#534AB7]/20">
+      <div className="px-6 py-4 border-b border-[#1E293B]">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <button
             onClick={() => router.push(`/decks/${deckId}`)}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-[#64748B] hover:text-[#F1F5F9] transition-colors"
           >
             ✕
           </button>
           <div className="text-center">
             {passNumber > 1 && (
-              <div className="text-[#AFA9EC] text-xs font-semibold mb-0.5">
+              <div className="text-[#818CF8] text-xs font-semibold mb-0.5">
                 Passage {passNumber} — {cards.length} carte{cards.length > 1 ? 's' : ''} à retravailler
               </div>
             )}
-            <span className="text-gray-400 text-sm">{current + 1} / {cards.length}</span>
+            <span className="text-[#64748B] text-sm">{current + 1} / {cards.length}</span>
           </div>
           <div className="w-8" />
         </div>
         <div className="max-w-lg mx-auto mt-3">
-          <div className="h-1 bg-[#1A1A2E] rounded-full overflow-hidden">
+          <div className="h-0.5 bg-[#334155] rounded-full overflow-hidden">
             <div
-              className="h-full bg-[#534AB7] rounded-full transition-all duration-500"
+              className="h-full bg-[#818CF8] rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -342,7 +342,7 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
       {/* Swipe hint overlay */}
       {swipeHint && flipped && (
         <div className={`fixed inset-0 pointer-events-none z-10 flex items-center ${swipeHint === 'left' ? 'justify-start pl-8' : 'justify-end pr-8'}`}>
-          <div className={`rounded-2xl px-4 py-2 text-sm font-bold ${swipeHint === 'left' ? 'bg-red-500/80 text-white' : 'bg-blue-500/80 text-white'}`}>
+          <div className={`rounded-2xl px-4 py-2 text-sm font-bold ${swipeHint === 'left' ? 'bg-[#2D1515] text-[#FCA5A5] border border-[#991B1B]' : 'bg-[#312E81] text-[#C7D2FE] border border-[#4338CA]'}`}>
             {swipeHint === 'left' ? '← Again' : 'Easy →'}
           </div>
         </div>
@@ -368,24 +368,24 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
               {/* Front */}
               <div
                 style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
-                className="absolute inset-0 bg-[#1A1A2E] rounded-2xl border border-[#534AB7]/20 p-8 flex flex-col items-center justify-center text-center"
+                className="absolute inset-0 bg-[#1E293B] rounded-[20px] border border-[#334155] p-8 flex flex-col items-center justify-center text-center"
               >
-                <div className="text-xs text-gray-500 uppercase tracking-widest mb-6">Question</div>
-                <p className="text-xl font-medium leading-relaxed">{card.question}</p>
+                <div className="text-[10px] text-[#475569] uppercase tracking-[0.04em] font-medium mb-6">Question</div>
+                <p className="text-[15px] font-medium leading-relaxed text-[#F1F5F9]">{card.question}</p>
                 {!flipped && (
-                  <p className="text-gray-600 text-sm mt-8">Appuyez · Espace · Glissez pour révéler</p>
+                  <p className="text-[#475569] text-sm mt-8">Appuyez · Espace · Glissez pour révéler</p>
                 )}
               </div>
 
               {/* Back */}
               <div
                 style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-                className="absolute inset-0 bg-[#1A1A2E] rounded-2xl border border-[#534AB7]/40 p-8 flex flex-col items-center justify-center text-center"
+                className="absolute inset-0 bg-[#1E293B] rounded-[20px] border border-[#334155] p-8 flex flex-col items-center justify-center text-center"
               >
-                <div className="text-xs text-gray-500 uppercase tracking-widest mb-6">Réponse</div>
-                <p className="text-2xl font-bold text-[#534AB7] leading-relaxed">{card.answer}</p>
+                <div className="text-[10px] text-[#475569] uppercase tracking-[0.04em] font-medium mb-6">Réponse</div>
+                <p className="text-2xl font-bold text-[#818CF8] leading-relaxed">{card.answer}</p>
                 {card.explanation && (
-                  <p className="text-gray-400 text-sm mt-4">{card.explanation}</p>
+                  <p className="text-[#94A3B8] text-sm mt-4">{card.explanation}</p>
                 )}
               </div>
             </div>
@@ -395,34 +395,34 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
 
       {/* Rating buttons */}
       {flipped && (
-        <div className="px-4 pb-4 pt-3 border-t border-[#534AB7]/20">
-          {/* Swipe hints — mobile only, above buttons */}
-          <div className="max-w-lg mx-auto flex justify-between text-xs text-gray-500 mb-2 sm:hidden">
+        <div className="px-4 pb-4 pt-3 border-t border-[#1E293B]">
+          {/* Swipe hints — mobile only */}
+          <div className="max-w-lg mx-auto flex justify-between text-xs text-[#475569] mb-2 sm:hidden">
             <span>← Again</span>
             <span>Easy →</span>
           </div>
           {/* 2×2 grid */}
-          <div className="max-w-lg mx-auto grid grid-cols-2 gap-3">
+          <div className="max-w-lg mx-auto grid grid-cols-2 gap-2.5">
             {[
-              { rating: 1 as Rating, label: 'Again', sub: 'Oublié', color: 'border-red-500/50 hover:bg-red-500/10 text-red-400' },
-              { rating: 2 as Rating, label: 'Hard', sub: 'Difficile', color: 'border-orange-500/50 hover:bg-orange-500/10 text-orange-400' },
-              { rating: 3 as Rating, label: 'Good', sub: 'Correct', color: 'border-green-500/50 hover:bg-green-500/10 text-green-400' },
-              { rating: 4 as Rating, label: 'Easy', sub: 'Facile', color: 'border-blue-500/50 hover:bg-blue-500/10 text-blue-400' },
-            ].map(({ rating, label, sub, color }) => (
+              { rating: 1 as Rating, label: 'Again', sub: 'Oublié',   bg: '#2D1515', text: '#FCA5A5', border: '#991B1B' },
+              { rating: 2 as Rating, label: 'Hard',  sub: 'Difficile', bg: '#1E293B', text: '#94A3B8', border: '#334155' },
+              { rating: 3 as Rating, label: 'Good',  sub: 'Correct',  bg: '#0C4A6E', text: '#BAE6FD', border: '#0369A1' },
+              { rating: 4 as Rating, label: 'Easy',  sub: 'Facile',   bg: '#312E81', text: '#C7D2FE', border: '#4338CA' },
+            ].map(({ rating, label, sub, bg, text, border }) => (
               <button
                 key={rating}
                 onClick={() => handleRating(rating)}
                 disabled={saving}
-                className={`border rounded-xl py-3 px-3 text-center transition-colors disabled:opacity-40 ${color}`}
+                style={{ backgroundColor: bg, color: text, borderColor: border }}
+                className="border rounded-[12px] py-3 px-3 text-center transition-all duration-150 disabled:opacity-40 hover:brightness-110"
               >
-                <div className="font-bold text-sm">{label}</div>
-                <div className="text-xs opacity-70 mt-0.5">{sub}</div>
-                <div className="text-[10px] opacity-30 font-mono mt-1 hidden sm:block">[{rating}]</div>
+                <div className="font-semibold text-sm">{label}</div>
+                <div className="text-xs opacity-75 mt-0.5">{sub}</div>
+                <div className="text-[10px] opacity-40 font-mono mt-1 hidden sm:block">[{rating}]</div>
               </button>
             ))}
           </div>
-          {/* Keyboard shortcuts — desktop only */}
-          <p className="text-center text-gray-600 text-xs mt-2 hidden sm:block">
+          <p className="text-center text-[#475569] text-xs mt-2 hidden sm:block">
             Espace = retourner · 1 Again · 2 Hard · 3 Good · 4 Easy
           </p>
         </div>

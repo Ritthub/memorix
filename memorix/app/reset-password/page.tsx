@@ -44,16 +44,16 @@ export default function ResetPasswordPage() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen bg-[#0D0D1A] flex items-center justify-center">
+      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
         <div className="text-gray-400">…</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0D0D1A] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-[#1A1A2E] border border-[#534AB7]/30 rounded-2xl p-8">
+        <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-8">
           <h1 className="text-xl font-bold mb-1">Nouveau mot de passe</h1>
           <p className="text-gray-400 text-sm mb-6">
             Choisis un nouveau mot de passe pour ton compte.
@@ -76,7 +76,7 @@ export default function ResetPasswordPage() {
                   required
                   autoFocus
                   autoComplete="new-password"
-                  className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors"
+                  className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors"
                 />
               </div>
               <div>
@@ -88,7 +88,7 @@ export default function ResetPasswordPage() {
                   placeholder="••••••••"
                   required
                   autoComplete="new-password"
-                  className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors"
+                  className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors"
                 />
               </div>
               {error && (
@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 text-white rounded-xl py-3 font-medium transition-colors"
+                className="w-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 text-white rounded-xl py-3 font-medium transition-colors"
               >
                 {loading ? '…' : 'Enregistrer le mot de passe'}
               </button>

@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from 'next'
+import { Inter } from 'next/font/google'
 import './globals.css'
 import MobileNav from '@/components/MobileNav'
 import ThemeProvider from '@/components/ThemeProvider'
+
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
   title: 'Memorix',
@@ -15,7 +18,7 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
-  themeColor: '#534AB7',
+  themeColor: '#4338CA',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -33,7 +36,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className="pb-16">
+      <body className={`${inter.variable} pb-16`}>
         <ThemeProvider />
         {children}
         <MobileNav />

@@ -33,12 +33,12 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0D0D1A] text-white flex flex-col items-center justify-center px-6">
+    <div className="min-h-screen bg-[#0F172A] text-white flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-md">
 
         {/* Logo */}
         <div className="text-center mb-10">
-          <h1 className="text-4xl font-bold text-[#534AB7] mb-1">Memorix</h1>
+          <h1 className="text-4xl font-semibold text-[#818CF8] mb-1">Memorix</h1>
           <p className="text-gray-500 text-sm">Votre mémoire, augmentée</p>
         </div>
 
@@ -46,7 +46,7 @@ export default function OnboardingPage() {
         <div className="flex items-center justify-center gap-2 mb-10">
           {[1, 2, 3].map(s => (
             <div key={s} className={`rounded-full transition-all duration-300 ${
-              s === step ? 'w-6 h-2 bg-[#534AB7]' : s < step ? 'w-2 h-2 bg-[#534AB7]/60' : 'w-2 h-2 bg-[#534AB7]/20'
+              s === step ? 'w-6 h-2 bg-[#4338CA]' : s < step ? 'w-2 h-2 bg-[#4338CA]/60' : 'w-2 h-2 bg-[#312E81]/30'
             }`} />
           ))}
         </div>
@@ -62,12 +62,12 @@ export default function OnboardingPage() {
               onKeyDown={e => e.key === 'Enter' && name.trim() && saveName()}
               placeholder="Votre prénom"
               autoFocus
-              className="w-full bg-[#1A1A2E] border border-[#534AB7]/30 rounded-xl px-4 py-4 text-white text-lg placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors mb-4"
+              className="w-full bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-4 text-white text-lg placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors mb-4"
             />
             <button
               onClick={saveName}
               disabled={!name.trim() || loading}
-              className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 rounded-xl py-4 font-medium text-lg transition-colors"
+              className="w-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-xl py-4 font-medium text-lg transition-colors"
             >
               {loading ? 'Enregistrement...' : 'Continuer →'}
             </button>
@@ -89,7 +89,7 @@ export default function OnboardingPage() {
                 <button
                   key={item.label}
                   onClick={() => setStep(3)}
-                  className="w-full flex items-center gap-4 bg-[#1A1A2E] hover:bg-[#534AB7]/10 border border-[#534AB7]/20 hover:border-[#534AB7]/60 rounded-xl px-4 py-4 text-left transition-colors"
+                  className="w-full flex items-center gap-4 bg-[#1E293B] hover:bg-[#312E81]/20 border border-[#334155] hover:border-[#818CF8]/50 rounded-xl px-4 py-4 text-left transition-colors"
                 >
                   <span className="text-2xl">{item.icon}</span>
                   <div>
@@ -111,18 +111,18 @@ export default function OnboardingPage() {
               <button
                 onClick={() => finish('import')}
                 disabled={loading}
-                className="w-full flex items-center gap-4 bg-[#534AB7] hover:bg-[#3C3489] rounded-xl px-4 py-5 text-left transition-colors"
+                className="w-full flex items-center gap-4 bg-[#4338CA] hover:bg-[#3730A3] rounded-xl px-4 py-5 text-left transition-colors"
               >
                 <span className="text-2xl">🤖</span>
                 <div>
                   <div className="font-medium text-lg">Générer avec Claude</div>
-                  <div className="text-[#AFA9EC] text-sm">Uploadez un PDF ou collez du texte</div>
+                  <div className="text-[#818CF8] text-sm">Uploadez un PDF ou collez du texte</div>
                 </div>
               </button>
               <button
                 onClick={() => finish('create')}
                 disabled={loading}
-                className="w-full flex items-center gap-4 bg-[#1A1A2E] hover:bg-[#534AB7]/10 border border-[#534AB7]/20 hover:border-[#534AB7]/60 rounded-xl px-4 py-5 text-left transition-colors"
+                className="w-full flex items-center gap-4 bg-[#1E293B] hover:bg-[#312E81]/20 border border-[#334155] hover:border-[#818CF8]/50 rounded-xl px-4 py-5 text-left transition-colors"
               >
                 <span className="text-2xl">✏️</span>
                 <div>

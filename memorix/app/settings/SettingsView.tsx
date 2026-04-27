@@ -71,14 +71,14 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
   }
 
   return (
-    <div className="min-h-screen bg-[#0D0D1A] text-white pb-24">
-      <header className="border-b border-[#534AB7]/20 px-6 py-4">
-        <h1 className="text-xl font-bold text-[#534AB7]">Paramètres</h1>
+    <div className="min-h-screen bg-[#0F172A] text-white pb-24">
+      <header className="border-b border-[#334155] px-6 py-4">
+        <h1 className="text-xl font-bold text-[#4338CA]">Paramètres</h1>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
         {/* Profile */}
-        <section className="bg-[#1A1A2E] rounded-2xl p-6 border border-[#534AB7]/20">
+        <section className="bg-[#1E293B] rounded-2xl p-6 border border-[#334155]">
           <h2 className="font-semibold mb-4 text-gray-300">Profil</h2>
           <div className="space-y-4">
             <div>
@@ -86,19 +86,19 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
               <input
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#534AB7] transition-colors"
+                className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#818CF8] transition-colors"
               />
             </div>
             <div>
               <label className="text-gray-400 text-sm block mb-1">Email</label>
-              <div className="bg-[#0D0D1A]/50 border border-[#534AB7]/10 rounded-xl px-4 py-2.5 text-gray-500 text-sm">
+              <div className="bg-[#0F172A]/50 border border-[#1E293B] rounded-xl px-4 py-2.5 text-gray-500 text-sm">
                 {email}
               </div>
             </div>
             <button
               onClick={saveProfile}
               disabled={saving || !name.trim()}
-              className="bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 rounded-xl px-6 py-2.5 font-medium text-sm transition-colors"
+              className="bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-xl px-6 py-2.5 font-medium text-sm transition-colors"
             >
               {saved ? '✓ Enregistré' : saving ? 'Sauvegarde...' : 'Enregistrer'}
             </button>
@@ -106,18 +106,18 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
         </section>
 
         {/* Appearance */}
-        <section className="bg-[#1A1A2E] rounded-2xl p-6 border border-[#534AB7]/20">
+        <section className="bg-[#1E293B] rounded-2xl p-6 border border-[#334155]">
           <h2 className="font-semibold mb-4 text-gray-300">Apparence</h2>
           <div className="flex items-center justify-between">
             <div>
               <div className="text-sm font-medium">Thème</div>
               <div className="text-xs text-gray-500 mt-0.5">Mode d'affichage de l'interface</div>
             </div>
-            <div className="flex bg-[#0D0D1A] rounded-xl p-1 gap-1">
+            <div className="flex bg-[#0F172A] rounded-xl p-1 gap-1">
               <button
                 onClick={() => setTheme('dark')}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  theme === 'dark' ? 'bg-[#534AB7] text-white' : 'text-gray-400 hover:text-gray-200'
+                  theme === 'dark' ? 'bg-[#4338CA] text-white' : 'text-gray-400 hover:text-gray-200'
                 }`}
               >
                 🌙 Sombre
@@ -125,7 +125,7 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
               <button
                 onClick={() => setTheme('light')}
                 className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  theme === 'light' ? 'bg-[#534AB7] text-white' : 'text-gray-400 hover:text-gray-200'
+                  theme === 'light' ? 'bg-[#4338CA] text-white' : 'text-gray-400 hover:text-gray-200'
                 }`}
               >
                 ☀️ Clair
@@ -135,7 +135,7 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
         </section>
 
         {/* Change password */}
-        <section className="bg-[#1A1A2E] rounded-2xl p-6 border border-[#534AB7]/20">
+        <section className="bg-[#1E293B] rounded-2xl p-6 border border-[#334155]">
           <h2 className="font-semibold mb-4 text-gray-300">Mot de passe</h2>
           <div className="space-y-3">
             <div>
@@ -146,7 +146,7 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
                 onChange={e => setNewPassword(e.target.value)}
                 placeholder="Au moins 8 caractères"
                 autoComplete="new-password"
-                className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors text-sm"
+                className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors text-sm"
               />
             </div>
             <div>
@@ -157,7 +157,7 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
                 onChange={e => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 autoComplete="new-password"
-                className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors text-sm"
+                className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors text-sm"
               />
             </div>
             {passwordError && (
@@ -166,7 +166,7 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
             <button
               onClick={savePassword}
               disabled={passwordSaving || !newPassword}
-              className="bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 rounded-xl px-6 py-2.5 font-medium text-sm transition-colors"
+              className="bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-xl px-6 py-2.5 font-medium text-sm transition-colors"
             >
               {passwordSaved ? '✓ Mot de passe mis à jour' : passwordSaving ? 'Sauvegarde…' : 'Changer le mot de passe'}
             </button>
@@ -174,7 +174,7 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
         </section>
 
         {/* Danger zone */}
-        <section className="bg-[#1A1A2E] rounded-2xl p-6 border border-red-500/20">
+        <section className="bg-[#1E293B] rounded-2xl p-6 border border-red-500/20">
           <h2 className="font-semibold mb-4 text-gray-300">Compte</h2>
           <button
             onClick={signOut}
