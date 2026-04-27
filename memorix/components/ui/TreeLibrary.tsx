@@ -10,10 +10,12 @@ import { createClient } from '@/lib/supabase'
 import { Theme, Deck } from '@/types'
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent,
-  PointerSensor, TouchSensor, useSensor, useSensors, closestCenter,
+  PointerSensor, TouchSensor, KeyboardSensor,
+  useSensor, useSensors, closestCenter,
 } from '@dnd-kit/core'
 import {
-  SortableContext, useSortable, verticalListSortingStrategy, arrayMove,
+  SortableContext, useSortable, verticalListSortingStrategy,
+  arrayMove, sortableKeyboardCoordinates,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
@@ -65,7 +67,6 @@ function buildTree(themes: Theme[]): TreeNode[] {
   for (const t of themes) map.set(t.id, { ...t, children: [], depth: 0 })
   const roots: TreeNode[] = []
 
-  // First pass: build parent–child links only
   for (const t of themes) {
     const node = map.get(t.id)!
     if (t.parent_id && map.has(t.parent_id)) {
@@ -75,7 +76,6 @@ function buildTree(themes: Theme[]): TreeNode[] {
     }
   }
 
-  // Second pass: BFS from roots so every depth is correct regardless of DB order
   const queue: Array<{ node: TreeNode; depth: number }> = roots.map(n => ({ node: n, depth: 0 }))
   while (queue.length) {
     const { node, depth } = queue.shift()!
@@ -132,7 +132,10 @@ function DeckRow({ deck, depth }: { deck: DeckWithMeta; depth: number }) {
   const { onDeckOptions } = useLib()
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging,
-  } = useSortable({ id: `deck:${deck.id}` })
+  } = useSortable({
+    id: `deck:${deck.id}`,
+    data: { type: 'deck', parentId: deck.theme_id || null },
+  })
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -193,7 +196,10 @@ function ThemeNode({ node }: { node: TreeNode }) {
 
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging,
-  } = useSortable({ id: `theme:${node.id}` })
+  } = useSortable({
+    id: `theme:${node.id}`,
+    data: { type: 'theme', parentId: node.parent_id || null },
+  })
 
   const isCollapsed = collapsed.has(node.id)
   const isEditing = editingId === node.id
@@ -202,7 +208,8 @@ function ThemeNode({ node }: { node: TreeNode }) {
 
   const directDecks = decksMap.get(node.id) || []
   const due = subtreeDue(node, decksMap)
-  const allDeckIds = directDecks.map(d => `deck:${d.id}`)
+  const directDeckIds = directDecks.map(d => `deck:${d.id}`)
+  const childThemeIds = node.children.map(c => `theme:${c.id}`)
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -301,7 +308,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
             </span>
           )}
 
-          {/* Hover actions — always visible on mobile, hover-only on desktop */}
+          {/* Hover actions */}
           <div className="flex items-center gap-0.5 transition-opacity flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
             <Link
               href={`/review/theme/${node.id}`}
@@ -351,12 +358,14 @@ function ThemeNode({ node }: { node: TreeNode }) {
       {/* Children (when expanded) */}
       {!isCollapsed && (
         <>
-          {/* Direct deck rows */}
-          <SortableContext items={allDeckIds} strategy={verticalListSortingStrategy}>
-            {directDecks.map(deck => (
-              <DeckRow key={deck.id} deck={deck} depth={node.depth + 1} />
-            ))}
-          </SortableContext>
+          {/* Direct deck rows — own SortableContext, no conflict with parent */}
+          {directDecks.length > 0 && (
+            <SortableContext items={directDeckIds} strategy={verticalListSortingStrategy}>
+              {directDecks.map(deck => (
+                <DeckRow key={deck.id} deck={deck} depth={node.depth + 1} />
+              ))}
+            </SortableContext>
+          )}
 
           {/* Add deck link */}
           <div style={{ paddingLeft: INDENT * (node.depth + 1) + 24 }}>
@@ -368,10 +377,14 @@ function ThemeNode({ node }: { node: TreeNode }) {
             </Link>
           </div>
 
-          {/* Child theme nodes */}
-          {node.children.map(child => (
-            <ThemeNode key={child.id} node={child} />
-          ))}
+          {/* Child theme nodes — own SortableContext */}
+          {node.children.length > 0 && (
+            <SortableContext items={childThemeIds} strategy={verticalListSortingStrategy}>
+              {node.children.map(child => (
+                <ThemeNode key={child.id} node={child} />
+              ))}
+            </SortableContext>
+          )}
         </>
       )}
     </>
@@ -395,7 +408,6 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
   const [activeDeck, setActiveDeck] = useState<DeckWithMeta | null>(null)
   const [activeTheme, setActiveTheme] = useState<Theme | null>(null)
 
-  // Deck-level actions
   const [optionsDeck, setOptionsDeck] = useState<DeckWithMeta | null>(null)
   const [optionsAnchor, setOptionsAnchor] = useState<MenuAnchor | null>(null)
   const [movingDeck, setMovingDeck] = useState<DeckWithMeta | null>(null)
@@ -419,14 +431,11 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     return map
   }, [filteredDecks, themes])
 
-  const allSortableIds = useMemo(
-    () => [...themes.map(t => `theme:${t.id}`), ...filteredDecks.map(d => `deck:${d.id}`)],
-    [themes, filteredDecks]
-  )
-
+  // Sensors: 8px distance for pointer, 250ms delay for touch, keyboard support
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   )
 
   // ── Theme actions ──────────────────────────────────────────────────────────
@@ -472,10 +481,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
       position: siblingCount,
       parent_id: parentId,
     }).select().single()
-    if (error) {
-      console.error('create sub-theme error:', error)
-      return
-    }
+    if (error) { console.error('create sub-theme error:', error); return }
     if (data) {
       setThemes(prev => [...prev, data as Theme])
       setCollapsed(prev => { const next = new Set(prev); next.delete(parentId); return next })
@@ -489,14 +495,12 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
 
   const onDeleteThemeConfirm = useCallback((id: string) => {
     setDeletingThemeId(null)
-    // Remove theme + all descendants
     const toDelete = new Set<string>()
     const queue = [id]
-    const allThemes = themes
     while (queue.length) {
       const curr = queue.pop()!
       toDelete.add(curr)
-      allThemes.filter(t => t.parent_id === curr).forEach(t => queue.push(t.id))
+      themes.filter(t => t.parent_id === curr).forEach(t => queue.push(t.id))
     }
     setThemes(prev => prev.filter(t => !toDelete.has(t.id)))
     supabase.from('themes').delete().eq('id', id)
@@ -549,87 +553,90 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
   }
 
   const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event
     setActiveDeck(null)
     setActiveTheme(null)
+    const { active, over } = event
     if (!over || active.id === over.id) return
 
-    const activeIdStr = active.id as string
-    const overIdStr = over.id as string
+    const activeId = active.id as string
+    const overId = over.id as string
+    const isActiveTheme = activeId.startsWith('theme:')
+    const isOverTheme = overId.startsWith('theme:')
+    const activeRawId = activeId.slice(isActiveTheme ? 6 : 5)
+    const overRawId = overId.slice(isOverTheme ? 6 : 5)
+
+    // parentId comes from data attached in useSortable({ data: { parentId } })
+    const activeParentId = (active.data.current?.parentId ?? null) as string | null
+    const overParentId = (over.data.current?.parentId ?? null) as string | null
 
     // ── Theme drag ───────────────────────────────────────────────────────────
-    if (activeIdStr.startsWith('theme:') && overIdStr.startsWith('theme:')) {
-      const activeThemeId = activeIdStr.slice(6)
-      const overThemeId = overIdStr.slice(6)
-      const activeThemeObj = themes.find(t => t.id === activeThemeId)
-      const overThemeObj = themes.find(t => t.id === overThemeId)
-      if (!activeThemeObj || !overThemeObj) return
-
+    if (isActiveTheme) {
+      // Themes can only land on other themes
+      if (!isOverTheme) return
       // Prevent moving a theme into its own descendant
-      if (isAncestor(themes, activeThemeId, overThemeId)) return
+      if (isAncestor(themes, activeRawId, overRawId)) return
 
-      const activeParent = activeThemeObj.parent_id || null
-      const overParent = overThemeObj.parent_id || null
-
-      if (activeParent !== overParent) {
-        // Cross-parent move: place at end of new parent's children
-        const newPosition = themes.filter(t => (t.parent_id || null) === overParent && t.id !== activeThemeId).length
-        setThemes(prev => prev.map(t => t.id === activeThemeId
-          ? { ...t, parent_id: overParent, position: newPosition }
-          : t
+      if (activeParentId === overParentId) {
+        // Same parent: reorder siblings
+        const siblings = themes
+          .filter(t => (t.parent_id || null) === activeParentId)
+          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        const oldIdx = siblings.findIndex(t => t.id === activeRawId)
+        const newIdx = siblings.findIndex(t => t.id === overRawId)
+        if (oldIdx === -1 || newIdx === -1) return
+        const reordered = arrayMove(siblings, oldIdx, newIdx)
+        setThemes(prev => {
+          const others = prev.filter(t => (t.parent_id || null) !== activeParentId)
+          return [...others, ...reordered.map((t, i) => ({ ...t, position: i }))]
+        })
+        await Promise.all(reordered.map((t, i) =>
+          supabase.from('themes').update({ position: i }).eq('id', t.id)
         ))
-        await supabase.from('themes').update({ parent_id: overParent, position: newPosition }).eq('id', activeThemeId)
-        return
+      } else {
+        // Cross-parent: adopt over's parent, insert at over's position
+        const targetParentId = overParentId
+        const targetSiblings = themes
+          .filter(t => (t.parent_id || null) === targetParentId && t.id !== activeRawId)
+          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        const overIdx = targetSiblings.findIndex(t => t.id === overRawId)
+        const newPosition = overIdx === -1 ? targetSiblings.length : overIdx
+        setThemes(prev => prev.map(t =>
+          t.id === activeRawId ? { ...t, parent_id: targetParentId, position: newPosition } : t
+        ))
+        await supabase.from('themes').update({ parent_id: targetParentId, position: newPosition }).eq('id', activeRawId)
       }
+      return
+    }
 
-      // Same-parent reorder
-      const siblings = themes
-        .filter(t => (t.parent_id || null) === activeParent)
-        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
-      const oldIdx = siblings.findIndex(t => t.id === activeThemeId)
-      const newIdx = siblings.findIndex(t => t.id === overThemeId)
+    // ── Deck drag ─────────────────────────────────────────────────────────────
+    if (isOverTheme) {
+      // Deck dropped on a theme header → move deck into that theme
+      setDecks(prev => prev.map(d => d.id === activeRawId ? { ...d, theme_id: overRawId } : d))
+      await supabase.from('decks').update({ theme_id: overRawId }).eq('id', activeRawId)
+      return
+    }
+
+    // Deck dropped on another deck
+    if (activeParentId === overParentId) {
+      // Same theme: reorder
+      const group = decks.filter(d => (d.theme_id || null) === activeParentId)
+      const oldIdx = group.findIndex(d => d.id === activeRawId)
+      const newIdx = group.findIndex(d => d.id === overRawId)
       if (oldIdx === -1 || newIdx === -1) return
-      const reordered = arrayMove(siblings, oldIdx, newIdx)
-      setThemes(prev => {
-        const others = prev.filter(t => (t.parent_id || null) !== activeParent)
-        return [...others, ...reordered.map((t, i) => ({ ...t, position: i }))]
-      })
-      await Promise.all(reordered.map((t, i) =>
-        supabase.from('themes').update({ position: i }).eq('id', t.id)
+      const reordered = arrayMove(group, oldIdx, newIdx)
+      setDecks(prev => [
+        ...prev.filter(d => (d.theme_id || null) !== activeParentId),
+        ...reordered,
+      ])
+      await Promise.all(reordered.map((d, i) =>
+        supabase.from('decks').update({ position: i }).eq('id', d.id)
       ))
-      return
+    } else {
+      // Different theme: move deck to over deck's theme
+      const newThemeId = overParentId
+      setDecks(prev => prev.map(d => d.id === activeRawId ? { ...d, theme_id: newThemeId } : d))
+      await supabase.from('decks').update({ theme_id: newThemeId }).eq('id', activeRawId)
     }
-
-    // ── Deck drag ────────────────────────────────────────────────────────────
-    if (!activeIdStr.startsWith('deck:') || !overIdStr.startsWith('deck:')) return
-
-    const activeId = activeIdStr.slice(5)
-    const overId = overIdStr.slice(5)
-    const activeDeckObj = decks.find(d => d.id === activeId)
-    const overDeckObj = decks.find(d => d.id === overId)
-    if (!activeDeckObj || !overDeckObj) return
-
-    const activeDeckTheme = activeDeckObj.theme_id || null
-    const overDeckTheme = overDeckObj.theme_id || null
-
-    if (activeDeckTheme !== overDeckTheme) {
-      setDecks(prev => prev.map(d => d.id === activeId ? { ...d, theme_id: overDeckTheme } : d))
-      await supabase.from('decks').update({ theme_id: overDeckTheme }).eq('id', activeId)
-      return
-    }
-
-    const group = decks.filter(d => (d.theme_id || null) === activeDeckTheme)
-    const oldIdx = group.findIndex(d => d.id === activeId)
-    const newIdx = group.findIndex(d => d.id === overId)
-    if (oldIdx === -1 || newIdx === -1) return
-    const reordered = arrayMove(group, oldIdx, newIdx)
-    setDecks(prev => [
-      ...prev.filter(d => (d.theme_id || null) !== activeDeckTheme),
-      ...reordered,
-    ])
-    await Promise.all(reordered.map((d, i) =>
-      supabase.from('decks').update({ position: i }).eq('id', d.id)
-    ))
   }
 
   // ── Deck actions ───────────────────────────────────────────────────────────
@@ -661,6 +668,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
 
   const unthemedDecks = decksMap.get(null) || []
   const unthemedIds = unthemedDecks.map(d => `deck:${d.id}`)
+  const rootThemeIds = tree.map(n => `theme:${n.id}`)
   const themeFlatList = useMemo(() => flattenTree(tree), [tree])
 
   return (
@@ -713,50 +721,52 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <SortableContext items={allSortableIds} strategy={verticalListSortingStrategy}>
-              {/* Theme tree */}
-              {tree.map(node => <ThemeNode key={node.id} node={node} />)}
+            {/* Root themes — their own SortableContext */}
+            {tree.length > 0 && (
+              <SortableContext items={rootThemeIds} strategy={verticalListSortingStrategy}>
+                {tree.map(node => <ThemeNode key={node.id} node={node} />)}
+              </SortableContext>
+            )}
 
-              {/* Empty state */}
-              {tree.length === 0 && unthemedDecks.length === 0 && !search && (
-                <div className="text-center py-16 text-gray-600">
-                  <p className="text-4xl mb-4">📚</p>
-                  <p className="text-sm">Aucun deck pour l&apos;instant.</p>
-                  <Link href="/create" className="inline-block mt-4 text-[#4338CA] hover:text-[#7B73D4] text-sm">
-                    Créer mon premier deck →
+            {/* Empty state */}
+            {tree.length === 0 && unthemedDecks.length === 0 && !search && (
+              <div className="text-center py-16 text-gray-600">
+                <p className="text-4xl mb-4">📚</p>
+                <p className="text-sm">Aucun deck pour l&apos;instant.</p>
+                <Link href="/create" className="inline-block mt-4 text-[#4338CA] hover:text-[#7B73D4] text-sm">
+                  Créer mon premier deck →
+                </Link>
+              </div>
+            )}
+
+            {/* Unthemed decks — own SortableContext, never conflicts with theme contexts */}
+            {unthemedDecks.length > 0 && (
+              <div className={tree.length > 0 ? 'mt-4 pt-3 border-t border-[#1E293B]' : ''}>
+                {tree.length > 0 && (
+                  <p className="text-xs text-gray-600 px-6 mb-1">Sans thème</p>
+                )}
+                <SortableContext items={unthemedIds} strategy={verticalListSortingStrategy}>
+                  {unthemedDecks.map(deck => (
+                    <DeckRow key={deck.id} deck={deck} depth={0} />
+                  ))}
+                </SortableContext>
+                <div style={{ paddingLeft: 24 }}>
+                  <Link href="/create" className="flex items-center gap-1 text-xs text-gray-700 hover:text-[#4338CA] py-0.5 transition-colors">
+                    + Ajouter un deck
                   </Link>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Unthemed decks */}
-              {unthemedDecks.length > 0 && (
-                <div className={tree.length > 0 ? 'mt-4 pt-3 border-t border-[#1E293B]' : ''}>
-                  {tree.length > 0 && (
-                    <p className="text-xs text-gray-600 px-6 mb-1">Sans thème</p>
-                  )}
-                  <SortableContext items={unthemedIds} strategy={verticalListSortingStrategy}>
-                    {unthemedDecks.map(deck => (
-                      <DeckRow key={deck.id} deck={deck} depth={0} />
-                    ))}
-                  </SortableContext>
-                  <div style={{ paddingLeft: 24 }}>
-                    <Link href="/create" className="flex items-center gap-1 text-xs text-gray-700 hover:text-[#4338CA] py-0.5 transition-colors">
-                      + Ajouter un deck
-                    </Link>
-                  </div>
-                </div>
-              )}
-            </SortableContext>
-
-            <DragOverlay>
+            <DragOverlay dropAnimation={{ duration: 180, easing: 'ease' }}>
               {activeDeck && (
-                <div className="bg-[#1E293B] rounded-xl px-3 py-2 border border-[#4338CA]/60 shadow-xl opacity-90 flex items-center gap-2">
+                <div className="bg-[#1E293B] rounded-xl px-3 py-2 border border-[#4338CA]/60 shadow-2xl opacity-90 flex items-center gap-2 cursor-grabbing">
                   <span>{activeDeck.icon || '📚'}</span>
                   <span className="text-sm font-medium">{activeDeck.name}</span>
                 </div>
               )}
               {activeTheme && (
-                <div className="bg-[#1E293B] rounded-xl px-3 py-2 border border-[#4338CA]/60 shadow-xl opacity-90 flex items-center gap-2">
+                <div className="bg-[#1E293B] rounded-xl px-3 py-2 border border-[#4338CA]/60 shadow-2xl opacity-90 flex items-center gap-2 cursor-grabbing">
                   <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: activeTheme.color }} />
                   <span className="text-sm font-semibold">{activeTheme.name}</span>
                 </div>
@@ -768,7 +778,6 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
         {/* ── Deck options ──────────────────────────────────────────────────── */}
         {optionsDeck && !movingDeck && !deletingDeck && optionsAnchor && (
           optionsAnchor.mobile ? (
-            /* Mobile: bottom sheet above nav bar */
             <div
               className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm"
               onClick={() => { setOptionsDeck(null); setOptionsAnchor(null) }}
@@ -799,7 +808,6 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
               </div>
             </div>
           ) : (
-            /* Desktop: positioned dropdown near button */
             <>
               <div
                 className="fixed inset-0 z-[55]"
