@@ -2,7 +2,7 @@
 
 import {
   useState, useCallback, useRef, useEffect,
-  createContext, useContext, useMemo,
+  createContext, useContext, useMemo, CSSProperties,
 } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -21,6 +21,7 @@ import { CSS } from '@dnd-kit/utilities'
 
 type DeckWithMeta = Deck & { card_count: number; due_count: number }
 type TreeNode = Theme & { children: TreeNode[]; depth: number }
+type MenuAnchor = { rect: DOMRect; mobile: boolean }
 
 export interface TreeLibraryProps {
   initialThemes: Theme[]
@@ -46,7 +47,7 @@ interface Ctx {
   onDeleteThemeConfirm: (id: string) => void
   onColorToggle: (id: string | null) => void
   onColorChange: (id: string, color: string) => void
-  onDeckOptions: (deck: DeckWithMeta) => void
+  onDeckOptions: (deck: DeckWithMeta, btn: HTMLButtonElement) => void
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -97,6 +98,16 @@ function flattenTree(nodes: TreeNode[]): Array<{ theme: Theme; depth: number }> 
   return result
 }
 
+function dropdownStyle(rect: DOMRect): CSSProperties {
+  const MENU_H = 220
+  const spaceBelow = window.innerHeight - rect.bottom
+  const s: CSSProperties = {}
+  if (spaceBelow < MENU_H + 8) s.bottom = window.innerHeight - rect.top + 4
+  else s.top = rect.bottom + 4
+  s.right = Math.max(window.innerWidth - rect.right, 8)
+  return s
+}
+
 // ── DeckRow ───────────────────────────────────────────────────────────────────
 
 function DeckRow({ deck, depth }: { deck: DeckWithMeta; depth: number }) {
@@ -141,7 +152,7 @@ function DeckRow({ deck, depth }: { deck: DeckWithMeta; depth: number }) {
         </span>
       )}
       <button
-        onClick={() => onDeckOptions(deck)}
+        onClick={e => onDeckOptions(deck, e.currentTarget as HTMLButtonElement)}
         className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-gray-400 transition-opacity p-1 flex-shrink-0"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -346,6 +357,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
 
   // Deck-level actions
   const [optionsDeck, setOptionsDeck] = useState<DeckWithMeta | null>(null)
+  const [optionsAnchor, setOptionsAnchor] = useState<MenuAnchor | null>(null)
   const [movingDeck, setMovingDeck] = useState<DeckWithMeta | null>(null)
   const [deletingDeck, setDeletingDeck] = useState<DeckWithMeta | null>(null)
 
@@ -462,7 +474,10 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
       .then(({ error }: any) => { if (error) console.error('color change error:', error) })
   }, [supabase])
 
-  const onDeckOptions = useCallback((deck: DeckWithMeta) => setOptionsDeck(deck), [])
+  const onDeckOptions = useCallback((deck: DeckWithMeta, btn: HTMLButtonElement) => {
+    setOptionsDeck(deck)
+    setOptionsAnchor({ rect: btn.getBoundingClientRect(), mobile: window.innerWidth < 640 })
+  }, [])
 
   // ── Create root theme ──────────────────────────────────────────────────────
 
@@ -531,6 +546,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     setDecks(prev => prev.filter(d => d.id !== deck.id))
     setDeletingDeck(null)
     setOptionsDeck(null)
+    setOptionsAnchor(null)
     await supabase.from('decks').delete().eq('id', deck.id)
   }
 
@@ -538,6 +554,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     setDecks(prev => prev.map(d => d.id === deck.id ? { ...d, theme_id: themeId } : d))
     setMovingDeck(null)
     setOptionsDeck(null)
+    setOptionsAnchor(null)
     await supabase.from('decks').update({ theme_id: themeId }).eq('id', deck.id)
   }
 
@@ -650,47 +667,83 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
           </DndContext>
         </main>
 
-        {/* ── Deck options sheet ─────────────────────────────────────────── */}
-        {optionsDeck && !movingDeck && !deletingDeck && (
-          <div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
-            onClick={() => setOptionsDeck(null)}
-          >
+        {/* ── Deck options ──────────────────────────────────────────────────── */}
+        {optionsDeck && !movingDeck && !deletingDeck && optionsAnchor && (
+          optionsAnchor.mobile ? (
+            /* Mobile: bottom sheet above nav bar */
             <div
-              className="bg-[#1E293B] rounded-t-3xl p-2 w-full max-w-sm border-t border-[#334155]"
-              onClick={e => e.stopPropagation()}
+              className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm"
+              onClick={() => { setOptionsDeck(null); setOptionsAnchor(null) }}
             >
-              <div className="flex items-center gap-3 px-4 py-3 border-b border-[#1E293B] mb-1">
-                <span className="text-2xl">{optionsDeck.icon || '📚'}</span>
-                <span className="font-semibold truncate">{optionsDeck.name}</span>
-              </div>
-              {[
-                { label: '⚡ Réviser maintenant', action: () => { router.push(`/review/${optionsDeck.id}`); setOptionsDeck(null) } },
-                { label: '➕ Ajouter des cartes', action: () => { router.push(`/create?deckId=${optionsDeck.id}`); setOptionsDeck(null) } },
-                { label: '🗂️ Déplacer vers un thème', action: () => setMovingDeck(optionsDeck) },
-              ].map(({ label, action }) => (
-                <button key={label} onClick={action} className="w-full text-left px-4 py-3 hover:bg-[#312E81]/20 rounded-xl text-sm">
-                  {label}
-                </button>
-              ))}
-              <button
-                onClick={() => setDeletingDeck(optionsDeck)}
-                className="w-full text-left px-4 py-3 hover:bg-red-500/10 rounded-xl text-sm text-red-400 mb-2"
+              <div
+                className="bg-[#1E293B] rounded-t-3xl p-2 w-full max-w-sm border-t border-[#334155] pb-20"
+                onClick={e => e.stopPropagation()}
               >
-                🗑️ Supprimer le deck
-              </button>
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-[#334155] mb-1">
+                  <span className="text-2xl">{optionsDeck.icon || '📚'}</span>
+                  <span className="font-semibold truncate">{optionsDeck.name}</span>
+                </div>
+                {[
+                  { label: '⚡ Réviser maintenant', action: () => { router.push(`/review/${optionsDeck.id}`); setOptionsDeck(null); setOptionsAnchor(null) } },
+                  { label: '➕ Ajouter des cartes', action: () => { router.push(`/create?deckId=${optionsDeck.id}`); setOptionsDeck(null); setOptionsAnchor(null) } },
+                  { label: '🗂️ Déplacer vers un thème', action: () => setMovingDeck(optionsDeck) },
+                ].map(({ label, action }) => (
+                  <button key={label} onClick={action} className="w-full text-left px-4 py-3 hover:bg-[#312E81]/20 rounded-xl text-sm">
+                    {label}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setDeletingDeck(optionsDeck)}
+                  className="w-full text-left px-4 py-3 hover:bg-red-500/10 rounded-xl text-sm text-red-400 mb-2"
+                >
+                  🗑️ Supprimer le deck
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Desktop: positioned dropdown near button */
+            <>
+              <div
+                className="fixed inset-0 z-[55]"
+                onClick={() => { setOptionsDeck(null); setOptionsAnchor(null) }}
+              />
+              <div
+                className="fixed z-[60] bg-[#1E293B] rounded-xl shadow-2xl border border-[#334155] w-56 overflow-hidden"
+                style={dropdownStyle(optionsAnchor.rect)}
+                onClick={e => e.stopPropagation()}
+              >
+                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[#334155]">
+                  <span className="text-lg">{optionsDeck.icon || '📚'}</span>
+                  <span className="font-medium text-sm truncate">{optionsDeck.name}</span>
+                </div>
+                {[
+                  { label: '⚡ Réviser maintenant', action: () => { router.push(`/review/${optionsDeck.id}`); setOptionsDeck(null); setOptionsAnchor(null) } },
+                  { label: '➕ Ajouter des cartes', action: () => { router.push(`/create?deckId=${optionsDeck.id}`); setOptionsDeck(null); setOptionsAnchor(null) } },
+                  { label: '🗂️ Déplacer vers un thème', action: () => setMovingDeck(optionsDeck) },
+                ].map(({ label, action }) => (
+                  <button key={label} onClick={action} className="w-full text-left px-3 py-2.5 hover:bg-[#312E81]/20 text-sm transition-colors">
+                    {label}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setDeletingDeck(optionsDeck)}
+                  className="w-full text-left px-3 py-2.5 hover:bg-red-500/10 text-sm text-red-400 transition-colors"
+                >
+                  🗑️ Supprimer le deck
+                </button>
+              </div>
+            </>
+          )
         )}
 
         {/* ── Move deck sheet ────────────────────────────────────────────── */}
         {movingDeck && (
           <div
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] flex items-end justify-center bg-black/60 backdrop-blur-sm"
             onClick={() => setMovingDeck(null)}
           >
             <div
-              className="bg-[#1E293B] rounded-t-3xl p-2 w-full max-w-sm border-t border-[#334155] max-h-[70vh] overflow-y-auto"
+              className="bg-[#1E293B] rounded-t-3xl p-2 w-full max-w-sm border-t border-[#334155] max-h-[70vh] overflow-y-auto pb-20"
               onClick={e => e.stopPropagation()}
             >
               <p className="px-4 py-3 text-sm font-semibold text-gray-400 border-b border-[#1E293B] mb-1 sticky top-0 bg-[#1E293B]">
@@ -720,7 +773,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
 
         {/* ── Delete deck confirmation ───────────────────────────────────── */}
         {deletingDeck && (
-          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
             <div className="bg-[#1E293B] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-red-500/30">
               <h2 className="text-lg font-bold mb-2">Supprimer &ldquo;{deletingDeck.name}&rdquo; ?</h2>
               <p className="text-gray-400 text-sm mb-5">
@@ -728,7 +781,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
               </p>
               <div className="flex gap-3">
                 <button
-                  onClick={() => { setDeletingDeck(null); setOptionsDeck(null) }}
+                  onClick={() => { setDeletingDeck(null); setOptionsDeck(null); setOptionsAnchor(null) }}
                   className="flex-1 border border-[#334155] rounded-xl py-2.5 text-sm hover:bg-[#312E81]/20"
                 >
                   Annuler
