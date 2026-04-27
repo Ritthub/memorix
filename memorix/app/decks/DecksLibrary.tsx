@@ -435,9 +435,11 @@ const handleDragEnd = async (event: DragEndEvent) => {
       .select()
       .single()
     if (error) {
-      setCreateThemeError(error.message.includes('does not exist')
-        ? 'Migration SQL non exécutée — ouvre le SQL editor Supabase et exécute supabase/migrations/20260425_themes.sql'
-        : error.message)
+      setCreateThemeError(
+        error.message.includes('parent_id') || error.message.includes('schema cache')
+          ? 'Migration manquante — exécute supabase/migrations/20260426_subthemes.sql dans le SQL Editor Supabase.'
+          : error.message
+      )
       return
     }
     if (data) {
