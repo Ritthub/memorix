@@ -61,12 +61,17 @@ interface Ctx {
   onAddCard: (deckId: string, q: string, a: string) => Promise<void>
   onEditCard: (cardId: string, deckId: string, q: string, a: string) => Promise<void>
   onDeleteCard: (cardId: string, deckId: string) => Promise<void>
+  onMoveCard: (cardId: string, fromDeckId: string, toDeckId: string) => Promise<void>
   onToggleAllDecksInTheme: (node: TreeNode) => void
+  onCreateDeck: (name: string, icon: string, themeId: string | null) => Promise<void>
+  allDecks: DeckWithMeta[]
+  themesById: Map<string, Theme>
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const COLORS = ['#4338CA', '#0D9488', '#E85D4A', '#F59E0B', '#3B82F6', '#22C55E', '#EC4899']
+const DECK_ICONS = ['📚', '💼', '🧠', '🌍', '⚖️', '💊', '🏛️', '🔬', '💰', '🎯', '🗣️', '✏️', '🎵', '🏋️', '🧪']
 const INDENT = 20
 
 const LibCtx = createContext<Ctx | null>(null)
@@ -147,12 +152,14 @@ function dropdownStyle(rect: DOMRect): CSSProperties {
 // ── DeckCardsList ─────────────────────────────────────────────────────────────
 
 function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
-  const { deckCards, loadingDecks, onAddCard, onEditCard, onDeleteCard } = useLib()
+  const { deckCards, loadingDecks, onAddCard, onEditCard, onDeleteCard, onMoveCard, allDecks, themesById } = useLib()
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editQ, setEditQ] = useState('')
   const [editA, setEditA] = useState('')
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [movingCardId, setMovingCardId] = useState<string | null>(null)
+  const [moveSearch, setMoveSearch] = useState('')
   const [newQ, setNewQ] = useState('')
   const [newA, setNewA] = useState('')
   const [savedFlash, setSavedFlash] = useState(false)
@@ -295,6 +302,15 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
                   ✏
                 </button>
                 <button
+                  onClick={() => { setMovingCardId(card.id); setMoveSearch('') }}
+                  className="w-5 h-5 flex items-center justify-center text-[#475569] hover:text-[#818CF8] rounded text-xs transition-colors"
+                  title="Déplacer vers un autre deck"
+                >
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/>
+                  </svg>
+                </button>
+                <button
                   onClick={() => startDelete(card.id)}
                   className="w-5 h-5 flex items-center justify-center text-[#475569] hover:text-red-400 rounded text-xs transition-colors"
                   title="Supprimer"
@@ -328,6 +344,60 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
           )}
         </div>
       ))}
+
+      {/* Move card sheet */}
+      {movingCardId && (
+        <div
+          className="fixed inset-0 z-[70] flex items-end justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setMovingCardId(null)}
+        >
+          <div
+            className="bg-[#1E293B] rounded-t-3xl p-2 w-full max-w-sm border-t border-[#334155] max-h-[65vh] flex flex-col pb-safe"
+            style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 20px)' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <p className="px-4 py-3 text-sm font-semibold text-gray-400 border-b border-[#334155] shrink-0">
+              Déplacer la carte vers…
+            </p>
+            <div className="px-3 py-2 shrink-0">
+              <input
+                autoFocus
+                value={moveSearch}
+                onChange={e => setMoveSearch(e.target.value)}
+                placeholder="Rechercher un deck…"
+                className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#4338CA]/60 placeholder-gray-600"
+              />
+            </div>
+            <div className="overflow-y-auto flex-1">
+              {allDecks
+                .filter(d => d.id !== deckId && d.name.toLowerCase().includes(moveSearch.toLowerCase()))
+                .map(d => {
+                  const themeName = d.theme_id ? themesById.get(d.theme_id)?.name : null
+                  return (
+                    <button
+                      key={d.id}
+                      onClick={async () => {
+                        const cid = movingCardId
+                        setMovingCardId(null)
+                        await onMoveCard(cid, deckId, d.id)
+                      }}
+                      className="w-full text-left px-4 py-2.5 hover:bg-[#312E81]/20 rounded-xl text-sm flex items-center gap-2"
+                    >
+                      <span className="text-lg flex-shrink-0">{d.icon || '📚'}</span>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">{d.name}</p>
+                        {themeName && <p className="text-xs text-gray-500 truncate">{themeName}</p>}
+                      </div>
+                    </button>
+                  )
+                })}
+              {allDecks.filter(d => d.id !== deckId && d.name.toLowerCase().includes(moveSearch.toLowerCase())).length === 0 && (
+                <p className="text-center text-xs text-gray-600 py-6">Aucun deck trouvé</p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Inline add form */}
       <div
@@ -366,6 +436,75 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
           +
         </button>
       </div>
+    </div>
+  )
+}
+
+// ── InlineDeckCreator ─────────────────────────────────────────────────────────
+
+function InlineDeckCreator({ themeId, pl, onDone }: { themeId: string | null; pl: number; onDone: () => void }) {
+  const { onCreateDeck } = useLib()
+  const [name, setName] = useState('')
+  const [icon, setIcon] = useState('📚')
+  const [showPicker, setShowPicker] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => { inputRef.current?.focus() }, [])
+
+  async function submit() {
+    if (!name.trim() || saving) return
+    setSaving(true)
+    await onCreateDeck(name.trim(), icon, themeId)
+    setName('')
+    setIcon('📚')
+    setSaving(false)
+    onDone()
+  }
+
+  return (
+    <div style={{ paddingLeft: pl }} className="flex items-center gap-1.5 py-1 pr-2 relative">
+      <div className="relative flex-shrink-0">
+        <button onClick={() => setShowPicker(v => !v)} className="text-base hover:scale-110 transition-transform leading-none">
+          {icon}
+        </button>
+        {showPicker && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} />
+            <div className="absolute left-0 top-7 z-50 bg-[#1E293B] border border-[#334155] rounded-xl p-2 flex flex-wrap gap-1 shadow-xl" style={{ maxWidth: 180 }}>
+              {DECK_ICONS.map(i => (
+                <button key={i} onClick={() => { setIcon(i); setShowPicker(false) }} className="text-base hover:scale-125 transition-transform p-0.5">{i}</button>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        value={name}
+        onChange={e => setName(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter') { e.preventDefault(); submit() }
+          if (e.key === 'Escape') { e.preventDefault(); onDone() }
+        }}
+        placeholder="Nom du deck…"
+        className="flex-1 bg-transparent text-sm text-[#94A3B8] placeholder-[#334155] outline-none border-b border-[#4338CA] py-0.5 min-w-0"
+      />
+      <button
+        onClick={submit}
+        disabled={!name.trim() || saving}
+        className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 text-white text-xs leading-none transition-colors"
+        title="Créer"
+      >
+        ↵
+      </button>
+      <button
+        onClick={onDone}
+        className="w-5 h-5 flex-shrink-0 flex items-center justify-center text-[#475569] hover:text-red-400 text-xs transition-colors"
+        title="Annuler"
+      >
+        ✕
+      </button>
     </div>
   )
 }
@@ -455,6 +594,8 @@ function ThemeNode({ node }: { node: TreeNode }) {
     onCreateChild, onDeleteThemeStart, onDeleteThemeCancel, onDeleteThemeConfirm,
     onColorToggle, onColorChange, expandedDecks, onToggleAllDecksInTheme,
   } = useLib()
+
+  const [creatingDeck, setCreatingDeck] = useState(false)
 
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging,
@@ -644,15 +785,23 @@ function ThemeNode({ node }: { node: TreeNode }) {
             </SortableContext>
           )}
 
-          {/* Add deck link */}
-          <div style={{ paddingLeft: INDENT * (node.depth + 1) + 24 }}>
-            <Link
-              href={`/create?themeId=${node.id}`}
-              className="flex items-center gap-1 text-xs text-gray-700 hover:text-[#4338CA] py-0.5 transition-colors"
-            >
-              + Ajouter un deck
-            </Link>
-          </div>
+          {/* Add deck inline */}
+          {creatingDeck ? (
+            <InlineDeckCreator
+              themeId={node.id}
+              pl={INDENT * (node.depth + 1) + 24}
+              onDone={() => setCreatingDeck(false)}
+            />
+          ) : (
+            <div style={{ paddingLeft: INDENT * (node.depth + 1) + 24 }}>
+              <button
+                onClick={() => setCreatingDeck(true)}
+                className="flex items-center gap-1 text-xs text-gray-700 hover:text-[#4338CA] py-0.5 transition-colors"
+              >
+                + Ajouter un deck
+              </button>
+            </div>
+          )}
 
           {/* Child theme nodes — own SortableContext */}
           {node.children.length > 0 && (
@@ -695,7 +844,10 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
   const [deckCards, setDeckCards] = useState<Map<string, CardItem[]>>(new Map())
   const [loadingDecks, setLoadingDecks] = useState<Set<string>>(new Set())
 
+  const [creatingNoThemeDeck, setCreatingNoThemeDeck] = useState(false)
+
   const tree = useMemo(() => buildTree(themes), [themes])
+  const themesById = useMemo(() => new Map(themes.map(t => [t.id, t])), [themes])
 
   const filteredDecks = search
     ? decks.filter(d => d.name.toLowerCase().includes(search.toLowerCase()))
@@ -870,6 +1022,33 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     await supabase.from('cards').delete().eq('id', cardId)
   }, [supabase])
 
+  const onCreateDeck = useCallback(async (name: string, icon: string, themeId: string | null) => {
+    const { data, error } = await supabase.from('decks').insert({
+      name, icon, color: '#4338CA', user_id: userId, theme_id: themeId,
+    }).select().single()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (error || !data) { console.error('create deck error:', error); return }
+    setDecks(prev => [...prev, { ...(data as Deck), card_count: 0, due_count: 0 } as DeckWithMeta])
+  }, [supabase, userId])
+
+  const onMoveCard = useCallback(async (cardId: string, fromDeckId: string, toDeckId: string) => {
+    const card = deckCards.get(fromDeckId)?.find(c => c.id === cardId)
+    setDeckCards(prev => {
+      const next = new Map(prev)
+      next.set(fromDeckId, (prev.get(fromDeckId) || []).filter(c => c.id !== cardId))
+      if (card && prev.has(toDeckId)) {
+        next.set(toDeckId, [card, ...(prev.get(toDeckId) || [])])
+      }
+      return next
+    })
+    setDecks(prev => prev.map(d => {
+      if (d.id === fromDeckId) return { ...d, card_count: Math.max(0, d.card_count - 1) }
+      if (d.id === toDeckId) return { ...d, card_count: d.card_count + 1 }
+      return d
+    }))
+    await supabase.from('cards').update({ deck_id: toDeckId }).eq('id', cardId)
+  }, [supabase, deckCards])
+
   const onToggleAllDecksInTheme = useCallback((node: TreeNode) => {
     const allIds = getDeckIdsInSubtree(node, decksMap)
     if (allIds.length === 0) return
@@ -1018,7 +1197,8 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     onCreateChild, onDeleteThemeStart, onDeleteThemeCancel, onDeleteThemeConfirm,
     onColorToggle, onColorChange, onDeckOptions,
     userId, expandedDecks, deckCards, loadingDecks,
-    onToggleDeck, onAddCard, onEditCard, onDeleteCard, onToggleAllDecksInTheme,
+    onToggleDeck, onAddCard, onEditCard, onDeleteCard, onMoveCard, onToggleAllDecksInTheme,
+    onCreateDeck, allDecks: decks, themesById,
   }
 
   const unthemedDecks = decksMap.get(null) || []
@@ -1105,11 +1285,18 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
                     <DeckRow key={deck.id} deck={deck} depth={0} />
                   ))}
                 </SortableContext>
-                <div style={{ paddingLeft: 24 }}>
-                  <Link href="/create" className="flex items-center gap-1 text-xs text-gray-700 hover:text-[#4338CA] py-0.5 transition-colors">
-                    + Ajouter un deck
-                  </Link>
-                </div>
+                {creatingNoThemeDeck ? (
+                  <InlineDeckCreator themeId={null} pl={24} onDone={() => setCreatingNoThemeDeck(false)} />
+                ) : (
+                  <div style={{ paddingLeft: 24 }}>
+                    <button
+                      onClick={() => setCreatingNoThemeDeck(true)}
+                      className="flex items-center gap-1 text-xs text-gray-700 hover:text-[#4338CA] py-0.5 transition-colors"
+                    >
+                      + Ajouter un deck
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
