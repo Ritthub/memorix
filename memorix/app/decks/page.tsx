@@ -1,7 +1,7 @@
 import { createServerSupabase } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import { Theme, Deck } from '@/types'
-import DecksLibrary from './DecksLibrary'
+import TreeLibrary from '@/components/ui/TreeLibrary'
 
 export const runtime = 'edge'
 
@@ -44,7 +44,7 @@ export default async function DecksPage() {
   }))
 
   return (
-    <DecksLibrary
+    <TreeLibrary
       initialThemes={(themes || []) as Theme[]}
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       initialDecks={decksWithDue as any}
