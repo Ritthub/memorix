@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { scheduleCard, shouldAutoEasy, ReviewHistoryItem } from '@/lib/fsrs'
 import { buildSession } from '@/lib/session-builder'
@@ -44,7 +44,10 @@ function sessionMessage(stats: { non: number; hesitation: number; oui: number; a
 
 export default function ReviewPage({ params }: { params: Promise<{ deckId: string }> }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isFreeMode = searchParams.get('mode') === 'free'
   const supabase = createClient()
+
   const [cards, setCards] = useState<Card[]>([])
   const [current, setCurrent] = useState(0)
   const [flipped, setFlipped] = useState(false)
@@ -76,36 +79,58 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: dueReviews } = await supabase
-        .from('card_reviews')
-        .select('*, cards(*)')
-        .eq('user_id', user.id)
-        .lte('scheduled_at', new Date().toISOString())
-        .eq('cards.deck_id', p.deckId)
-        .not('cards', 'is', null)
+      type DueRow = { cards: (Card & { deck_id: string }) | null } & CardReview
 
-      if (dueReviews && dueReviews.length > 0) {
-        type DueRow = { cards: (Card & { deck_id: string }) | null } & CardReview
-        const rows = dueReviews as DueRow[]
-        const cardsWithReviews = rows
-          .filter(r => r.cards && !r.cards.archived)
-          .map(r => ({ ...r.cards!, review: r as CardReview }))
-        setCards(buildSession(cardsWithReviews as Card[]))
-
-        const cardIds = cardsWithReviews.map(c => c.id)
-        const { data: hist } = await supabase
+      if (isFreeMode) {
+        // Free mode: all reviews for this deck, no date constraint, shuffle randomly
+        const { data: allReviews } = await supabase
           .from('card_reviews')
-          .select('card_id, rating, scheduled_days')
+          .select('*, cards(*)')
           .eq('user_id', user.id)
-          .in('card_id', cardIds)
-          .not('reviewed_at', 'is', null)
-          .order('reviewed_at', { ascending: true })
-        const map = new Map<string, ReviewHistoryItem[]>()
-        for (const h of hist || []) {
-          if (!map.has(h.card_id)) map.set(h.card_id, [])
-          map.get(h.card_id)!.push({ rating: h.rating || 0, scheduled_days: h.scheduled_days || 0 })
+          .eq('cards.deck_id', p.deckId)
+          .not('cards', 'is', null)
+
+        if (allReviews && allReviews.length > 0) {
+          const rows = allReviews as DueRow[]
+          const cardsWithReviews = rows
+            .filter(r => r.cards && !r.cards.archived)
+            .map(r => ({ ...r.cards!, review: r as CardReview }))
+          // Shuffle randomly for free review
+          const shuffled = [...cardsWithReviews].sort(() => Math.random() - 0.5)
+          setCards(shuffled as Card[])
         }
-        ratingHistoryRef.current = map
+      } else {
+        // Normal mode: only due cards
+        const { data: dueReviews } = await supabase
+          .from('card_reviews')
+          .select('*, cards(*)')
+          .eq('user_id', user.id)
+          .lte('scheduled_at', new Date().toISOString())
+          .eq('cards.deck_id', p.deckId)
+          .not('cards', 'is', null)
+
+        if (dueReviews && dueReviews.length > 0) {
+          const rows = dueReviews as DueRow[]
+          const cardsWithReviews = rows
+            .filter(r => r.cards && !r.cards.archived)
+            .map(r => ({ ...r.cards!, review: r as CardReview }))
+          setCards(buildSession(cardsWithReviews as Card[]))
+
+          const cardIds = cardsWithReviews.map(c => c.id)
+          const { data: hist } = await supabase
+            .from('card_reviews')
+            .select('card_id, rating, scheduled_days')
+            .eq('user_id', user.id)
+            .in('card_id', cardIds)
+            .not('reviewed_at', 'is', null)
+            .order('reviewed_at', { ascending: true })
+          const map = new Map<string, ReviewHistoryItem[]>()
+          for (const h of hist || []) {
+            if (!map.has(h.card_id)) map.set(h.card_id, [])
+            map.get(h.card_id)!.push({ rating: h.rating || 0, scheduled_days: h.scheduled_days || 0 })
+          }
+          ratingHistoryRef.current = map
+        }
       }
       setLoading(false)
     }
@@ -127,33 +152,47 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
 
     const card = cards[current]
     const review = card.review as CardReview
-
     const history = ratingHistoryRef.current.get(card.id) || []
     const successRate = history.length > 0
       ? history.filter(h => h.rating >= 2).length / history.length
       : 1.0
 
-    const isAutoEasy = userRating === 3 && shouldAutoEasy(history, review.scheduled_days || 0)
-    const fsrsRating = (isAutoEasy ? 4 : userRating) as Rating
+    if (isFreeMode) {
+      // Free mode: record rating only, FSRS intervals unchanged
+      supabase
+        .from('card_reviews')
+        .update({ rating: userRating, reviewed_at: new Date().toISOString() })
+        .eq('id', review.id)
+        .then((res: { error: unknown }) => { if (res.error) console.error('free rating save failed:', res.error) })
 
-    const nextReview = scheduleCard(review, fsrsRating, 0.9, {
-      userEdited: card.user_edited,
-      createdByAi: card.created_by_ai,
-      successRate,
-    })
+      setStats(s => {
+        if (userRating === 1) return { ...s, non: s.non + 1 }
+        if (userRating === 2) return { ...s, hesitation: s.hesitation + 1 }
+        return { ...s, oui: s.oui + 1 }
+      })
+    } else {
+      // Normal mode: full FSRS update
+      const isAutoEasy = userRating === 3 && shouldAutoEasy(history, review.scheduled_days || 0)
+      const fsrsRating = (isAutoEasy ? 4 : userRating) as Rating
 
-    supabase
-      .from('card_reviews')
-      .update({ ...nextReview, reviewed_at: new Date().toISOString(), rating: fsrsRating })
-      .eq('id', review.id)
-      .then((res: { error: unknown }) => { if (res.error) console.error('rating save failed:', res.error) })
+      const nextReview = scheduleCard(review, fsrsRating, 0.9, {
+        userEdited: card.user_edited,
+        createdByAi: card.created_by_ai,
+        successRate,
+      })
+      supabase
+        .from('card_reviews')
+        .update({ ...nextReview, reviewed_at: new Date().toISOString(), rating: fsrsRating })
+        .eq('id', review.id)
+        .then((res: { error: unknown }) => { if (res.error) console.error('rating save failed:', res.error) })
 
-    setStats(s => {
-      if (userRating === 1) return { ...s, non: s.non + 1 }
-      if (userRating === 2) return { ...s, hesitation: s.hesitation + 1 }
-      if (isAutoEasy) return { ...s, autoEasy: s.autoEasy + 1 }
-      return { ...s, oui: s.oui + 1 }
-    })
+      setStats(s => {
+        if (userRating === 1) return { ...s, non: s.non + 1 }
+        if (userRating === 2) return { ...s, hesitation: s.hesitation + 1 }
+        if (isAutoEasy) return { ...s, autoEasy: s.autoEasy + 1 }
+        return { ...s, oui: s.oui + 1 }
+      })
+    }
 
     const newFailed = userRating === 1 ? [...failedCards, card] : [...failedCards]
     const isLastCard = current + 1 >= cards.length
@@ -163,7 +202,8 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
         if (newFailed.length > 0) {
           setCards(newFailed); setCurrent(0); setFailedCards([]); setPassNumber(p => p + 1); setFlipped(false)
         } else {
-          setDone(true); setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3500)
+          setDone(true)
+          if (!isFreeMode) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3500) }
         }
       } else {
         if (userRating === 1) setFailedCards(newFailed)
@@ -172,7 +212,7 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
       }
       setSaving(false)
     }, 300)
-  }, [saving, cards, current, failedCards, supabase])
+  }, [saving, cards, current, failedCards, supabase, isFreeMode])
 
   function archiveCard() {
     const card = cards[current]
@@ -190,7 +230,8 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
     const newCards = cards.filter((_, i) => i !== current)
 
     if (newCards.length === 0) {
-      setDone(true); setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3500)
+      setDone(true)
+      if (!isFreeMode) { setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3500) }
     } else {
       setCards(newCards)
       if (current >= newCards.length) setCurrent(newCards.length - 1)
@@ -266,8 +307,37 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
   )
 
   if (done) {
-    const msg = sessionMessage(stats)
     const total = stats.non + stats.hesitation + stats.oui + stats.autoEasy
+    if (isFreeMode) {
+      return (
+        <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+          <div className="max-w-md w-full text-center">
+            <div className="text-7xl mb-4">🔄</div>
+            <h1 className="text-3xl font-bold mb-2">Session libre terminée !</h1>
+            <p className="text-[#94A3B8] mb-1">Vos intervalles de révision FSRS n&apos;ont pas été modifiés.</p>
+            <p className="text-gray-500 text-sm mb-6">{total} carte{total > 1 ? 's' : ''} révisée{total > 1 ? 's' : ''}</p>
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {[
+                { label: 'Non',        value: stats.non,        bg: '#2D1515', text: '#FCA5A5', border: '#991B1B' },
+                { label: 'Hésitation', value: stats.hesitation, bg: '#1C1F2E', text: '#818CF8', border: '#4338CA' },
+                { label: 'Oui',        value: stats.oui,        bg: '#0C2D1E', text: '#5DCAA5', border: '#0F6E56' },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl p-4 border" style={{ background: s.bg, borderColor: s.border }}>
+                  <div className="text-2xl font-bold" style={{ color: s.text }}>{s.value}</div>
+                  <div className="text-xs mt-1 opacity-70" style={{ color: s.text }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => router.push(`/decks/${deckId}`)}
+              className="w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-3 font-medium transition-all duration-150 text-[#E0E7FF]">
+              Retour au deck
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    const msg = sessionMessage(stats)
     return (
       <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
         <Confetti active={showConfetti} />
@@ -341,7 +411,18 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
                 Passage {passNumber} — {cards.length} carte{cards.length > 1 ? 's' : ''} à retravailler
               </div>
             )}
-            <span className="text-[#64748B] text-sm">{current + 1} / {cards.length}</span>
+            <div className="flex items-center gap-2 justify-center">
+              <span className="text-[#64748B] text-sm">{current + 1} / {cards.length}</span>
+              {isFreeMode && (
+                <span
+                  className="text-xs px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: '#854F0B', color: '#FAC775' }}
+                  title="Vos intervalles de révision ne sont pas modifiés"
+                >
+                  ∞ Mode libre
+                </span>
+              )}
+            </div>
           </div>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('memorix:quickadd:open', { detail: { deckId, locked: true } }))}

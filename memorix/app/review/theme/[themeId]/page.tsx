@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { scheduleCard, shouldAutoEasy, ReviewHistoryItem } from '@/lib/fsrs'
 import { buildSession } from '@/lib/session-builder'
@@ -38,6 +38,8 @@ function sessionMessage(stats: { non: number; hesitation: number; oui: number; a
 
 export default function ThemeReviewPage({ params }: { params: Promise<{ themeId: string }> }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isFreeMode = searchParams.get('mode') === 'free'
   const supabase = createClient()
   const [cards, setCards] = useState<Card[]>([])
   const [current, setCurrent] = useState(0)
@@ -73,41 +75,58 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
       const deckIds = (themeDecks || []).map((d: { id: string }) => d.id)
       if (deckIds.length === 0) { setLoading(false); return }
 
-      const { data: dueReviews } = await supabase
-        .from('card_reviews')
-        .select('*, cards(*)')
-        .eq('user_id', user.id)
-        .lte('scheduled_at', new Date().toISOString())
-        .in('cards.deck_id', deckIds)
-        .not('cards', 'is', null)
+      if (isFreeMode) {
+        const { data: allReviews } = await supabase
+          .from('card_reviews')
+          .select('*, cards(*)')
+          .eq('user_id', user.id)
+          .in('cards.deck_id', deckIds)
+          .not('cards', 'is', null)
 
-      if (dueReviews && dueReviews.length > 0) {
         type DueRow = { cards: (Card & { deck_id: string }) | null } & CardReview
-        const rows = dueReviews as DueRow[]
+        const rows = (allReviews || []) as DueRow[]
         const cardsWithReviews = rows
           .filter(r => r.cards && deckIds.includes(r.cards.deck_id) && !r.cards.archived)
           .map(r => ({ ...r.cards!, review: r as CardReview }))
-        setCards(buildSession(cardsWithReviews as Card[]))
-
-        const cardIds = cardsWithReviews.map(c => c.id)
-        const { data: hist } = await supabase
+        const shuffled = [...cardsWithReviews].sort(() => Math.random() - 0.5)
+        setCards(shuffled as Card[])
+      } else {
+        const { data: dueReviews } = await supabase
           .from('card_reviews')
-          .select('card_id, rating, scheduled_days')
+          .select('*, cards(*)')
           .eq('user_id', user.id)
-          .in('card_id', cardIds)
-          .not('reviewed_at', 'is', null)
-          .order('reviewed_at', { ascending: true })
-        const map = new Map<string, ReviewHistoryItem[]>()
-        for (const h of hist || []) {
-          if (!map.has(h.card_id)) map.set(h.card_id, [])
-          map.get(h.card_id)!.push({ rating: h.rating || 0, scheduled_days: h.scheduled_days || 0 })
+          .lte('scheduled_at', new Date().toISOString())
+          .in('cards.deck_id', deckIds)
+          .not('cards', 'is', null)
+
+        if (dueReviews && dueReviews.length > 0) {
+          type DueRow = { cards: (Card & { deck_id: string }) | null } & CardReview
+          const rows = dueReviews as DueRow[]
+          const cardsWithReviews = rows
+            .filter(r => r.cards && deckIds.includes(r.cards.deck_id) && !r.cards.archived)
+            .map(r => ({ ...r.cards!, review: r as CardReview }))
+          setCards(buildSession(cardsWithReviews as Card[]))
+
+          const cardIds = cardsWithReviews.map(c => c.id)
+          const { data: hist } = await supabase
+            .from('card_reviews')
+            .select('card_id, rating, scheduled_days')
+            .eq('user_id', user.id)
+            .in('card_id', cardIds)
+            .not('reviewed_at', 'is', null)
+            .order('reviewed_at', { ascending: true })
+          const map = new Map<string, ReviewHistoryItem[]>()
+          for (const h of hist || []) {
+            if (!map.has(h.card_id)) map.set(h.card_id, [])
+            map.get(h.card_id)!.push({ rating: h.rating || 0, scheduled_days: h.scheduled_days || 0 })
+          }
+          ratingHistoryRef.current = map
         }
-        ratingHistoryRef.current = map
       }
       setLoading(false)
     }
     loadCards()
-  }, [])
+  }, [isFreeMode])
 
   useEffect(() => {
     return () => {
@@ -123,6 +142,28 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
 
     const card = cards[current]
     const review = card.review as CardReview
+
+    if (isFreeMode) {
+      supabase.from('card_reviews')
+        .update({ rating: userRating, reviewed_at: new Date().toISOString() })
+        .eq('id', review.id)
+        .then((res: { error: unknown }) => { if (res.error) console.error('rating save failed:', res.error) })
+
+      setStats(s => {
+        if (userRating === 1) return { ...s, non: s.non + 1 }
+        if (userRating === 2) return { ...s, hesitation: s.hesitation + 1 }
+        return { ...s, oui: s.oui + 1 }
+      })
+
+      const isLastCard = current + 1 >= cards.length
+      setTimeout(() => {
+        if (isLastCard) { setDone(true) }
+        else { setCurrent(c => c + 1); setFlipped(false) }
+        setSaving(false)
+      }, 300)
+      return
+    }
+
     const history = ratingHistoryRef.current.get(card.id) || []
     const successRate = history.length > 0 ? history.filter(h => h.rating >= 2).length / history.length : 1.0
 
@@ -153,7 +194,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
       }
       setSaving(false)
     }, 300)
-  }, [saving, cards, current, failedCards, supabase])
+  }, [saving, cards, current, failedCards, isFreeMode, supabase])
 
   function archiveCard() {
     const card = cards[current]
@@ -218,6 +259,33 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
   if (loading) return <div className="fixed inset-0 bg-[#0F172A] flex items-center justify-center"><div className="text-[#4338CA] text-xl">Chargement...</div></div>
 
   if (done) {
+    if (isFreeMode) {
+      const total = stats.non + stats.hesitation + stats.oui
+      return (
+        <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+          <div className="max-w-md w-full text-center">
+            <div className="text-7xl mb-4">🔄</div>
+            <h1 className="text-3xl font-bold mb-2">Session libre terminée !</h1>
+            <p className="text-gray-400 mb-2">Vos intervalles de révision FSRS n&apos;ont pas été modifiés.</p>
+            <p className="text-gray-500 text-sm mb-6">{total} carte{total > 1 ? 's' : ''} révisée{total > 1 ? 's' : ''}</p>
+            <div className="grid grid-cols-3 gap-3 mb-6">
+              {[
+                { label: 'Non', value: stats.non, bg: '#2D1515', text: '#FCA5A5', border: '#991B1B' },
+                { label: 'Hésitation', value: stats.hesitation, bg: '#1C1F2E', text: '#818CF8', border: '#4338CA' },
+                { label: 'Oui', value: stats.oui, bg: '#0C2D1E', text: '#5DCAA5', border: '#0F6E56' },
+              ].map(s => (
+                <div key={s.label} className="rounded-xl p-4 border" style={{ background: s.bg, borderColor: s.border }}>
+                  <div className="text-2xl font-bold" style={{ color: s.text }}>{s.value}</div>
+                  <div className="text-xs mt-1 opacity-70" style={{ color: s.text }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => router.push(`/themes/${themeId}`)} className="w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-3 font-medium transition-colors">Retour au thème</button>
+          </div>
+        </div>
+      )
+    }
+
     const msg = sessionMessage(stats)
     const total = stats.non + stats.hesitation + stats.oui + stats.autoEasy
     return (
@@ -276,7 +344,14 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <button onClick={() => router.push(`/themes/${themeId}`)} className="text-gray-400 hover:text-white transition-colors">✕</button>
           <div className="text-center">
-            {passNumber > 1 && <div className="text-[#818CF8] text-xs font-semibold mb-0.5">Passage {passNumber} — {cards.length} carte{cards.length > 1 ? 's' : ''} à retravailler</div>}
+            {isFreeMode && (
+              <span className="text-xs px-2 py-0.5 rounded-full font-medium mb-1 inline-block"
+                style={{ background: '#854F0B', color: '#FAC775' }}
+                title="Vos intervalles de révision ne sont pas modifiés">
+                ∞ Mode libre
+              </span>
+            )}
+            {passNumber > 1 && !isFreeMode && <div className="text-[#818CF8] text-xs font-semibold mb-0.5">Passage {passNumber} — {cards.length} carte{cards.length > 1 ? 's' : ''} à retravailler</div>}
             <span className="text-gray-400 text-sm">{current + 1} / {cards.length}</span>
           </div>
           <div className="w-8" />

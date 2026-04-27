@@ -138,16 +138,38 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
         </div>
 
         {/* Review all CTA */}
-        {totalDue > 0 && (
-          <Link
-            href={`/review/theme/${theme.id}`}
-            className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#534AB7] to-[#7C6FCD] hover:from-[#3C3489] hover:to-[#534AB7] rounded-2xl p-4 font-bold mb-6 transition-all shadow-lg shadow-[#534AB7]/25"
-          >
-            <span className="text-xl">⚡</span>
-            <span>Réviser tout le thème</span>
-            <span className="bg-white/20 rounded-full px-2.5 py-0.5 text-sm font-normal">{totalDue}</span>
-          </Link>
-        )}
+        <div className="mb-6">
+          {totalDue > 0 ? (
+            <>
+              <Link
+                href={`/review/theme/${theme.id}`}
+                className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#534AB7] to-[#7C6FCD] hover:from-[#3C3489] hover:to-[#534AB7] rounded-2xl p-4 font-bold mb-2 transition-all shadow-lg shadow-[#534AB7]/25"
+              >
+                <span className="text-xl">⚡</span>
+                <span>Réviser tout le thème</span>
+                <span className="bg-white/20 rounded-full px-2.5 py-0.5 text-sm font-normal">{totalDue}</span>
+              </Link>
+              <Link
+                href={`/review/theme/${theme.id}?mode=free`}
+                className="flex items-center justify-center gap-3 w-full border border-[#334155] hover:border-[#534AB7] rounded-2xl p-3 text-gray-400 hover:text-white text-sm font-medium transition-colors"
+              >
+                Tout réviser ({totalCards} cartes)
+              </Link>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-center gap-2 text-green-400 text-sm mb-3">
+                <span>✓</span><span>Aucune carte due aujourd&apos;hui</span>
+              </div>
+              <Link
+                href={`/review/theme/${theme.id}?mode=free`}
+                className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#534AB7] to-[#7C6FCD] hover:from-[#3C3489] hover:to-[#534AB7] rounded-2xl p-4 font-bold transition-all shadow-lg shadow-[#534AB7]/25"
+              >
+                Tout réviser ({totalCards} cartes)
+              </Link>
+            </>
+          )}
+        </div>
 
         {/* Decks list */}
         <div className="space-y-3">

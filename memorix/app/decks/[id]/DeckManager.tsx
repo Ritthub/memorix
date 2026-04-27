@@ -31,11 +31,13 @@ export default function DeckManager({
   deck,
   initialCards,
   dueCount,
+  nextDueDays,
   userId,
 }: {
   deck: Deck
   initialCards: Card[]
   dueCount: number
+  nextDueDays?: number | null
   userId: string
 }) {
   const router = useRouter()
@@ -194,12 +196,34 @@ export default function DeckManager({
           </div>
         </div>
 
-        {/* Bouton révision */}
-        {dueCount > 0 && (
-          <Link href={`/review/${deck.id}`} className="block w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-2xl p-5 text-center text-lg font-bold mb-6 transition-colors">
-            Réviser ce deck ({dueCount} cartes)
-          </Link>
-        )}
+        {/* Boutons révision */}
+        <div className="mb-6">
+          {dueCount > 0 ? (
+            <>
+              <Link href={`/review/${deck.id}`} className="block w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-2xl p-5 text-center text-lg font-bold mb-2 transition-colors">
+                Réviser ({dueCount} cartes dues)
+              </Link>
+              <Link href={`/review/${deck.id}?mode=free`} className="block w-full border border-[#334155] hover:border-[#818CF8]/50 rounded-2xl p-3 text-center text-sm text-[#94A3B8] hover:text-[#F1F5F9] transition-colors">
+                Tout réviser ({cardCount} cartes)
+              </Link>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-center gap-2 text-green-400 text-sm mb-3">
+                <span>✓</span>
+                <span>Aucune carte due aujourd&apos;hui</span>
+              </div>
+              <Link href={`/review/${deck.id}?mode=free`} className="block w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-2xl p-5 text-center text-lg font-bold transition-colors">
+                Tout réviser ({cardCount} cartes)
+              </Link>
+              {nextDueDays && (
+                <p className="text-center text-[#475569] text-xs mt-2">
+                  Prochaine révision due dans {nextDueDays} jour{nextDueDays > 1 ? 's' : ''}
+                </p>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Barre d'actions */}
         {cards.length > 0 && (
