@@ -107,6 +107,15 @@ function flattenTree(nodes: TreeNode[]): Array<{ theme: Theme; depth: number }> 
   return result
 }
 
+function isAncestor(themes: Theme[], ancestorId: string, descendantId: string): boolean {
+  let current = themes.find(t => t.id === descendantId)
+  while (current?.parent_id) {
+    if (current.parent_id === ancestorId) return true
+    current = themes.find(t => t.id === current!.parent_id!)
+  }
+  return false
+}
+
 function dropdownStyle(rect: DOMRect): CSSProperties {
   const MENU_H = 220
   const spaceBelow = window.innerHeight - rect.bottom
@@ -182,6 +191,10 @@ function ThemeNode({ node }: { node: TreeNode }) {
     onColorToggle, onColorChange,
   } = useLib()
 
+  const {
+    attributes, listeners, setNodeRef, transform, transition, isDragging,
+  } = useSortable({ id: `theme:${node.id}` })
+
   const isCollapsed = collapsed.has(node.id)
   const isEditing = editingId === node.id
   const isDeleting = deletingThemeId === node.id
@@ -204,8 +217,25 @@ function ThemeNode({ node }: { node: TreeNode }) {
   return (
     <>
       {/* Header row */}
-      <div style={{ paddingLeft: pl }} className="group relative">
+      <div
+        ref={setNodeRef}
+        style={{ paddingLeft: pl, transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.3 : 1 }}
+        className="group relative"
+      >
         <div className="flex items-center gap-1 py-0.5 pr-2 rounded-lg hover:bg-white/5 transition-colors">
+          {/* Drag handle */}
+          <button
+            {...attributes}
+            {...listeners}
+            className="text-gray-700 hover:text-gray-500 touch-none cursor-grab active:cursor-grabbing flex-shrink-0"
+            aria-label="Déplacer le thème"
+          >
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+              <circle cx="3" cy="2.5" r="1" /><circle cx="9" cy="2.5" r="1" />
+              <circle cx="3" cy="6" r="1" /><circle cx="9" cy="6" r="1" />
+              <circle cx="3" cy="9.5" r="1" /><circle cx="9" cy="9.5" r="1" />
+            </svg>
+          </button>
           {/* Chevron */}
           <button
             onClick={() => onToggle(node.id)}
@@ -363,6 +393,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
   const [deletingThemeId, setDeletingThemeId] = useState<string | null>(null)
   const [colorPickerId, setColorPickerId] = useState<string | null>(null)
   const [activeDeck, setActiveDeck] = useState<DeckWithMeta | null>(null)
+  const [activeTheme, setActiveTheme] = useState<Theme | null>(null)
 
   // Deck-level actions
   const [optionsDeck, setOptionsDeck] = useState<DeckWithMeta | null>(null)
@@ -388,9 +419,9 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     return map
   }, [filteredDecks, themes])
 
-  const allDeckSortableIds = useMemo(
-    () => filteredDecks.map(d => `deck:${d.id}`),
-    [filteredDecks]
+  const allSortableIds = useMemo(
+    () => [...themes.map(t => `theme:${t.id}`), ...filteredDecks.map(d => `deck:${d.id}`)],
+    [themes, filteredDecks]
   )
 
   const sensors = useSensors(
@@ -506,42 +537,94 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     }
   }
 
-  // ── Deck DnD ───────────────────────────────────────────────────────────────
+  // ── DnD ────────────────────────────────────────────────────────────────────
 
   const handleDragStart = (event: DragStartEvent) => {
-    const id = (event.active.id as string).replace('deck:', '')
-    setActiveDeck(decks.find(d => d.id === id) ?? null)
+    const id = event.active.id as string
+    if (id.startsWith('theme:')) {
+      setActiveTheme(themes.find(t => t.id === id.slice(6)) ?? null)
+    } else {
+      setActiveDeck(decks.find(d => d.id === id.slice(5)) ?? null)
+    }
   }
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     setActiveDeck(null)
+    setActiveTheme(null)
     if (!over || active.id === over.id) return
 
-    const activeId = (active.id as string).replace('deck:', '')
-    const overId = (over.id as string).replace('deck:', '')
+    const activeIdStr = active.id as string
+    const overIdStr = over.id as string
+
+    // ── Theme drag ───────────────────────────────────────────────────────────
+    if (activeIdStr.startsWith('theme:') && overIdStr.startsWith('theme:')) {
+      const activeThemeId = activeIdStr.slice(6)
+      const overThemeId = overIdStr.slice(6)
+      const activeThemeObj = themes.find(t => t.id === activeThemeId)
+      const overThemeObj = themes.find(t => t.id === overThemeId)
+      if (!activeThemeObj || !overThemeObj) return
+
+      // Prevent moving a theme into its own descendant
+      if (isAncestor(themes, activeThemeId, overThemeId)) return
+
+      const activeParent = activeThemeObj.parent_id || null
+      const overParent = overThemeObj.parent_id || null
+
+      if (activeParent !== overParent) {
+        // Cross-parent move: place at end of new parent's children
+        const newPosition = themes.filter(t => (t.parent_id || null) === overParent && t.id !== activeThemeId).length
+        setThemes(prev => prev.map(t => t.id === activeThemeId
+          ? { ...t, parent_id: overParent, position: newPosition }
+          : t
+        ))
+        await supabase.from('themes').update({ parent_id: overParent, position: newPosition }).eq('id', activeThemeId)
+        return
+      }
+
+      // Same-parent reorder
+      const siblings = themes
+        .filter(t => (t.parent_id || null) === activeParent)
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      const oldIdx = siblings.findIndex(t => t.id === activeThemeId)
+      const newIdx = siblings.findIndex(t => t.id === overThemeId)
+      if (oldIdx === -1 || newIdx === -1) return
+      const reordered = arrayMove(siblings, oldIdx, newIdx)
+      setThemes(prev => {
+        const others = prev.filter(t => (t.parent_id || null) !== activeParent)
+        return [...others, ...reordered.map((t, i) => ({ ...t, position: i }))]
+      })
+      await Promise.all(reordered.map((t, i) =>
+        supabase.from('themes').update({ position: i }).eq('id', t.id)
+      ))
+      return
+    }
+
+    // ── Deck drag ────────────────────────────────────────────────────────────
+    if (!activeIdStr.startsWith('deck:') || !overIdStr.startsWith('deck:')) return
+
+    const activeId = activeIdStr.slice(5)
+    const overId = overIdStr.slice(5)
     const activeDeckObj = decks.find(d => d.id === activeId)
     const overDeckObj = decks.find(d => d.id === overId)
     if (!activeDeckObj || !overDeckObj) return
 
-    const activeTheme = activeDeckObj.theme_id || null
-    const overTheme = overDeckObj.theme_id || null
+    const activeDeckTheme = activeDeckObj.theme_id || null
+    const overDeckTheme = overDeckObj.theme_id || null
 
-    if (activeTheme !== overTheme) {
-      // Cross-theme move
-      setDecks(prev => prev.map(d => d.id === activeId ? { ...d, theme_id: overTheme } : d))
-      await supabase.from('decks').update({ theme_id: overTheme }).eq('id', activeId)
+    if (activeDeckTheme !== overDeckTheme) {
+      setDecks(prev => prev.map(d => d.id === activeId ? { ...d, theme_id: overDeckTheme } : d))
+      await supabase.from('decks').update({ theme_id: overDeckTheme }).eq('id', activeId)
       return
     }
 
-    // Same-theme reorder
-    const group = decks.filter(d => (d.theme_id || null) === activeTheme)
+    const group = decks.filter(d => (d.theme_id || null) === activeDeckTheme)
     const oldIdx = group.findIndex(d => d.id === activeId)
     const newIdx = group.findIndex(d => d.id === overId)
     if (oldIdx === -1 || newIdx === -1) return
     const reordered = arrayMove(group, oldIdx, newIdx)
     setDecks(prev => [
-      ...prev.filter(d => (d.theme_id || null) !== activeTheme),
+      ...prev.filter(d => (d.theme_id || null) !== activeDeckTheme),
       ...reordered,
     ])
     await Promise.all(reordered.map((d, i) =>
@@ -630,7 +713,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            <SortableContext items={allDeckSortableIds} strategy={verticalListSortingStrategy}>
+            <SortableContext items={allSortableIds} strategy={verticalListSortingStrategy}>
               {/* Theme tree */}
               {tree.map(node => <ThemeNode key={node.id} node={node} />)}
 
@@ -670,6 +753,12 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
                 <div className="bg-[#1E293B] rounded-xl px-3 py-2 border border-[#4338CA]/60 shadow-xl opacity-90 flex items-center gap-2">
                   <span>{activeDeck.icon || '📚'}</span>
                   <span className="text-sm font-medium">{activeDeck.name}</span>
+                </div>
+              )}
+              {activeTheme && (
+                <div className="bg-[#1E293B] rounded-xl px-3 py-2 border border-[#4338CA]/60 shadow-xl opacity-90 flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: activeTheme.color }} />
+                  <span className="text-sm font-semibold">{activeTheme.name}</span>
                 </div>
               )}
             </DragOverlay>
