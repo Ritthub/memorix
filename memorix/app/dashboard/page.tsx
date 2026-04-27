@@ -30,10 +30,10 @@ export default async function DashboardPage() {
     { data: themes },
   ] = await Promise.all([
     supabase.from('decks').select('id, name, icon, theme_id, cards(count)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
-    supabase.from('card_reviews').select('id, cards!inner(id)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()).eq('cards.archived', false),
+    supabase.from('card_reviews').select('id').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
     supabase.from('profiles').select('name').eq('id', user.id).single(),
     supabase.from('card_reviews').select('reviewed_at').eq('user_id', user.id).not('reviewed_at', 'is', null).gte('reviewed_at', new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()),
-    supabase.from('card_reviews').select('cards!inner(deck_id)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()).eq('cards.archived', false),
+    supabase.from('card_reviews').select('cards(deck_id)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
     supabase.from('themes').select('id, name, color, position, parent_id').eq('user_id', user.id).order('position'),
   ])
 
