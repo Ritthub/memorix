@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
+import { pluralCard } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
@@ -201,10 +202,10 @@ export default function DeckManager({
           {dueCount > 0 ? (
             <>
               <Link href={`/review/${deck.id}`} className="block w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-2xl p-5 text-center text-lg font-bold mb-2 transition-colors">
-                Réviser ({dueCount} cartes dues)
+                Réviser ({dueCount} {pluralCard(dueCount)} due{dueCount !== 1 ? 's' : ''})
               </Link>
               <Link href={`/review/${deck.id}?mode=free`} className="block w-full border border-[#334155] hover:border-[#818CF8]/50 rounded-2xl p-3 text-center text-sm text-[#94A3B8] hover:text-[#F1F5F9] transition-colors">
-                Tout réviser ({cardCount} cartes)
+                Tout réviser ({cardCount} {pluralCard(cardCount)})
               </Link>
             </>
           ) : (
@@ -214,7 +215,7 @@ export default function DeckManager({
                 <span>Aucune carte due aujourd&apos;hui</span>
               </div>
               <Link href={`/review/${deck.id}?mode=free`} className="block w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-2xl p-5 text-center text-lg font-bold transition-colors">
-                Tout réviser ({cardCount} cartes)
+                Tout réviser ({cardCount} {pluralCard(cardCount)})
               </Link>
               {nextDueDays && (
                 <p className="text-center text-[#475569] text-xs mt-2">
@@ -236,7 +237,7 @@ export default function DeckManager({
                 className="w-4 h-4 accent-[#4338CA] cursor-pointer"
               />
               <span className="text-gray-400 text-sm">
-                {selected.size > 0 ? `${selected.size} sélectionnée(s)` : `${cardCount} cartes`}
+                {selected.size > 0 ? `${selected.size} sélectionnée(s)` : `${cardCount} ${pluralCard(cardCount)}`}
               </span>
             </div>
             {selected.size > 0 && (

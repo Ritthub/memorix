@@ -2,6 +2,7 @@ import { createServerSupabase } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ReviewSelector from './ReviewSelector'
+import { pluralCard } from '@/lib/utils'
 
 function computeStreak(reviewedAtDates: string[]): number {
   if (reviewedAtDates.length === 0) return 0
@@ -156,7 +157,7 @@ export default async function DashboardPage() {
                           <h4 className="font-bold truncate">{(deck as any).name}</h4>
                         </div>
                         {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                        <p className="text-gray-400 text-sm">{(deck as any).cards?.[0]?.count || 0} cartes</p>
+                        <p className="text-gray-400 text-sm">{(deck as any).cards?.[0]?.count || 0} {pluralCard((deck as any).cards?.[0]?.count || 0)}</p>
                       </Link>
                     )
                   })}

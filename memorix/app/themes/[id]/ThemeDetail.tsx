@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase'
 import { Theme, Deck } from '@/types'
+import { pluralCard } from '@/lib/utils'
 
 const THEME_COLORS = [
   '#534AB7', '#0D9488', '#E85D4A', '#F59E0B',
@@ -153,7 +154,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
                 href={`/review/theme/${theme.id}?mode=free`}
                 className="flex items-center justify-center gap-3 w-full border border-[#334155] hover:border-[#534AB7] rounded-2xl p-3 text-gray-400 hover:text-white text-sm font-medium transition-colors"
               >
-                Tout réviser ({totalCards} cartes)
+                Tout réviser ({totalCards} {pluralCard(totalCards)})
               </Link>
             </>
           ) : (
@@ -165,7 +166,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
                 href={`/review/theme/${theme.id}?mode=free`}
                 className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#534AB7] to-[#7C6FCD] hover:from-[#3C3489] hover:to-[#534AB7] rounded-2xl p-4 font-bold transition-all shadow-lg shadow-[#534AB7]/25"
               >
-                Tout réviser ({totalCards} cartes)
+                Tout réviser ({totalCards} {pluralCard(totalCards)})
               </Link>
             </>
           )}
@@ -193,7 +194,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
                   <span className="text-2xl">{deck.icon || '📚'}</span>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{deck.name}</p>
-                    <p className="text-xs text-gray-500">{deck.card_count} cartes · {retention}% rétention</p>
+                    <p className="text-xs text-gray-500">{deck.card_count} {pluralCard(deck.card_count)} · {retention}% rétention</p>
                   </div>
                   {deck.due_count > 0 && (
                     <span className="bg-[#534AB7] text-white text-xs font-bold rounded-full px-2 py-0.5">{deck.due_count}</span>

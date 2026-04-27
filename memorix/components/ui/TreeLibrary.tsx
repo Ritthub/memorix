@@ -8,6 +8,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { Theme, Deck } from '@/types'
+import { pluralCard } from '@/lib/utils'
 import {
   DndContext, DragEndEvent, DragOverlay, DragStartEvent,
   PointerSensor, TouchSensor, KeyboardSensor,
@@ -24,6 +25,7 @@ import { CSS } from '@dnd-kit/utilities'
 type DeckWithMeta = Deck & { card_count: number; due_count: number }
 type TreeNode = Theme & { children: TreeNode[]; depth: number }
 type MenuAnchor = { rect: DOMRect; mobile: boolean }
+type CardItem = { id: string; question: string; answer: string }
 
 export interface TreeLibraryProps {
   initialThemes: Theme[]
@@ -50,6 +52,15 @@ interface Ctx {
   onColorToggle: (id: string | null) => void
   onColorChange: (id: string, color: string) => void
   onDeckOptions: (deck: DeckWithMeta, btn: HTMLButtonElement) => void
+  // Card expansion
+  userId: string
+  expandedDecks: Set<string>
+  deckCards: Map<string, CardItem[]>
+  loadingDecks: Set<string>
+  onToggleDeck: (id: string) => void
+  onAddCard: (deckId: string, q: string, a: string) => Promise<void>
+  onEditCard: (cardId: string, deckId: string, q: string, a: string) => Promise<void>
+  onDeleteCard: (cardId: string, deckId: string) => Promise<void>
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -126,16 +137,244 @@ function dropdownStyle(rect: DOMRect): CSSProperties {
   return s
 }
 
+// ── DeckCardsList ─────────────────────────────────────────────────────────────
+
+function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
+  const { deckCards, loadingDecks, onAddCard, onEditCard, onDeleteCard } = useLib()
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editQ, setEditQ] = useState('')
+  const [editA, setEditA] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [newQ, setNewQ] = useState('')
+  const [newA, setNewA] = useState('')
+  const [savedFlash, setSavedFlash] = useState(false)
+  const [addSaving, setAddSaving] = useState(false)
+
+  const qRef = useRef<HTMLInputElement>(null)
+  const aRef = useRef<HTMLInputElement>(null)
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const editARef = useRef<HTMLInputElement>(null)
+
+  const isLoading = loadingDecks.has(deckId)
+  const cards = deckCards.get(deckId)
+  const pl = INDENT * (depth + 1) + 8
+
+  useEffect(() => {
+    return () => { if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current) }
+  }, [])
+
+  function startEdit(card: CardItem) {
+    setEditingId(card.id)
+    setEditQ(card.question)
+    setEditA(card.answer)
+    setDeletingId(null)
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setEditQ('')
+    setEditA('')
+  }
+
+  async function commitEdit() {
+    if (!editingId || (!editQ.trim() && !editA.trim())) { cancelEdit(); return }
+    const id = editingId
+    cancelEdit()
+    await onEditCard(id, deckId, editQ.trim() || '…', editA.trim() || '…')
+  }
+
+  function startDelete(cardId: string) {
+    setDeletingId(cardId)
+    setEditingId(null)
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    deleteTimerRef.current = setTimeout(() => setDeletingId(null), 4000)
+  }
+
+  async function confirmDelete(cardId: string) {
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    setDeletingId(null)
+    await onDeleteCard(cardId, deckId)
+  }
+
+  async function handleAdd() {
+    if (!newQ.trim() || !newA.trim() || addSaving) return
+    setAddSaving(true)
+    await onAddCard(deckId, newQ.trim(), newA.trim())
+    setNewQ('')
+    setNewA('')
+    setAddSaving(false)
+    setSavedFlash(true)
+    setTimeout(() => setSavedFlash(false), 1000)
+    qRef.current?.focus()
+  }
+
+  if (isLoading) {
+    return (
+      <div className="py-1.5 space-y-1.5" style={{ paddingLeft: pl }}>
+        <div className="h-3 bg-[#1E293B] rounded animate-pulse" style={{ width: '65%' }} />
+        <div className="h-3 bg-[#1E293B] rounded animate-pulse" style={{ width: '45%' }} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="pb-1">
+      {/* Empty state */}
+      {cards?.length === 0 && (
+        <p className="text-xs text-[#475569] italic py-0.5" style={{ paddingLeft: pl }}>
+          Aucune carte — ajoutez-en une ci-dessous
+        </p>
+      )}
+
+      {/* Card rows */}
+      {cards?.map(card => (
+        <div key={card.id}>
+          {editingId === card.id ? (
+            <div className="flex items-center gap-1.5 py-0.5 pr-2" style={{ paddingLeft: pl }}>
+              <input
+                autoFocus
+                value={editQ}
+                onChange={e => setEditQ(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Tab') { e.preventDefault(); editARef.current?.focus() }
+                  if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
+                }}
+                className="flex-1 bg-transparent text-xs text-[#94A3B8] outline-none border-b border-[#818CF8] py-0.5 min-w-0"
+                style={{ maxWidth: '50%' }}
+              />
+              <span className="text-xs text-[#475569] flex-shrink-0">·</span>
+              <input
+                ref={editARef}
+                value={editA}
+                onChange={e => setEditA(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
+                  if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
+                }}
+                onBlur={commitEdit}
+                className="flex-1 bg-transparent text-xs text-[#64748B] outline-none border-b border-[#818CF8] py-0.5 min-w-0"
+                style={{ maxWidth: '35%' }}
+              />
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-1.5 py-0.5 pr-2 group/card rounded hover:bg-white/5 transition-colors"
+              style={{ paddingLeft: pl }}
+            >
+              <span className="w-1 h-1 rounded-full bg-[#334155] flex-shrink-0" />
+              <span
+                className="text-xs text-[#94A3B8] truncate"
+                style={{ maxWidth: '50%' }}
+                title={card.question}
+              >
+                {card.question}
+              </span>
+              <span className="text-xs text-[#475569] flex-shrink-0">·</span>
+              <span
+                className="text-xs text-[#64748B] truncate"
+                style={{ maxWidth: '35%' }}
+                title={card.answer}
+              >
+                {card.answer}
+              </span>
+              <div className="ml-auto flex items-center gap-0 opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0">
+                <button
+                  onClick={() => startEdit(card)}
+                  className="w-5 h-5 flex items-center justify-center text-[#475569] hover:text-[#818CF8] rounded text-xs transition-colors"
+                  title="Modifier"
+                >
+                  ✏
+                </button>
+                <button
+                  onClick={() => startDelete(card.id)}
+                  className="w-5 h-5 flex items-center justify-center text-[#475569] hover:text-red-400 rounded text-xs transition-colors"
+                  title="Supprimer"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Delete confirmation */}
+          {deletingId === card.id && (
+            <div
+              className="flex items-center gap-2 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded text-xs mt-0.5 mr-2"
+              style={{ marginLeft: pl }}
+            >
+              <span className="text-red-300 flex-1 truncate">Supprimer cette carte ?</span>
+              <button
+                onClick={() => { if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current); setDeletingId(null) }}
+                className="text-gray-400 hover:text-white px-1.5 py-0.5 rounded hover:bg-white/5 flex-shrink-0"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={() => confirmDelete(card.id)}
+                className="text-white bg-red-600 hover:bg-red-700 px-2 py-0.5 rounded flex-shrink-0"
+              >
+                Confirmer
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Inline add form */}
+      <div
+        className="flex items-center gap-1.5 py-1 pr-2 border-b border-[#1E293B]"
+        style={{ paddingLeft: pl }}
+      >
+        <input
+          ref={qRef}
+          value={newQ}
+          onChange={e => setNewQ(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Tab') { e.preventDefault(); aRef.current?.focus() }
+          }}
+          placeholder="Question…"
+          className="flex-1 bg-transparent text-xs text-[#94A3B8] placeholder-[#334155] outline-none border-b border-transparent focus:border-[#818CF8] py-0.5 min-w-0 transition-colors"
+          style={{ maxWidth: '45%' }}
+        />
+        <input
+          ref={aRef}
+          value={newA}
+          onChange={e => setNewA(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAdd() }
+          }}
+          placeholder="Réponse…"
+          className="flex-1 bg-transparent text-xs text-[#64748B] placeholder-[#334155] outline-none border-b border-transparent focus:border-[#818CF8] py-0.5 min-w-0 transition-colors"
+          style={{ maxWidth: '45%' }}
+        />
+        {savedFlash && <span className="text-green-400 text-xs flex-shrink-0">✓</span>}
+        <button
+          onClick={handleAdd}
+          disabled={!newQ.trim() || !newA.trim() || addSaving}
+          className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 text-white text-xs leading-none transition-colors"
+          title="Ajouter"
+        >
+          +
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── DeckRow ───────────────────────────────────────────────────────────────────
 
 function DeckRow({ deck, depth }: { deck: DeckWithMeta; depth: number }) {
-  const { onDeckOptions } = useLib()
+  const { onDeckOptions, expandedDecks, onToggleDeck } = useLib()
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging,
   } = useSortable({
     id: `deck:${deck.id}`,
     data: { type: 'deck', parentId: deck.theme_id || null },
   })
+
+  const isExpanded = expandedDecks.has(deck.id)
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -145,42 +384,58 @@ function DeckRow({ deck, depth }: { deck: DeckWithMeta; depth: number }) {
   }
 
   return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className="flex items-center gap-2 py-1 pr-2 rounded-lg hover:bg-white/5 group transition-colors"
-    >
-      <button
-        {...attributes}
-        {...listeners}
-        className="text-gray-700 hover:text-gray-500 touch-none cursor-grab active:cursor-grabbing flex-shrink-0"
-        aria-label="Déplacer"
+    <>
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="flex items-center gap-2 py-1 pr-2 rounded-lg hover:bg-white/5 group transition-colors"
       >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
-          <circle cx="3" cy="2.5" r="1" /><circle cx="9" cy="2.5" r="1" />
-          <circle cx="3" cy="6" r="1" /><circle cx="9" cy="6" r="1" />
-          <circle cx="3" cy="9.5" r="1" /><circle cx="9" cy="9.5" r="1" />
-        </svg>
-      </button>
-      <Link href={`/decks/${deck.id}`} className="flex-1 flex items-center gap-2 min-w-0">
-        <span className="flex-shrink-0 text-base leading-none">{deck.icon || '📚'}</span>
-        <span className="text-sm text-gray-300 truncate">{deck.name}</span>
-        <span className="text-xs text-gray-600 flex-shrink-0">{deck.card_count}c</span>
-      </Link>
-      {deck.due_count > 0 && (
-        <span className="bg-[#4338CA] text-white text-xs font-bold rounded-full px-1.5 py-0.5 tabular-nums flex-shrink-0">
-          {deck.due_count}
-        </span>
-      )}
-      <button
-        onClick={e => onDeckOptions(deck, e.currentTarget as HTMLButtonElement)}
-        className="text-gray-600 hover:text-gray-400 transition-opacity p-1 flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-          <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
-        </svg>
-      </button>
-    </div>
+        <button
+          {...attributes}
+          {...listeners}
+          className="text-gray-700 hover:text-gray-500 touch-none cursor-grab active:cursor-grabbing flex-shrink-0"
+          aria-label="Déplacer"
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+            <circle cx="3" cy="2.5" r="1" /><circle cx="9" cy="2.5" r="1" />
+            <circle cx="3" cy="6" r="1" /><circle cx="9" cy="6" r="1" />
+            <circle cx="3" cy="9.5" r="1" /><circle cx="9" cy="9.5" r="1" />
+          </svg>
+        </button>
+        <Link href={`/decks/${deck.id}`} className="flex-1 flex items-center gap-2 min-w-0">
+          <span className="flex-shrink-0 text-base leading-none">{deck.icon || '📚'}</span>
+          <span className="text-sm text-gray-300 truncate">{deck.name}</span>
+          <span className="text-xs text-gray-600 flex-shrink-0">{deck.card_count} {pluralCard(deck.card_count)}</span>
+        </Link>
+        {deck.due_count > 0 && (
+          <span className="bg-[#4338CA] text-white text-xs font-bold rounded-full px-1.5 py-0.5 tabular-nums flex-shrink-0">
+            {deck.due_count}
+          </span>
+        )}
+        {/* Chevron to expand/collapse inline cards */}
+        <button
+          onClick={e => { e.preventDefault(); onToggleDeck(deck.id) }}
+          className="w-5 h-5 flex items-center justify-center text-gray-700 hover:text-gray-400 flex-shrink-0 transition-all duration-200 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+          style={{ transform: isExpanded ? 'rotate(90deg)' : 'none' }}
+          title={isExpanded ? 'Réduire les cartes' : 'Voir les cartes'}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+        <button
+          onClick={e => onDeckOptions(deck, e.currentTarget as HTMLButtonElement)}
+          className="text-gray-600 hover:text-gray-400 transition-opacity p-1 flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Inline card list */}
+      {isExpanded && <DeckCardsList deckId={deck.id} depth={depth} />}
+    </>
   )
 }
 
@@ -413,6 +668,11 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
   const [movingDeck, setMovingDeck] = useState<DeckWithMeta | null>(null)
   const [deletingDeck, setDeletingDeck] = useState<DeckWithMeta | null>(null)
 
+  // Card expansion state
+  const [expandedDecks, setExpandedDecks] = useState<Set<string>>(new Set())
+  const [deckCards, setDeckCards] = useState<Map<string, CardItem[]>>(new Map())
+  const [loadingDecks, setLoadingDecks] = useState<Set<string>>(new Set())
+
   const tree = useMemo(() => buildTree(themes), [themes])
 
   const filteredDecks = search
@@ -431,7 +691,6 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     return map
   }, [filteredDecks, themes])
 
-  // Sensors: 8px distance for pointer, 250ms delay for touch, keyboard support
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } }),
@@ -523,6 +782,72 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     setOptionsAnchor({ rect: btn.getBoundingClientRect(), mobile: window.innerWidth < 640 })
   }, [])
 
+  // ── Card expansion actions ─────────────────────────────────────────────────
+
+  const loadDeckCards = useCallback(async (deckId: string) => {
+    setLoadingDecks(prev => { const next = new Set(prev); next.add(deckId); return next })
+    const { data } = await supabase
+      .from('cards')
+      .select('*')
+      .eq('deck_id', deckId)
+      .order('created_at', { ascending: false })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const items: CardItem[] = (data || []).filter((c: any) => !c.archived).map((c: any) => ({
+      id: c.id, question: c.question, answer: c.answer,
+    }))
+    setDeckCards(prev => new Map(prev).set(deckId, items))
+    setLoadingDecks(prev => { const next = new Set(prev); next.delete(deckId); return next })
+  }, [supabase])
+
+  const onToggleDeck = useCallback((deckId: string) => {
+    const isExpanded = expandedDecks.has(deckId)
+    setExpandedDecks(prev => {
+      const next = new Set(prev)
+      if (isExpanded) next.delete(deckId)
+      else next.add(deckId)
+      return next
+    })
+    if (!isExpanded && !deckCards.has(deckId)) {
+      loadDeckCards(deckId)
+    }
+  }, [expandedDecks, deckCards, loadDeckCards])
+
+  const onAddCard = useCallback(async (deckId: string, q: string, a: string) => {
+    const { data: card } = await supabase
+      .from('cards')
+      .insert({ deck_id: deckId, question: q, answer: a, difficulty: 1, created_by_ai: false, user_edited: false })
+      .select('id')
+      .single()
+    if (!card) return
+    await supabase.from('card_reviews').insert({
+      card_id: card.id, user_id: userId, state: 'new',
+      scheduled_at: new Date().toISOString(),
+    })
+    setDeckCards(prev => {
+      const existing = prev.get(deckId) || []
+      return new Map(prev).set(deckId, [{ id: card.id, question: q, answer: a }, ...existing])
+    })
+    setDecks(prev => prev.map(d => d.id === deckId ? { ...d, card_count: d.card_count + 1 } : d))
+  }, [supabase, userId])
+
+  const onEditCard = useCallback(async (cardId: string, deckId: string, q: string, a: string) => {
+    setDeckCards(prev => {
+      const cards = prev.get(deckId) || []
+      return new Map(prev).set(deckId, cards.map(c => c.id === cardId ? { ...c, question: q, answer: a } : c))
+    })
+    await supabase.from('cards').update({ question: q, answer: a, user_edited: true }).eq('id', cardId)
+  }, [supabase])
+
+  const onDeleteCard = useCallback(async (cardId: string, deckId: string) => {
+    setDeckCards(prev => {
+      const cards = prev.get(deckId) || []
+      return new Map(prev).set(deckId, cards.filter(c => c.id !== cardId))
+    })
+    setDecks(prev => prev.map(d => d.id === deckId ? { ...d, card_count: Math.max(0, d.card_count - 1) } : d))
+    await supabase.from('card_reviews').delete().eq('card_id', cardId)
+    await supabase.from('cards').delete().eq('id', cardId)
+  }, [supabase])
+
   // ── Create root theme ──────────────────────────────────────────────────────
 
   const handleCreateRootTheme = async () => {
@@ -565,19 +890,15 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     const activeRawId = activeId.slice(isActiveTheme ? 6 : 5)
     const overRawId = overId.slice(isOverTheme ? 6 : 5)
 
-    // parentId comes from data attached in useSortable({ data: { parentId } })
     const activeParentId = (active.data.current?.parentId ?? null) as string | null
     const overParentId = (over.data.current?.parentId ?? null) as string | null
 
     // ── Theme drag ───────────────────────────────────────────────────────────
     if (isActiveTheme) {
-      // Themes can only land on other themes
       if (!isOverTheme) return
-      // Prevent moving a theme into its own descendant
       if (isAncestor(themes, activeRawId, overRawId)) return
 
       if (activeParentId === overParentId) {
-        // Same parent: reorder siblings
         const siblings = themes
           .filter(t => (t.parent_id || null) === activeParentId)
           .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
@@ -593,7 +914,6 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
           supabase.from('themes').update({ position: i }).eq('id', t.id)
         ))
       } else {
-        // Cross-parent: adopt over's parent, insert at over's position
         const targetParentId = overParentId
         const targetSiblings = themes
           .filter(t => (t.parent_id || null) === targetParentId && t.id !== activeRawId)
@@ -610,15 +930,12 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
 
     // ── Deck drag ─────────────────────────────────────────────────────────────
     if (isOverTheme) {
-      // Deck dropped on a theme header → move deck into that theme
       setDecks(prev => prev.map(d => d.id === activeRawId ? { ...d, theme_id: overRawId } : d))
       await supabase.from('decks').update({ theme_id: overRawId }).eq('id', activeRawId)
       return
     }
 
-    // Deck dropped on another deck
     if (activeParentId === overParentId) {
-      // Same theme: reorder
       const group = decks.filter(d => (d.theme_id || null) === activeParentId)
       const oldIdx = group.findIndex(d => d.id === activeRawId)
       const newIdx = group.findIndex(d => d.id === overRawId)
@@ -632,7 +949,6 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
         supabase.from('decks').update({ position: i }).eq('id', d.id)
       ))
     } else {
-      // Different theme: move deck to over deck's theme
       const newThemeId = overParentId
       setDecks(prev => prev.map(d => d.id === activeRawId ? { ...d, theme_id: newThemeId } : d))
       await supabase.from('decks').update({ theme_id: newThemeId }).eq('id', activeRawId)
@@ -664,6 +980,8 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     onToggle, onEditStart, onEditChange, onEditCommit, onEditCancel,
     onCreateChild, onDeleteThemeStart, onDeleteThemeCancel, onDeleteThemeConfirm,
     onColorToggle, onColorChange, onDeckOptions,
+    userId, expandedDecks, deckCards, loadingDecks,
+    onToggleDeck, onAddCard, onEditCard, onDeleteCard,
   }
 
   const unthemedDecks = decksMap.get(null) || []
@@ -721,7 +1039,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}
           >
-            {/* Root themes — their own SortableContext */}
+            {/* Root themes */}
             {tree.length > 0 && (
               <SortableContext items={rootThemeIds} strategy={verticalListSortingStrategy}>
                 {tree.map(node => <ThemeNode key={node.id} node={node} />)}
@@ -739,7 +1057,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
               </div>
             )}
 
-            {/* Unthemed decks — own SortableContext, never conflicts with theme contexts */}
+            {/* Unthemed decks */}
             {unthemedDecks.length > 0 && (
               <div className={tree.length > 0 ? 'mt-4 pt-3 border-t border-[#1E293B]' : ''}>
                 {tree.length > 0 && (
@@ -883,7 +1201,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
             <div className="bg-[#1E293B] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-red-500/30">
               <h2 className="text-lg font-bold mb-2">Supprimer &ldquo;{deletingDeck.name}&rdquo; ?</h2>
               <p className="text-gray-400 text-sm mb-5">
-                Supprime aussi les {deletingDeck.card_count} carte{deletingDeck.card_count !== 1 ? 's' : ''}. Irréversible.
+                Supprime aussi les {deletingDeck.card_count} {pluralCard(deletingDeck.card_count)}. Irréversible.
               </p>
               <div className="flex gap-3">
                 <button

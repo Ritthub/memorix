@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { pluralCard } from '@/lib/utils'
 import { createClient } from '@/lib/supabase'
 import { Theme, Deck } from '@/types'
 import {
@@ -260,7 +261,7 @@ function KanbanCard({ deck, onOptionsClick }: { deck: DeckWithMeta; onOptionsCli
           </svg>
         </button>
       </div>
-      <p className="text-xs text-gray-500">{deck.card_count} cartes</p>
+      <p className="text-xs text-gray-500">{deck.card_count} {pluralCard(deck.card_count)}</p>
     </div>
   )
 }
