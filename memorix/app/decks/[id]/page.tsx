@@ -17,26 +17,28 @@ export default async function DeckPage({ params }: { params: { id: string } }) {
     .eq('id', id)
     .single()
 
-  const { data: cards } = await supabase
+  // No archived filter here — column may not exist yet. Filter client-side in DeckManager.
+  const { data: allCards } = await supabase
     .from('cards')
-    .select('id, question, answer, explanation, theme, difficulty, created_by_ai, user_edited, card_reviews(id, state)')
+    .select('id, question, answer, explanation, theme, difficulty, created_by_ai, user_edited, archived, archived_at, auto_delete_at, card_reviews(id, state)')
     .eq('deck_id', id)
-    .or('archived.is.null,archived.eq.false')
     .order('created_at', { ascending: false })
+
+  const activeCardIds = (allCards || []).filter(c => !c.archived).map(c => c.id)
 
   const { data: dueReviews } = await supabase
     .from('card_reviews')
     .select('id')
     .eq('user_id', user!.id)
     .lte('scheduled_at', new Date().toISOString())
-    .in('card_id', cards?.map(c => c.id) || [])
+    .in('card_id', activeCardIds.length > 0 ? activeCardIds : ['00000000-0000-0000-0000-000000000000'])
 
   if (!deck) redirect('/dashboard')
 
   return (
     <DeckManager
       deck={deck}
-      initialCards={cards || []}
+      initialCards={allCards || []}
       dueCount={dueReviews?.length || 0}
       userId={user!.id}
     />

@@ -40,7 +40,7 @@ export default function DeckManager({
 }) {
   const router = useRouter()
   const supabase = createClient()
-  const [cards, setCards] = useState<Card[]>(initialCards)
+  const [cards, setCards] = useState<Card[]>(initialCards.filter(c => !c.archived))
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [editingCard, setEditingCard] = useState<Card | null>(null)
   const [deleting, setDeleting] = useState(false)
@@ -53,10 +53,9 @@ export default function DeckManager({
   const inlineQRef = useRef<HTMLTextAreaElement>(null)
   const inlineARef = useRef<HTMLTextAreaElement>(null)
 
-  // Archive section
+  // Archive section — pre-split from initialCards, no extra DB call needed
   const [showArchived, setShowArchived] = useState(false)
-  const [archivedCards, setArchivedCards] = useState<Card[]>([])
-  const [archivedLoading, setArchivedLoading] = useState(false)
+  const [archivedCards, setArchivedCards] = useState<Card[]>(initialCards.filter(c => c.archived === true))
 
   const allSelected = selected.size === cards.length && cards.length > 0
 
@@ -129,22 +128,7 @@ export default function DeckManager({
     }
   }
 
-  async function loadArchived() {
-    setArchivedLoading(true)
-    const { data } = await supabase
-      .from('cards')
-      .select('id, question, answer, explanation, theme, difficulty, created_by_ai, user_edited, archived, archived_at, auto_delete_at')
-      .eq('deck_id', deck.id)
-      .eq('archived', true)
-      .order('archived_at', { ascending: false })
-    setArchivedCards(data || [])
-    setArchivedLoading(false)
-  }
-
-  async function toggleArchivedSection() {
-    if (!showArchived && archivedCards.length === 0) {
-      await loadArchived()
-    }
+  function toggleArchivedSection() {
     setShowArchived(prev => !prev)
   }
 
@@ -363,10 +347,7 @@ export default function DeckManager({
 
           {showArchived && (
             <div className="mt-3 space-y-2">
-              {archivedLoading && (
-                <p className="text-gray-500 text-sm text-center py-4">Chargement…</p>
-              )}
-              {!archivedLoading && archivedCards.length === 0 && (
+              {archivedCards.length === 0 && (
                 <p className="text-gray-500 text-sm text-center py-4">Aucune carte archivée</p>
               )}
               {archivedCards.map(card => {
