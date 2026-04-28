@@ -728,13 +728,23 @@ function ThemeNode({ node }: { node: TreeNode }) {
                 </svg>
               </button>
             )}
+            {/* Normal review: due cards only */}
             <Link
               href={`/review/theme/${node.id}`}
               onClick={e => e.stopPropagation()}
               className="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-[#4338CA] rounded text-xs"
-              title="Réviser ce thème"
+              title={due > 0 ? `Réviser ce thème (${due} dues)` : 'Réviser ce thème'}
             >
               ▶
+            </Link>
+            {/* Free mode: all cards */}
+            <Link
+              href={`/review/theme/${node.id}?mode=free`}
+              onClick={e => e.stopPropagation()}
+              className="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-amber-400 rounded text-[10px] font-bold leading-none"
+              title="Tout réviser (mode libre)"
+            >
+              ∞
             </Link>
             <button
               onClick={() => onCreateChild(node.id)}

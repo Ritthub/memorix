@@ -1,12 +1,9 @@
 'use client'
-import { useState, useEffect, useRef, useCallback, Suspense } from 'react'
+import { useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
-import { scheduleCard, shouldAutoEasy, ReviewHistoryItem } from '@/lib/fsrs'
-import { buildSession } from '@/lib/session-builder'
-import { Card, CardReview, Rating } from '@/types'
-
-type UserRating = 1 | 2 | 3
+import { useReviewSession, ReviewStats } from '@/lib/hooks/useReviewSession'
+import { Card } from '@/types'
 
 function Confetti({ active }: { active: boolean }) {
   const PIECES = 60
@@ -26,7 +23,7 @@ function Confetti({ active }: { active: boolean }) {
   )
 }
 
-function sessionMessage(stats: { non: number; hesitation: number; oui: number; autoEasy: number }) {
+function sessionMessage(stats: ReviewStats) {
   const total = stats.non + stats.hesitation + stats.oui + stats.autoEasy
   if (total === 0) return { emoji: '✅', title: 'Bravo !', sub: 'Session complète.' }
   const r = (stats.oui + stats.autoEasy) / total
@@ -49,190 +46,42 @@ function CustomReviewInner() {
   const searchParams = useSearchParams()
   const supabase = createClient()
 
-  const [cards, setCards] = useState<Card[]>([])
-  const [current, setCurrent] = useState(0)
-  const [flipped, setFlipped] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [done, setDone] = useState(false)
-  const [stats, setStats] = useState({ non: 0, hesitation: 0, oui: 0, autoEasy: 0 })
-  const [showConfetti, setShowConfetti] = useState(false)
-  const [failedCards, setFailedCards] = useState<Card[]>([])
-  const [passNumber, setPassNumber] = useState(1)
-  const ratingHistoryRef = useRef<Map<string, ReviewHistoryItem[]>>(new Map())
-
-  // Archive state
-  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
-  const [undoData, setUndoData] = useState<{ cardId: string; countdown: number } | null>(null)
-  const undoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const touchStartX = useRef<number | null>(null)
-  const touchStartY = useRef<number | null>(null)
-  const [swipeHint, setSwipeHint] = useState<'left' | 'right' | null>(null)
-
-  useEffect(() => {
-    async function load() {
+  const session = useReviewSession({
+    loadDeckIds: async (userId) => {
       const themeIds = searchParams.get('themeIds')?.split(',').filter(Boolean) || []
       const noTheme = searchParams.get('noTheme') === '1'
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.replace('/login'); return }
 
       let deckIds: string[] = []
       if (themeIds.length > 0) {
-        const { data: themeDecks } = await supabase.from('decks').select('id').eq('user_id', user.id).in('theme_id', themeIds)
+        const { data: themeDecks } = await supabase
+          .from('decks').select('id').eq('user_id', userId).in('theme_id', themeIds)
         deckIds = [...deckIds, ...(themeDecks || []).map((d: { id: string }) => d.id)]
       }
       if (noTheme) {
-        const { data: noThemeDecks } = await supabase.from('decks').select('id').eq('user_id', user.id).is('theme_id', null)
+        const { data: noThemeDecks } = await supabase
+          .from('decks').select('id').eq('user_id', userId).is('theme_id', null)
         deckIds = [...deckIds, ...(noThemeDecks || []).map((d: { id: string }) => d.id)]
       }
-      if (deckIds.length === 0) { setLoading(false); return }
+      return deckIds
+    },
+    isFreeMode: false,
+    supabase,
+  })
 
-      const { data: dueReviews } = await supabase
-        .from('card_reviews')
-        .select('*, cards!inner(*)')
-        .eq('user_id', user.id)
-        .lte('scheduled_at', new Date().toISOString())
-        .in('cards.deck_id', deckIds)
+  const {
+    isLoading, isFinished, currentCard, currentIndex, totalCards, passNumber,
+    flipped, isSaving, stats, showArchiveConfirm, undoData, showConfetti, swipeHint,
+    handleFlip, handleRating, handleArchiveRequest, handleArchiveCancel, handleArchiveConfirm,
+    handleUndoArchive, onTouchStart, onTouchMove, onTouchEnd,
+  } = session
 
-      if (dueReviews?.length) {
-        type DueRow = { cards: (Card & { deck_id: string }) | null } & CardReview
-        const rows = dueReviews as DueRow[]
-        const cardsWithReviews = rows
-          .filter(r => r.cards && deckIds.includes(r.cards.deck_id) && !r.cards.archived)
-          .map(r => ({ ...r.cards!, review: r as CardReview }))
-        setCards(buildSession(cardsWithReviews as Card[]))
+  if (isLoading) return (
+    <div className="fixed inset-0 bg-[#0F172A] flex items-center justify-center">
+      <div className="text-[#4338CA] text-xl">Chargement…</div>
+    </div>
+  )
 
-        const cardIds = cardsWithReviews.map(c => c.id)
-        const { data: hist } = await supabase
-          .from('card_reviews')
-          .select('card_id, rating, scheduled_days')
-          .eq('user_id', user.id)
-          .in('card_id', cardIds)
-          .not('reviewed_at', 'is', null)
-          .order('reviewed_at', { ascending: true })
-        const map = new Map<string, ReviewHistoryItem[]>()
-        for (const h of hist || []) {
-          if (!map.has(h.card_id)) map.set(h.card_id, [])
-          map.get(h.card_id)!.push({ rating: h.rating || 0, scheduled_days: h.scheduled_days || 0 })
-        }
-        ratingHistoryRef.current = map
-      }
-      setLoading(false)
-    }
-    load()
-  }, [])
-
-  useEffect(() => {
-    return () => {
-      if (undoIntervalRef.current) clearInterval(undoIntervalRef.current)
-      if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
-    }
-  }, [])
-
-  const handleRating = useCallback((userRating: UserRating) => {
-    if (saving) return
-    setSaving(true)
-    setShowArchiveConfirm(false)
-
-    const card = cards[current]
-    const review = card.review as CardReview
-    const history = ratingHistoryRef.current.get(card.id) || []
-    const successRate = history.length > 0 ? history.filter(h => h.rating >= 2).length / history.length : 1.0
-
-    const isAutoEasy = userRating === 3 && shouldAutoEasy(history, review.scheduled_days || 0)
-    const fsrsRating = (isAutoEasy ? 4 : userRating) as Rating
-
-    const nextReview = scheduleCard(review, fsrsRating, 0.9, { userEdited: card.user_edited, createdByAi: card.created_by_ai, successRate })
-    supabase.from('card_reviews').update({ ...nextReview, reviewed_at: new Date().toISOString(), rating: fsrsRating }).eq('id', review.id)
-      .then((res: { error: unknown }) => { if (res.error) console.error('rating save failed:', res.error) })
-
-    setStats(s => {
-      if (userRating === 1) return { ...s, non: s.non + 1 }
-      if (userRating === 2) return { ...s, hesitation: s.hesitation + 1 }
-      if (isAutoEasy) return { ...s, autoEasy: s.autoEasy + 1 }
-      return { ...s, oui: s.oui + 1 }
-    })
-
-    const newFailed = userRating === 1 ? [...failedCards, card] : [...failedCards]
-    const isLast = current + 1 >= cards.length
-
-    setTimeout(() => {
-      if (isLast) {
-        if (newFailed.length > 0) { setCards(newFailed); setCurrent(0); setFailedCards([]); setPassNumber(p => p + 1); setFlipped(false) }
-        else { setDone(true); setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3500) }
-      } else {
-        if (userRating === 1) setFailedCards(newFailed)
-        setCurrent(c => c + 1); setFlipped(false)
-      }
-      setSaving(false)
-    }, 300)
-  }, [saving, cards, current, failedCards, supabase])
-
-  function archiveCard() {
-    const card = cards[current]
-    setShowArchiveConfirm(false)
-    const now = new Date()
-    supabase.from('cards').update({ archived: true, archived_at: now.toISOString(), auto_delete_at: new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString() }).eq('id', card.id)
-      .then((res: { error: unknown }) => { if (res.error) console.error('archive error:', res.error) })
-
-    const newCards = cards.filter((_, i) => i !== current)
-    if (newCards.length === 0) { setDone(true); setShowConfetti(true); setTimeout(() => setShowConfetti(false), 3500) }
-    else { setCards(newCards); if (current >= newCards.length) setCurrent(newCards.length - 1); setFlipped(false) }
-
-    let countdown = 5
-    setUndoData({ cardId: card.id, countdown })
-    if (undoIntervalRef.current) clearInterval(undoIntervalRef.current)
-    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
-    undoIntervalRef.current = setInterval(() => { countdown--; setUndoData(prev => prev ? { ...prev, countdown } : null) }, 1000)
-    undoTimeoutRef.current = setTimeout(() => { clearInterval(undoIntervalRef.current!); setUndoData(null) }, 5000)
-  }
-
-  function undoArchiveCard(cardId: string) {
-    if (undoIntervalRef.current) clearInterval(undoIntervalRef.current)
-    if (undoTimeoutRef.current) clearTimeout(undoTimeoutRef.current)
-    setUndoData(null)
-    supabase.from('cards').update({ archived: false, archived_at: null, auto_delete_at: null }).eq('id', cardId)
-  }
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.target instanceof HTMLInputElement) return
-      if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); if (!flipped) setFlipped(true) }
-      if (flipped) {
-        if (e.key === '1') handleRating(1)
-        if (e.key === '2') handleRating(2)
-        if (e.key === '3') handleRating(3)
-        if (e.key === 'Escape') setShowArchiveConfirm(false)
-      }
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [flipped, handleRating])
-
-  function onTouchStart(e: React.TouchEvent) { touchStartX.current = e.touches[0].clientX; touchStartY.current = e.touches[0].clientY }
-  function onTouchMove(e: React.TouchEvent) {
-    if (touchStartX.current === null) return
-    const dx = e.touches[0].clientX - touchStartX.current
-    const dy = Math.abs(e.touches[0].clientY - (touchStartY.current ?? 0))
-    setSwipeHint(Math.abs(dx) > 30 && dy < 60 ? (dx < 0 ? 'left' : 'right') : null)
-  }
-  function onTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null) return
-    const dx = e.changedTouches[0].clientX - touchStartX.current
-    const dy = Math.abs(e.changedTouches[0].clientY - (touchStartY.current ?? 0))
-    setSwipeHint(null)
-    if (Math.abs(dx) > 80 && dy < 80) { if (!flipped) setFlipped(true); else handleRating(dx < 0 ? 1 : 3) }
-    else if (Math.abs(dx) < 10 && dy < 10 && !flipped) setFlipped(true)
-    touchStartX.current = null; touchStartY.current = null
-  }
-
-  useEffect(() => { document.body.style.overflow = 'hidden'; return () => { document.body.style.overflow = '' } }, [])
-
-  if (loading) return <div className="fixed inset-0 bg-[#0F172A] flex items-center justify-center"><div className="text-[#4338CA] text-xl">Chargement…</div></div>
-
-  if (done) {
+  if (isFinished) {
     const msg = sessionMessage(stats)
     const total = stats.non + stats.hesitation + stats.oui + stats.autoEasy
     return (
@@ -255,44 +104,59 @@ function CustomReviewInner() {
             ))}
           </div>
           {stats.autoEasy > 0 && (
-            <div className="bg-[#1C1F2E] border border-[#4338CA]/30 rounded-xl p-3 mb-6 flex items-center gap-2 text-sm">
+            <div className="bg-[#1C1F2E] border border-[#4338CA]/30 rounded-xl p-3 mb-4 flex items-center gap-2 text-sm">
               <span className="text-[#818CF8]">✨</span>
               <span className="text-[#94A3B8]">{stats.autoEasy} intervalle{stats.autoEasy > 1 ? 's' : ''} optimisé{stats.autoEasy > 1 ? 's' : ''} automatiquement</span>
             </div>
           )}
           <p className="text-gray-500 text-sm mb-6">{total} carte{total > 1 ? 's' : ''} révisée{total > 1 ? 's' : ''}</p>
           <div className="flex gap-4">
-            <button onClick={() => router.push('/dashboard')} className="flex-1 border border-[#334155] hover:border-[#4338CA] rounded-xl py-3 text-gray-400 hover:text-white transition-colors">Dashboard</button>
-            <button onClick={() => router.push('/decks')} className="flex-1 bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-3 font-medium transition-colors">Bibliothèque</button>
+            <button onClick={() => router.push('/dashboard')}
+              className="flex-1 border border-[#334155] hover:border-[#4338CA] rounded-xl py-3 text-gray-400 hover:text-white transition-colors">
+              Dashboard
+            </button>
+            <button onClick={() => router.push('/decks')}
+              className="flex-1 bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-3 font-medium transition-colors">
+              Bibliothèque
+            </button>
           </div>
         </div>
       </div>
     )
   }
 
-  if (cards.length === 0) return (
+  if (!currentCard) return (
     <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
       <div className="text-center">
         <div className="text-4xl mb-4">✅</div>
         <h1 className="text-2xl font-bold mb-2">Rien à réviser !</h1>
         <p className="text-gray-400 mb-6">Toutes les cartes de la sélection sont à jour.</p>
-        <button onClick={() => router.push('/dashboard')} className="bg-[#4338CA] hover:bg-[#3730A3] rounded-xl px-6 py-3 transition-colors">Retour au dashboard</button>
+        <button onClick={() => router.push('/dashboard')}
+          className="bg-[#4338CA] hover:bg-[#3730A3] rounded-xl px-6 py-3 transition-colors">
+          Retour au dashboard
+        </button>
       </div>
     </div>
   )
 
-  const card = cards[current]
-  const progress = Math.round((current / cards.length) * 100)
+  const card = currentCard as Card
+  const progress = Math.round((currentIndex / totalCards) * 100)
 
   return (
     <div className="fixed inset-0 bg-[#0F172A] text-white flex flex-col select-none overflow-hidden"
       onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
+
+      {/* Header */}
       <div className="px-6 py-4 border-b border-[#334155]">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white transition-colors">✕</button>
           <div className="text-center">
-            {passNumber > 1 && <div className="text-[#818CF8] text-xs font-semibold mb-0.5">Passage {passNumber} — {cards.length} carte{cards.length > 1 ? 's' : ''}</div>}
-            <span className="text-gray-400 text-sm">{current + 1} / {cards.length}</span>
+            {passNumber > 1 && (
+              <div className="text-[#818CF8] text-xs font-semibold mb-0.5">
+                Passage {passNumber} — {totalCards} carte{totalCards > 1 ? 's' : ''}
+              </div>
+            )}
+            <span className="text-gray-400 text-sm">{currentIndex + 1} / {totalCards}</span>
           </div>
           <div className="w-8" />
         </div>
@@ -303,6 +167,7 @@ function CustomReviewInner() {
         </div>
       </div>
 
+      {/* Swipe hint */}
       {swipeHint && flipped && (
         <div className={`fixed inset-0 pointer-events-none z-10 flex items-center ${swipeHint === 'left' ? 'justify-start pl-8' : 'justify-end pr-8'}`}>
           <div className={`rounded-2xl px-4 py-2 text-sm font-bold ${swipeHint === 'left' ? 'bg-[#2D1515] text-[#FCA5A5] border border-[#991B1B]' : 'bg-[#0C2D1E] text-[#5DCAA5] border border-[#0F6E56]'}`}>
@@ -311,9 +176,10 @@ function CustomReviewInner() {
         </div>
       )}
 
+      {/* Card */}
       <div className="flex-1 flex items-center justify-center p-6 overflow-hidden">
         <div className="w-full max-w-lg">
-          <button onClick={() => !flipped && setFlipped(true)} className="w-full" disabled={flipped}>
+          <button onClick={() => !flipped && handleFlip()} className="w-full" disabled={flipped}>
             <div className="bg-[#1E293B] rounded-3xl p-8 border border-[#334155] min-h-[240px] flex flex-col items-center justify-center gap-4 shadow-xl shadow-[#4338CA]/10">
               {card.theme && <span className="text-xs text-[#818CF8] font-medium uppercase tracking-widest opacity-70">{card.theme}</span>}
               <p className="text-xl font-semibold text-center leading-relaxed">{card.question}</p>
@@ -329,6 +195,7 @@ function CustomReviewInner() {
         </div>
       </div>
 
+      {/* Rating or reveal */}
       {flipped ? (
         <div className="px-6 py-4 border-t border-[#334155]">
           <div className="max-w-lg mx-auto grid grid-cols-3 gap-3">
@@ -337,7 +204,7 @@ function CustomReviewInner() {
               { label: 'Hésitation', rating: 2, color: 'bg-[#1C1F2E] hover:brightness-110 border-[#4338CA] text-[#818CF8]' },
               { label: 'Oui',        rating: 3, color: 'bg-[#0C2D1E] hover:brightness-110 border-[#0F6E56] text-[#5DCAA5]' },
             ] as const).map(b => (
-              <button key={b.label} onClick={() => handleRating(b.rating)} disabled={saving}
+              <button key={b.label} onClick={() => handleRating(b.rating)} disabled={isSaving}
                 className={`${b.color} border rounded-2xl py-4 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50 min-h-[64px]`}>
                 {b.label}
               </button>
@@ -346,7 +213,7 @@ function CustomReviewInner() {
 
           <div className="max-w-lg mx-auto mt-3 border-t border-[#334155] pt-3">
             {!showArchiveConfirm ? (
-              <button onClick={() => setShowArchiveConfirm(true)}
+              <button onClick={handleArchiveRequest}
                 className="w-full h-10 flex items-center justify-center gap-2 text-[#64748B] border border-[#334155]/50 rounded-xl text-sm hover:border-[#818CF8] hover:text-[#94A3B8] transition-colors">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M21 8v13H3V8" strokeLinecap="round" strokeLinejoin="round"/>
@@ -358,8 +225,8 @@ function CustomReviewInner() {
             ) : (
               <div className="bg-[#0F172A] border border-[#334155] rounded-xl p-3 flex items-center gap-2">
                 <span className="text-[#94A3B8] flex-1 text-xs leading-snug">Cette carte disparaîtra des révisions. Récupérable 30 jours.</span>
-                <button onClick={() => setShowArchiveConfirm(false)} className="text-[#64748B] hover:text-white text-xs px-2 py-1 rounded flex-shrink-0">Annuler</button>
-                <button onClick={archiveCard} className="bg-[#334155] hover:bg-[#475569] text-white text-xs px-3 py-1 rounded flex-shrink-0">Archiver</button>
+                <button onClick={handleArchiveCancel} className="text-[#64748B] hover:text-white text-xs px-2 py-1 rounded flex-shrink-0">Annuler</button>
+                <button onClick={handleArchiveConfirm} className="bg-[#334155] hover:bg-[#475569] text-white text-xs px-3 py-1 rounded flex-shrink-0">Archiver</button>
               </div>
             )}
           </div>
@@ -367,15 +234,19 @@ function CustomReviewInner() {
       ) : (
         <div className="px-6 py-4 border-t border-[#334155]">
           <div className="max-w-lg mx-auto">
-            <button onClick={() => setFlipped(true)} className="w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-2xl py-4 font-semibold transition-colors">Révéler la réponse</button>
+            <button onClick={handleFlip}
+              className="w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-2xl py-4 font-semibold transition-colors">
+              Révéler la réponse
+            </button>
           </div>
         </div>
       )}
 
+      {/* Undo toast */}
       {undoData && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-2.5 text-sm flex items-center gap-3 shadow-lg whitespace-nowrap">
           <span className="text-[#F1F5F9]">Archivée</span>
-          <button onClick={() => undoArchiveCard(undoData.cardId)} className="text-[#818CF8] hover:text-[#A5B4FC] font-medium transition-colors">
+          <button onClick={() => handleUndoArchive(undoData.cardId)} className="text-[#818CF8] hover:text-[#A5B4FC] font-medium transition-colors">
             Annuler ({undoData.countdown}s)
           </button>
         </div>
