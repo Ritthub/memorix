@@ -2,14 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import {
-  Chart as ChartJS,
-  CategoryScale, LinearScale, PointElement, LineElement,
-  ArcElement, Tooltip, Filler,
-} from 'chart.js'
-import { Line, Doughnut } from 'react-chartjs-2'
+import dynamic from 'next/dynamic'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ArcElement, Tooltip, Filler)
+const LineChart = dynamic(() => import('./Charts').then(m => m.LineChart), { ssr: false })
+const DonutChart = dynamic(() => import('./Charts').then(m => m.DonutChart), { ssr: false })
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -402,7 +398,7 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
             ) : (
               <div style={{ height: 160 }}>
                 {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                <Line data={lineData} options={lineOptions as any} />
+                <LineChart data={lineData} options={lineOptions} />
               </div>
             )}
           </section>
@@ -416,7 +412,7 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
               <div className="flex items-center gap-5">
                 <div style={{ width: 100, height: 100, flexShrink: 0 }}>
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                  <Doughnut data={doughnutData} options={doughnutOptions as any} />
+                  <DonutChart data={doughnutData} options={doughnutOptions} />
                 </div>
                 <div className="space-y-2.5 flex-1 min-w-0">
                   {[
