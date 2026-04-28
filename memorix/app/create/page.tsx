@@ -202,11 +202,13 @@ function CreatePageInner() {
     if (!error) {
       const { data: allCards } = await supabase.from('cards').select('id').eq('deck_id', targetDeckId)
       const { data: existingReviews } = await supabase.from('card_reviews').select('card_id').eq('user_id', user.id)
-      const existingIds = new Set(existingReviews?.map(r => r.card_id) || [])
-      const newCards = allCards?.filter(c => !existingIds.has(c.id)) || []
+      const existingIds = new Set(
+        (existingReviews as { card_id: string }[])?.map((r: { card_id: string }) => r.card_id) || []
+      )
+      const newCards = (allCards as { id: string }[])?.filter((c: { id: string }) => !existingIds.has(c.id)) || []
       if (newCards.length > 0) {
         await supabase.from('card_reviews').insert(
-          newCards.map(card => ({ card_id: card.id, user_id: user.id, state: 'new', scheduled_at: new Date().toISOString() }))
+          (newCards as { id: string }[]).map((card: { id: string }) => ({ card_id: card.id, user_id: user.id, state: 'new', scheduled_at: new Date().toISOString() }))
         )
       }
       router.push(`/decks/${targetDeckId}`)
@@ -247,7 +249,7 @@ function CreatePageInner() {
   async function createDeck() {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { setLoading(false); return }
     const { data, error } = await supabase.from('decks').insert({ ...deck, user_id: user.id, ...(themeId ? { theme_id: themeId } : {}) }).select().single()
     if (!error && data) { setDeckId(data.id); setStep('cards') }
     setLoading(false)
@@ -285,7 +287,7 @@ function CreatePageInner() {
     if (loading) return
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { setLoading(false); return }
 
     const targetThemeId = directThemeId
     const targetDeckId = deckId

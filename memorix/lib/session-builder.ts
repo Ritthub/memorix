@@ -1,22 +1,26 @@
 import { Card } from '@/types'
 
 export function buildSession(dueCards: Card[]): Card[] {
-  if (dueCards.length <= 5) return shuffle(dueCards)
+  const shuffled = shuffle(dueCards)
+  if (shuffled.length <= 5) return shuffled
+
+  // deck_id > theme_id > theme tag — évite de confondre decks différents partageant un tag texte
+  function getGroupKey(c: Card): string {
+    return c.deck_id || c.theme_id || c.theme || 'unknown'
+  }
 
   const result: Card[] = []
-  const remaining = [...dueCards]
-  let lastTheme: string | undefined
+  const remaining = [...shuffled]
+  let lastGroupKey: string | undefined
 
   while (remaining.length > 0) {
-    // Cherche une carte d'un theme different
-    const idx = remaining.findIndex(c => c.theme !== lastTheme)
+    const idx = remaining.findIndex(c => getGroupKey(c) !== lastGroupKey)
     if (idx === -1) {
-      // Toutes les cartes restantes ont le même theme
       result.push(...remaining.splice(0))
     } else {
       const [card] = remaining.splice(idx, 1)
       result.push(card)
-      lastTheme = card.theme
+      lastGroupKey = getGroupKey(card)
     }
   }
 

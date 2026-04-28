@@ -5,6 +5,8 @@ import ReviewSelector from './ReviewSelector'
 import ThemeReviewSection from './ThemeReviewSection'
 import { pluralCard } from '@/lib/utils'
 
+export const runtime = 'edge'
+
 function computeStreak(reviewedAtDates: string[]): number {
   if (reviewedAtDates.length === 0) return 0
   const days = new Set(reviewedAtDates.map(d => d.slice(0, 10)))
@@ -32,14 +34,15 @@ export default async function DashboardPage() {
     { data: themes },
   ] = await Promise.all([
     supabase.from('decks').select('id, name, icon, theme_id, cards(count)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(20),
-    supabase.from('card_reviews').select('id').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
+    supabase.from('card_reviews').select('id, cards!inner(archived)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
     supabase.from('profiles').select('name').eq('id', user.id).single(),
     supabase.from('card_reviews').select('reviewed_at').eq('user_id', user.id).not('reviewed_at', 'is', null).gte('reviewed_at', new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()),
-    supabase.from('card_reviews').select('cards(deck_id, theme_id)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
+    supabase.from('card_reviews').select('cards!inner(deck_id, theme_id, archived)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
     supabase.from('themes').select('id, name, color, position, parent_id').eq('user_id', user.id).order('position'),
   ])
 
-  const dueCount = dueCards?.length || 0
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const dueCount = (dueCards || []).filter((r: any) => !r.cards?.archived).length
   const deckCount = decks?.length || 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const firstName = (profile as any)?.name?.split(' ')[0] || ''
@@ -49,9 +52,10 @@ export default async function DashboardPage() {
   const directThemeDueMap: Record<string, number> = {}
   for (const r of deckDueCards || []) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const deckId = (r as any).cards?.deck_id
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const themeId = (r as any).cards?.theme_id
+    const card = (r as any).cards
+    if (!card || card.archived) continue
+    const deckId = card.deck_id
+    const themeId = card.theme_id
     if (deckId) {
       deckDueMap.set(deckId, (deckDueMap.get(deckId) || 0) + 1)
     } else if (themeId) {
@@ -206,4 +210,3 @@ export default async function DashboardPage() {
     </div>
   )
 }
-export const runtime = 'edge'
