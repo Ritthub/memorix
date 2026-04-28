@@ -101,8 +101,8 @@ export function useReviewSession({
         // Load non-archived cards by deck_id OR theme_id (for direct theme cards)
         const now = new Date().toISOString()
         const [{ data: byDeck }, { data: byTheme }] = await Promise.all([
-          supabase.from('cards').select('*').in('deck_id', ids).eq('archived', false),
-          supabase.from('cards').select('*').in('theme_id', ids).is('deck_id', null).eq('archived', false),
+          supabase.from('cards').select('*, decks(name, theme_id, themes(name, color)), themes(name, color)').in('deck_id', ids).eq('archived', false),
+          supabase.from('cards').select('*, decks(name, theme_id, themes(name, color)), themes(name, color)').in('theme_id', ids).is('deck_id', null).eq('archived', false),
         ])
         const allCards = deduplicateById([...(byDeck || []), ...(byTheme || [])])
 
@@ -147,12 +147,12 @@ export function useReviewSession({
         type DueRow = { cards: (Card & { deck_id: string | null; theme_id: string | null }) | null } & CardReview
         const [{ data: byDeck }, { data: byTheme }] = await Promise.all([
           supabase.from('card_reviews')
-            .select('*, cards!inner(*)')
+            .select('*, cards!inner(*, decks(name, theme_id, themes(name, color)), themes(name, color))')
             .eq('user_id', user.id)
             .lte('scheduled_at', now)
             .in('cards.deck_id', ids),
           supabase.from('card_reviews')
-            .select('*, cards!inner(*)')
+            .select('*, cards!inner(*, decks(name, theme_id, themes(name, color)), themes(name, color))')
             .eq('user_id', user.id)
             .lte('scheduled_at', now)
             .in('cards.theme_id', ids),

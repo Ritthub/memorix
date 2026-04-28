@@ -51,6 +51,8 @@ export type Card = {
   archived?: boolean
   archived_at?: string | null
   auto_delete_at?: string | null
+  decks?: { name: string; theme_id?: string | null; themes?: { name: string; color: string } | null } | null
+  themes?: { name: string; color: string } | null
 }
 
 export type CardReview = {

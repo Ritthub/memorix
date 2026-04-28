@@ -1,5 +1,5 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { useReviewSession } from '@/lib/hooks/useReviewSession'
@@ -159,6 +159,26 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
   const card = currentCard as Card
   const progress = Math.round((currentIndex / totalCards) * 100)
 
+  const [questionAtBottom, setQuestionAtBottom] = useState(false)
+  const [answerAtBottom, setAnswerAtBottom] = useState(false)
+  const questionScrollRef = useRef<HTMLDivElement>(null)
+  const answerScrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function atBottom(el: HTMLDivElement | null) { return !el || el.scrollHeight <= el.clientHeight + 2 }
+    setQuestionAtBottom(atBottom(questionScrollRef.current))
+    setAnswerAtBottom(atBottom(answerScrollRef.current))
+    if (questionScrollRef.current) questionScrollRef.current.scrollTop = 0
+    if (answerScrollRef.current) answerScrollRef.current.scrollTop = 0
+  }, [currentIndex])
+
+  useEffect(() => {
+    if (flipped && answerScrollRef.current) {
+      const el = answerScrollRef.current
+      setAnswerAtBottom(el.scrollHeight <= el.clientHeight + 2)
+    }
+  }, [flipped])
+
   return (
     <div className="fixed inset-0 bg-[#0F172A] text-white flex flex-col select-none overflow-hidden"
       onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
@@ -210,23 +230,57 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
         </div>
       )}
 
-      {/* Card with 3D flip */}
-      <div className="flex-1 flex items-center justify-center p-6 overflow-y-auto">
-        <div className="w-full max-w-lg">
-          <div onClick={() => !flipped && handleFlip()} className="cursor-pointer" style={{ perspective: '1000px' }}>
-            <div style={{ transformStyle: 'preserve-3d', transition: 'transform 0.5s cubic-bezier(.4,0,.2,1)', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)', position: 'relative', minHeight: '280px' }}>
+      {/* Card zone */}
+      <div className="flex-1 min-h-0 overflow-hidden px-6 py-4 flex flex-col">
+        <div className="flex-1 min-h-0 relative w-full max-w-lg mx-auto sm:flex-none sm:h-[45vh] sm:my-auto">
+          <div onClick={() => !flipped && handleFlip()} className="cursor-pointer absolute inset-0" style={{ perspective: '1000px' }}>
+            <div style={{ transformStyle: 'preserve-3d', transition: 'transform 0.5s cubic-bezier(.4,0,.2,1)', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)', position: 'absolute', inset: 0 }}>
+
+              {/* Front face */}
               <div style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
-                className="absolute inset-0 bg-[#1E293B] rounded-[20px] border border-[#334155] p-8 flex flex-col items-center justify-center text-center">
-                <div className="text-[10px] text-[#475569] uppercase tracking-[0.04em] font-medium mb-6">Question</div>
-                <p className="text-[15px] font-medium leading-relaxed text-[#F1F5F9]">{card.question}</p>
-                {!flipped && <p className="text-[#475569] text-sm mt-8">Appuyez · Espace · Glissez pour révéler</p>}
+                className="absolute inset-0 bg-[#1E293B] rounded-[20px] border border-[#334155] overflow-hidden">
+                <div ref={questionScrollRef}
+                  onScroll={e => { const el = e.currentTarget; setQuestionAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 2) }}
+                  className="h-full overflow-y-auto">
+                  <div className="min-h-full p-8 flex flex-col items-center justify-center text-center">
+                    {(card.decks?.name || card.themes?.name) && (
+                      <div className="flex items-center gap-1.5 mb-3">
+                        {(card.decks?.themes?.color || card.themes?.color) && (
+                          <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: card.decks?.themes?.color || card.themes?.color }} />
+                        )}
+                        <span className="text-[11px] text-[#64748B]">
+                          {card.decks?.themes?.name && <>{card.decks.themes.name} › </>}
+                          {card.decks?.name || card.themes?.name}
+                        </span>
+                      </div>
+                    )}
+                    <div className="text-[10px] text-[#475569] uppercase tracking-[0.04em] font-medium mb-6">Question</div>
+                    <p className="text-[15px] font-medium leading-relaxed text-[#F1F5F9]">{card.question}</p>
+                    {!flipped && <p className="text-[#475569] text-sm mt-8">Appuyez · Espace · Glissez pour révéler</p>}
+                  </div>
+                </div>
+                {!questionAtBottom && (
+                  <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1E293B] to-transparent pointer-events-none" />
+                )}
               </div>
+
+              {/* Back face */}
               <div style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-                className="absolute inset-0 bg-[#1E293B] rounded-[20px] border border-[#334155] p-8 flex flex-col items-center justify-center text-center">
-                <div className="text-[10px] text-[#475569] uppercase tracking-[0.04em] font-medium mb-6">Réponse</div>
-                <p className="text-2xl font-bold text-[#818CF8] leading-relaxed whitespace-pre-wrap">{card.answer}</p>
-                {card.explanation && <p className="text-[#94A3B8] text-sm mt-4">{card.explanation}</p>}
+                className="absolute inset-0 bg-[#1E293B] rounded-[20px] border border-[#334155] overflow-hidden">
+                <div ref={answerScrollRef}
+                  onScroll={e => { const el = e.currentTarget; setAnswerAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 2) }}
+                  className="h-full overflow-y-auto">
+                  <div className="min-h-full p-8 flex flex-col items-center justify-center text-center">
+                    <div className="text-[10px] text-[#475569] uppercase tracking-[0.04em] font-medium mb-6">Réponse</div>
+                    <p className="text-2xl font-bold text-[#818CF8] leading-relaxed whitespace-pre-wrap">{card.answer}</p>
+                    {card.explanation && <p className="text-[#94A3B8] text-sm mt-4">{card.explanation}</p>}
+                  </div>
+                </div>
+                {!answerAtBottom && (
+                  <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1E293B] to-transparent pointer-events-none" />
+                )}
               </div>
+
             </div>
           </div>
         </div>
