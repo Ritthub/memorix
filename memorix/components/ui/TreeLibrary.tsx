@@ -66,6 +66,14 @@ interface Ctx {
   onCreateDeck: (name: string, icon: string, themeId: string | null) => Promise<void>
   allDecks: DeckWithMeta[]
   themesById: Map<string, Theme>
+  // Direct theme card support
+  themeCards: Map<string, CardItem[]>
+  loadingThemes: Set<string>
+  expandedThemes: Set<string>
+  onToggleTheme: (id: string) => void
+  onAddThemeCard: (themeId: string, q: string, a: string) => Promise<void>
+  onEditThemeCard: (cardId: string, themeId: string, q: string, a: string) => Promise<void>
+  onDeleteThemeCard: (cardId: string, themeId: string) => Promise<void>
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -440,6 +448,184 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
   )
 }
 
+// ── ThemeCardsList ────────────────────────────────────────────────────────────
+
+function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) {
+  const { themeCards, loadingThemes, onAddThemeCard, onEditThemeCard, onDeleteThemeCard } = useLib()
+
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editQ, setEditQ] = useState('')
+  const [editA, setEditA] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [newQ, setNewQ] = useState('')
+  const [newA, setNewA] = useState('')
+  const [savedFlash, setSavedFlash] = useState(false)
+  const [addSaving, setAddSaving] = useState(false)
+
+  const qRef = useRef<HTMLInputElement>(null)
+  const aRef = useRef<HTMLInputElement>(null)
+  const editARef = useRef<HTMLInputElement>(null)
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const isLoading = loadingThemes.has(themeId)
+  const cards = themeCards.get(themeId)
+  const pl = INDENT * (depth + 1) + 8
+
+  useEffect(() => {
+    return () => { if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current) }
+  }, [])
+
+  function startEdit(card: CardItem) {
+    setEditingId(card.id)
+    setEditQ(card.question)
+    setEditA(card.answer)
+    setDeletingId(null)
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+  }
+
+  function cancelEdit() { setEditingId(null); setEditQ(''); setEditA('') }
+
+  async function commitEdit() {
+    if (!editingId || (!editQ.trim() && !editA.trim())) { cancelEdit(); return }
+    const id = editingId
+    cancelEdit()
+    await onEditThemeCard(id, themeId, editQ.trim() || '…', editA.trim() || '…')
+  }
+
+  function startDelete(cardId: string) {
+    setDeletingId(cardId)
+    setEditingId(null)
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    deleteTimerRef.current = setTimeout(() => setDeletingId(null), 4000)
+  }
+
+  async function confirmDelete(cardId: string) {
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    setDeletingId(null)
+    await onDeleteThemeCard(cardId, themeId)
+  }
+
+  async function handleAdd() {
+    if (!newQ.trim() || !newA.trim() || addSaving) return
+    setAddSaving(true)
+    await onAddThemeCard(themeId, newQ.trim(), newA.trim())
+    setNewQ('')
+    setNewA('')
+    setAddSaving(false)
+    setSavedFlash(true)
+    setTimeout(() => setSavedFlash(false), 1000)
+    qRef.current?.focus()
+  }
+
+  if (isLoading) {
+    return (
+      <div className="py-1.5 space-y-1.5" style={{ paddingLeft: pl }}>
+        <div className="h-3 bg-[#1E293B] rounded animate-pulse" style={{ width: '65%' }} />
+        <div className="h-3 bg-[#1E293B] rounded animate-pulse" style={{ width: '45%' }} />
+      </div>
+    )
+  }
+
+  return (
+    <div className="pb-1">
+      {cards?.length === 0 && (
+        <p className="text-xs text-[#475569] italic py-0.5" style={{ paddingLeft: pl }}>
+          Aucune carte — ajoutez-en une ci-dessous
+        </p>
+      )}
+
+      {cards?.map(card => (
+        <div key={card.id}>
+          {editingId === card.id ? (
+            <div className="flex items-center gap-1.5 py-0.5 pr-2" style={{ paddingLeft: pl }}>
+              <input
+                autoFocus value={editQ} onChange={e => setEditQ(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Tab') { e.preventDefault(); editARef.current?.focus() }
+                  if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
+                }}
+                className="flex-1 bg-transparent text-xs text-[#94A3B8] outline-none border-b border-[#818CF8] py-0.5 min-w-0"
+                style={{ maxWidth: '50%' }}
+              />
+              <span className="text-xs text-[#475569] flex-shrink-0">·</span>
+              <input
+                ref={editARef} value={editA} onChange={e => setEditA(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
+                  if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
+                }}
+                onBlur={commitEdit}
+                className="flex-1 bg-transparent text-xs text-[#64748B] outline-none border-b border-[#818CF8] py-0.5 min-w-0"
+                style={{ maxWidth: '35%' }}
+              />
+            </div>
+          ) : (
+            <div
+              className="flex items-center gap-1.5 py-0.5 pr-2 group/card rounded hover:bg-white/5 transition-colors"
+              style={{ paddingLeft: pl }}
+            >
+              <span className="w-1 h-1 rounded-full bg-[#4338CA]/60 flex-shrink-0" />
+              <span className="text-xs text-[#94A3B8] truncate" style={{ maxWidth: '50%' }} title={card.question}>
+                {card.question}
+              </span>
+              <span className="text-xs text-[#475569] flex-shrink-0">·</span>
+              <span className="text-xs text-[#64748B] truncate" style={{ maxWidth: '35%' }} title={card.answer}>
+                {card.answer}
+              </span>
+              <div className="ml-auto flex items-center gap-0 opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0">
+                <button onClick={() => startEdit(card)}
+                  className="w-5 h-5 flex items-center justify-center text-[#475569] hover:text-[#818CF8] rounded text-xs transition-colors" title="Modifier">
+                  ✏
+                </button>
+                <button onClick={() => startDelete(card.id)}
+                  className="w-5 h-5 flex items-center justify-center text-[#475569] hover:text-red-400 rounded text-xs transition-colors" title="Supprimer">
+                  ✕
+                </button>
+              </div>
+            </div>
+          )}
+
+          {deletingId === card.id && (
+            <div className="flex items-center gap-2 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded text-xs mt-0.5 mr-2" style={{ marginLeft: pl }}>
+              <span className="text-red-300 flex-1 truncate">Supprimer cette carte ?</span>
+              <button onClick={() => { if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current); setDeletingId(null) }}
+                className="text-gray-400 hover:text-white px-1.5 py-0.5 rounded hover:bg-white/5 flex-shrink-0">
+                Annuler
+              </button>
+              <button onClick={() => confirmDelete(card.id)}
+                className="text-white bg-red-600 hover:bg-red-700 px-2 py-0.5 rounded flex-shrink-0">
+                Confirmer
+              </button>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Inline add form */}
+      <div className="flex items-center gap-1.5 py-1 pr-2 border-b border-[#1E293B]" style={{ paddingLeft: pl }}>
+        <input ref={qRef} value={newQ} onChange={e => setNewQ(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Tab') { e.preventDefault(); aRef.current?.focus() } }}
+          placeholder="Question…"
+          className="flex-1 bg-transparent text-xs text-[#94A3B8] placeholder-[#334155] outline-none border-b border-transparent focus:border-[#818CF8] py-0.5 min-w-0 transition-colors"
+          style={{ maxWidth: '45%' }}
+        />
+        <input ref={aRef} value={newA} onChange={e => setNewA(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAdd() } }}
+          placeholder="Réponse…"
+          className="flex-1 bg-transparent text-xs text-[#64748B] placeholder-[#334155] outline-none border-b border-transparent focus:border-[#818CF8] py-0.5 min-w-0 transition-colors"
+          style={{ maxWidth: '45%' }}
+        />
+        {savedFlash && <span className="text-green-400 text-xs flex-shrink-0">✓</span>}
+        <button onClick={handleAdd} disabled={!newQ.trim() || !newA.trim() || addSaving}
+          className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 text-white text-xs leading-none transition-colors"
+          title="Ajouter">
+          +
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── InlineDeckCreator ─────────────────────────────────────────────────────────
 
 function InlineDeckCreator({ themeId, pl, onDone }: { themeId: string | null; pl: number; onDone: () => void }) {
@@ -593,6 +779,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
     onToggle, onEditStart, onEditChange, onEditCommit, onEditCancel,
     onCreateChild, onDeleteThemeStart, onDeleteThemeCancel, onDeleteThemeConfirm,
     onColorToggle, onColorChange, expandedDecks, onToggleAllDecksInTheme,
+    expandedThemes, onToggleTheme,
   } = useLib()
 
   const [creatingDeck, setCreatingDeck] = useState(false)
@@ -610,6 +797,8 @@ function ThemeNode({ node }: { node: TreeNode }) {
   const showColorPicker = colorPickerId === node.id
 
   const directDecks = decksMap.get(node.id) || []
+  const isLeaf = node.children.length === 0 && directDecks.length === 0
+  const isThemeExpanded = expandedThemes.has(node.id)
   const due = subtreeDue(node, decksMap)
   const subtreeDeckIds = getDeckIdsInSubtree(node, decksMap)
   const allCardsExpanded = subtreeDeckIds.length > 0 && subtreeDeckIds.every(id => expandedDecks.has(id))
@@ -648,11 +837,14 @@ function ThemeNode({ node }: { node: TreeNode }) {
               <circle cx="3" cy="9.5" r="1" /><circle cx="9" cy="9.5" r="1" />
             </svg>
           </button>
-          {/* Chevron */}
+          {/* Chevron — for leaf themes toggles direct cards; for others collapses children */}
           <button
-            onClick={() => onToggle(node.id)}
+            onClick={() => isLeaf ? onToggleTheme(node.id) : onToggle(node.id)}
             className="w-5 h-5 flex items-center justify-center text-gray-600 hover:text-gray-400 flex-shrink-0 transition-transform duration-200"
-            style={{ transform: isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)' }}
+            style={{ transform: isLeaf
+              ? (isThemeExpanded ? 'rotate(0deg)' : 'rotate(-90deg)')
+              : (isCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)') }}
+            title={isLeaf ? (isThemeExpanded ? 'Masquer les cartes' : 'Voir les cartes directes') : undefined}
           >
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -715,6 +907,17 @@ function ThemeNode({ node }: { node: TreeNode }) {
 
           {/* Hover actions */}
           <div className="flex items-center gap-0.5 transition-opacity flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
+            {isLeaf && (
+              <button
+                onClick={() => onToggleTheme(node.id)}
+                className={`w-6 h-6 flex items-center justify-center rounded text-xs transition-colors ${
+                  isThemeExpanded ? 'text-[#818CF8]' : 'text-gray-600 hover:text-[#818CF8]'
+                }`}
+                title="Cartes directes"
+              >
+                📝
+              </button>
+            )}
             {subtreeDeckIds.length > 0 && (
               <button
                 onClick={() => onToggleAllDecksInTheme(node)}
@@ -783,8 +986,13 @@ function ThemeNode({ node }: { node: TreeNode }) {
         )}
       </div>
 
+      {/* Direct theme cards for leaf themes */}
+      {isLeaf && isThemeExpanded && (
+        <ThemeCardsList themeId={node.id} depth={node.depth} />
+      )}
+
       {/* Children (when expanded) */}
-      {!isCollapsed && (
+      {!isLeaf && !isCollapsed && (
         <>
           {/* Direct deck rows — own SortableContext, no conflict with parent */}
           {directDecks.length > 0 && (
@@ -849,10 +1057,15 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
   const [movingDeck, setMovingDeck] = useState<DeckWithMeta | null>(null)
   const [deletingDeck, setDeletingDeck] = useState<DeckWithMeta | null>(null)
 
-  // Card expansion state
+  // Deck card expansion state
   const [expandedDecks, setExpandedDecks] = useState<Set<string>>(new Set())
   const [deckCards, setDeckCards] = useState<Map<string, CardItem[]>>(new Map())
   const [loadingDecks, setLoadingDecks] = useState<Set<string>>(new Set())
+
+  // Direct theme card expansion state (for leaf themes)
+  const [expandedThemes, setExpandedThemes] = useState<Set<string>>(new Set())
+  const [themeCards, setThemeCards] = useState<Map<string, CardItem[]>>(new Map())
+  const [loadingThemes, setLoadingThemes] = useState<Set<string>>(new Set())
 
   const [creatingNoThemeDeck, setCreatingNoThemeDeck] = useState(false)
 
@@ -1074,6 +1287,70 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     }
   }, [decksMap, expandedDecks, deckCards, loadDeckCards])
 
+  // ── Direct theme card actions ──────────────────────────────────────────────
+
+  const loadThemeCards = useCallback(async (themeId: string) => {
+    setLoadingThemes(prev => { const next = new Set(prev); next.add(themeId); return next })
+    const { data } = await supabase
+      .from('cards')
+      .select('*')
+      .eq('theme_id', themeId)
+      .is('deck_id', null)
+      .or('archived.is.null,archived.eq.false')
+      .order('created_at', { ascending: false })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const items: CardItem[] = (data || []).map((c: any) => ({ id: c.id, question: c.question, answer: c.answer }))
+    setThemeCards(prev => new Map(prev).set(themeId, items))
+    setLoadingThemes(prev => { const next = new Set(prev); next.delete(themeId); return next })
+  }, [supabase])
+
+  const onToggleTheme = useCallback((themeId: string) => {
+    const isExpanded = expandedThemes.has(themeId)
+    setExpandedThemes(prev => {
+      const next = new Set(prev)
+      if (isExpanded) next.delete(themeId)
+      else next.add(themeId)
+      return next
+    })
+    if (!isExpanded && !themeCards.has(themeId)) {
+      loadThemeCards(themeId)
+    }
+  }, [expandedThemes, themeCards, loadThemeCards])
+
+  const onAddThemeCard = useCallback(async (themeId: string, q: string, a: string) => {
+    const { data: card } = await supabase
+      .from('cards')
+      .insert({ theme_id: themeId, question: q, answer: a, difficulty: 1, created_by_ai: false, user_edited: false })
+      .select('id')
+      .single()
+    if (!card) return
+    await supabase.from('card_reviews').insert({
+      card_id: card.id, user_id: userId, state: 'new',
+      scheduled_at: new Date().toISOString(),
+    })
+    setThemeCards(prev => {
+      const existing = prev.get(themeId) || []
+      return new Map(prev).set(themeId, [{ id: card.id, question: q, answer: a }, ...existing])
+    })
+  }, [supabase, userId])
+
+  const onEditThemeCard = useCallback(async (cardId: string, themeId: string, q: string, a: string) => {
+    setThemeCards(prev => {
+      const cards = prev.get(themeId) || []
+      return new Map(prev).set(themeId, cards.map(c => c.id === cardId ? { ...c, question: q, answer: a } : c))
+    })
+    await supabase.from('cards').update({ question: q, answer: a, user_edited: true }).eq('id', cardId)
+  }, [supabase])
+
+  const onDeleteThemeCard = useCallback(async (cardId: string, themeId: string) => {
+    setThemeCards(prev => {
+      const cards = prev.get(themeId) || []
+      return new Map(prev).set(themeId, cards.filter(c => c.id !== cardId))
+    })
+    await supabase.from('card_reviews').delete().eq('card_id', cardId)
+    await supabase.from('cards').delete().eq('id', cardId)
+  }, [supabase])
+
   // ── Create root theme ──────────────────────────────────────────────────────
 
   const handleCreateRootTheme = async () => {
@@ -1209,6 +1486,8 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     userId, expandedDecks, deckCards, loadingDecks,
     onToggleDeck, onAddCard, onEditCard, onDeleteCard, onMoveCard, onToggleAllDecksInTheme,
     onCreateDeck, allDecks: decks, themesById,
+    themeCards, loadingThemes, expandedThemes,
+    onToggleTheme, onAddThemeCard, onEditThemeCard, onDeleteThemeCard,
   }
 
   const unthemedDecks = decksMap.get(null) || []

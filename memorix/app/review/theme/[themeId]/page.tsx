@@ -55,7 +55,9 @@ async function getDeckIdsForTheme(
     .select('id')
     .in('theme_id', themeIds)
 
-  return (decks || []).map((d: { id: string }) => d.id)
+  const deckIds = (decks || []).map((d: { id: string }) => d.id)
+  // Include theme IDs so direct theme cards (deck_id=null) are loaded in review
+  return [...deckIds, ...themeIds]
 }
 
 export default function ThemeReviewPage({ params }: { params: Promise<{ themeId: string }> }) {

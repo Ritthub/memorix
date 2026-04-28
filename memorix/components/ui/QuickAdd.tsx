@@ -4,21 +4,20 @@ import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Toast from './Toast'
 
-const LAST_DECK_KEY = 'memorix_last_deck'
+const LAST_DEST_KEY = 'memorix_last_deck'
 const HIDDEN_PREFIXES = ['/login', '/onboarding', '/auth', '/review/']
 
-type DeckOption = { id: string; name: string; icon: string }
+type DestOption = { value: string; label: string; name: string }
 
 export default function QuickAdd() {
   const pathname = usePathname()
   const supabase = createClient()
 
-  // undefined = auth check in progress, null = not logged in
   const [userId, setUserId] = useState<string | null | undefined>(undefined)
   const [open, setOpen] = useState(false)
   const [lockedDeckId, setLockedDeckId] = useState<string | null>(null)
-  const [decks, setDecks] = useState<DeckOption[]>([])
-  const [selectedDeckId, setSelectedDeckId] = useState('')
+  const [destinations, setDestinations] = useState<DestOption[]>([])
+  const [selectedDest, setSelectedDest] = useState('')
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState('')
   const [explanation, setExplanation] = useState('')
@@ -28,22 +27,44 @@ export default function QuickAdd() {
 
   const questionRef = useRef<HTMLTextAreaElement>(null)
 
-  // Auth check + deck list
+  // Auth check + destination list (leaf themes + all decks)
   useEffect(() => {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { setUserId(null); return }
       setUserId(user.id)
-      const { data } = await supabase
-        .from('decks')
-        .select('id, name, icon')
-        .eq('user_id', user.id)
-        .order('name')
-      if (data && data.length > 0) {
-        setDecks(data)
-        const last = localStorage.getItem(LAST_DECK_KEY)
-        setSelectedDeckId(last && data.find((d: DeckOption) => d.id === last) ? last : data[0].id)
-      }
+
+      const [{ data: decksData }, { data: themesData }] = await Promise.all([
+        supabase.from('decks').select('id, name, icon, theme_id').eq('user_id', user.id).order('name'),
+        supabase.from('themes').select('id, name, color, parent_id').eq('user_id', user.id),
+      ])
+
+      // Leaf themes: not a parent of another theme AND has no decks assigned
+      const parentIds = new Set((themesData || []).filter((t: { id: string; parent_id: string | null }) => t.parent_id).map((t: { parent_id: string }) => t.parent_id))
+      const themesWithDecks = new Set((decksData || []).map((d: { theme_id: string | null }) => d.theme_id).filter(Boolean))
+      const leafThemes = (themesData || []).filter((t: { id: string; parent_id: string | null }) =>
+        !parentIds.has(t.id) && !themesWithDecks.has(t.id)
+      )
+
+      const themeOpts: DestOption[] = leafThemes.map((t: { id: string; name: string }) => ({
+        value: `theme:${t.id}`,
+        label: `◆ ${t.name} (direct)`,
+        name: t.name,
+      }))
+      const deckOpts: DestOption[] = (decksData || []).map((d: { id: string; name: string; icon: string }) => ({
+        value: `deck:${d.id}`,
+        label: `${d.icon || '📚'} ${d.name}`,
+        name: d.name,
+      }))
+
+      const all = [...themeOpts, ...deckOpts]
+      setDestinations(all)
+
+      const rawLast = localStorage.getItem(LAST_DEST_KEY)
+      // Backward compat: old format was just a deck ID without prefix
+      const last = rawLast && !rawLast.includes(':') ? `deck:${rawLast}` : rawLast
+      const defaultDest = last && all.find(d => d.value === last) ? last : (all[0]?.value || '')
+      setSelectedDest(defaultDest)
     }
     init()
   }, [])
@@ -53,9 +74,10 @@ export default function QuickAdd() {
     function onOpen(e: Event) {
       const { deckId, locked } = (e as CustomEvent<{ deckId?: string; locked?: boolean }>).detail ?? {}
       if (deckId) {
-        setSelectedDeckId(deckId)
+        const dest = `deck:${deckId}`
+        setSelectedDest(dest)
         setLockedDeckId(locked ? deckId : null)
-        localStorage.setItem(LAST_DECK_KEY, deckId)
+        localStorage.setItem(LAST_DEST_KEY, dest)
       } else {
         setLockedDeckId(null)
       }
@@ -95,20 +117,30 @@ export default function QuickAdd() {
   }, [open])
 
   async function save() {
-    if (!question.trim() || !answer.trim() || !selectedDeckId || saving || !userId) return
+    if (!question.trim() || !answer.trim() || !selectedDest || saving || !userId) return
     setSaving(true)
+
+    const colonIdx = selectedDest.indexOf(':')
+    const destType = selectedDest.slice(0, colonIdx) as 'deck' | 'theme'
+    const destId = selectedDest.slice(colonIdx + 1)
+
+    const cardPayload: Record<string, unknown> = {
+      question: question.trim(),
+      answer: answer.trim(),
+      explanation: explanation.trim() || null,
+      difficulty: 1,
+      created_by_ai: false,
+      user_edited: false,
+    }
+    if (destType === 'theme') {
+      cardPayload.theme_id = destId
+    } else {
+      cardPayload.deck_id = destId
+    }
 
     const { data: card, error } = await supabase
       .from('cards')
-      .insert({
-        deck_id: selectedDeckId,
-        question: question.trim(),
-        answer: answer.trim(),
-        explanation: explanation.trim() || null,
-        difficulty: 1,
-        created_by_ai: false,
-        user_edited: false,
-      })
+      .insert(cardPayload)
       .select('id')
       .single()
 
@@ -125,14 +157,13 @@ export default function QuickAdd() {
       scheduled_at: new Date().toISOString(),
     })
 
-    localStorage.setItem(LAST_DECK_KEY, selectedDeckId)
-    const deckName = decks.find(d => d.id === selectedDeckId)?.name ?? 'deck'
+    localStorage.setItem(LAST_DEST_KEY, selectedDest)
+    const destName = destinations.find(d => d.value === selectedDest)?.name ?? 'destination'
     setSaving(false)
     close()
-    setToast(`Carte ajoutée à ${deckName}`)
+    setToast(`Carte ajoutée à ${destName}`)
   }
 
-  // Don't render while loading or unauthenticated or on excluded paths
   const hidden = HIDDEN_PREFIXES.some(p => pathname.startsWith(p))
   if (userId === undefined || userId === null || hidden) return null
 
@@ -161,7 +192,6 @@ export default function QuickAdd() {
             onClick={close}
           />
 
-          {/* Panel — bottom sheet on mobile, centered modal on desktop */}
           <div className={`
             fixed z-[101] bg-[#1E293B] border-[#334155] p-5
             bottom-0 left-0 right-0 rounded-t-3xl border-t
@@ -179,17 +209,17 @@ export default function QuickAdd() {
               </button>
             </div>
 
-            {/* Deck selector */}
+            {/* Destination selector: leaf themes first, then decks */}
             <select
-              value={selectedDeckId}
+              value={selectedDest}
               onChange={e => {
-                setSelectedDeckId(e.target.value)
-                localStorage.setItem(LAST_DECK_KEY, e.target.value)
+                setSelectedDest(e.target.value)
+                localStorage.setItem(LAST_DEST_KEY, e.target.value)
               }}
               disabled={!!lockedDeckId}
               className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-3 py-2 text-sm text-[#F1F5F9] focus:outline-none focus:border-[#818CF8] transition-colors mb-3 disabled:opacity-60"
             >
-              {decks.map(d => <option key={d.id} value={d.id}>{d.icon} {d.name}</option>)}
+              {destinations.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
             </select>
 
             {/* Question */}
@@ -233,7 +263,7 @@ export default function QuickAdd() {
 
             <button
               onClick={save}
-              disabled={!question.trim() || !answer.trim() || !selectedDeckId || saving}
+              disabled={!question.trim() || !answer.trim() || !selectedDest || saving}
               className="w-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-xl py-2.5 font-medium text-sm transition-colors"
             >
               {saving ? 'Sauvegarde…' : 'Sauvegarder'}

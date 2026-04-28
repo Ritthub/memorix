@@ -35,7 +35,7 @@ export default async function DashboardPage() {
     supabase.from('card_reviews').select('id').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
     supabase.from('profiles').select('name').eq('id', user.id).single(),
     supabase.from('card_reviews').select('reviewed_at').eq('user_id', user.id).not('reviewed_at', 'is', null).gte('reviewed_at', new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()),
-    supabase.from('card_reviews').select('cards(deck_id)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
+    supabase.from('card_reviews').select('cards(deck_id, theme_id)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
     supabase.from('themes').select('id, name, color, position, parent_id').eq('user_id', user.id).order('position'),
   ])
 
@@ -46,10 +46,17 @@ export default async function DashboardPage() {
   const streak = computeStreak((recentReviews || []).map((r: { reviewed_at: string | null }) => r.reviewed_at as string))
 
   const deckDueMap = new Map<string, number>()
+  const directThemeDueMap: Record<string, number> = {}
   for (const r of deckDueCards || []) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deckId = (r as any).cards?.deck_id
-    if (deckId) deckDueMap.set(deckId, (deckDueMap.get(deckId) || 0) + 1)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const themeId = (r as any).cards?.theme_id
+    if (deckId) {
+      deckDueMap.set(deckId, (deckDueMap.get(deckId) || 0) + 1)
+    } else if (themeId) {
+      directThemeDueMap[themeId] = (directThemeDueMap[themeId] || 0) + 1
+    }
   }
 
   // Per-theme due counts (flat: each deck mapped to its direct theme_id)
@@ -62,6 +69,10 @@ export default async function DashboardPage() {
     const themeId = (deck as any).theme_id
     if (themeId) themeDueCounts[themeId] = (themeDueCounts[themeId] || 0) + due
     else noThemeDue += due
+  }
+  // Add due counts for cards attached directly to a theme (no deck)
+  for (const [themeId, due] of Object.entries(directThemeDueMap)) {
+    themeDueCounts[themeId] = (themeDueCounts[themeId] || 0) + due
   }
 
   // Build root-theme cards with recursive due counts for ThemeReviewSection

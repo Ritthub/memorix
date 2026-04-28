@@ -29,6 +29,10 @@ function CreatePageInner() {
   const [deckId, setDeckId] = useState(existingDeckId || '')
   const [deckName, setDeckName] = useState('')
   const [deck, setDeck] = useState({ name: '', description: '', icon: '📚', color: '#4338CA' })
+  const [directThemeId, setDirectThemeId] = useState('')
+  const [selectedLeafTheme, setSelectedLeafTheme] = useState('')
+  const [leafThemes, setLeafThemes] = useState<Array<{ id: string; name: string; color: string }>>([])
+
   const [cards, setCards] = useState([{ question: '', answer: '', explanation: '' }])
   const [aiText, setAiText] = useState('')
   const [aiCards, setAiCards] = useState<any[]>([])
@@ -57,6 +61,23 @@ function CreatePageInner() {
     }
     fetchDeck()
   }, [existingDeckId])
+
+  useEffect(() => {
+    async function loadLeafThemes() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const [{ data: themesData }, { data: decksData }] = await Promise.all([
+        supabase.from('themes').select('id, name, color, parent_id').eq('user_id', user.id),
+        supabase.from('decks').select('id, theme_id').eq('user_id', user.id),
+      ])
+      const parentIds = new Set((themesData || []).filter((t: any) => t.parent_id).map((t: any) => t.parent_id))
+      const themesWithDecks = new Set((decksData || []).map((d: any) => d.theme_id).filter(Boolean))
+      const leaves = (themesData || []).filter((t: any) => !parentIds.has(t.id) && !themesWithDecks.has(t.id))
+      setLeafThemes(leaves)
+      if (leaves.length > 0) setSelectedLeafTheme(leaves[0].id)
+    }
+    loadLeafThemes()
+  }, [])
 
   // Wikipedia search debounce
   useEffect(() => {
@@ -266,9 +287,12 @@ function CreatePageInner() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    const targetThemeId = directThemeId
+    const targetDeckId = deckId
+
     const { error } = await supabase.from('cards').insert(
       cardsToSave.map(c => ({
-        deck_id: deckId,
+        ...(targetThemeId ? { theme_id: targetThemeId } : { deck_id: targetDeckId }),
         question: c.question || c.q,
         answer: c.answer || c.a,
         explanation: c.explanation || c.expl || null,
@@ -279,16 +303,23 @@ function CreatePageInner() {
     )
 
     if (!error) {
-      const { data: allCards } = await supabase.from('cards').select('id').eq('deck_id', deckId)
+      const allCardsQuery = targetThemeId
+        ? supabase.from('cards').select('id').eq('theme_id', targetThemeId).is('deck_id', null)
+        : supabase.from('cards').select('id').eq('deck_id', targetDeckId)
+      const { data: allCards } = await allCardsQuery
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const { data: existingReviews } = await supabase.from('card_reviews').select('card_id').eq('user_id', user.id)
-      const existingIds = new Set(existingReviews?.map(r => r.card_id) || [])
-      const newCards = allCards?.filter(c => !existingIds.has(c.id)) || []
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const existingIds = new Set((existingReviews as any[])?.map((r: any) => r.card_id) || [])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const newCards = (allCards as any[])?.filter((c: any) => !existingIds.has(c.id)) || []
       if (newCards.length > 0) {
         await supabase.from('card_reviews').insert(
-          newCards.map(card => ({ card_id: card.id, user_id: user.id, state: 'new', scheduled_at: new Date().toISOString() }))
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (newCards as any[]).map((card: any) => ({ card_id: card.id, user_id: user.id, state: 'new', scheduled_at: new Date().toISOString() }))
         )
       }
-      router.push(`/decks/${deckId}`)
+      router.push(targetThemeId ? `/themes/${targetThemeId}` : `/decks/${targetDeckId}`)
     }
     setLoading(false)
   }
@@ -353,6 +384,42 @@ function CreatePageInner() {
             className="w-full border border-[#334155] hover:border-[#818CF8]/50 rounded-xl py-3 text-gray-400 hover:text-white transition-colors text-sm">
             🌐 Importer depuis Wikipedia →
           </button>
+
+          {leafThemes.length > 0 && (
+            <>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-[#312E81]/30" />
+                <span className="text-gray-600 text-xs">ou</span>
+                <div className="flex-1 h-px bg-[#312E81]/30" />
+              </div>
+
+              <div>
+                <label className="text-gray-400 text-sm mb-2 block">Attacher directement à un thème</label>
+                <select
+                  value={selectedLeafTheme}
+                  onChange={e => setSelectedLeafTheme(e.target.value)}
+                  className="w-full bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#818CF8] transition-colors mb-3"
+                >
+                  {leafThemes.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => {
+                    const theme = leafThemes.find(t => t.id === selectedLeafTheme)
+                    if (!theme) return
+                    setDirectThemeId(selectedLeafTheme)
+                    setDeckName(theme.name)
+                    setStep('cards')
+                  }}
+                  disabled={!selectedLeafTheme}
+                  className="w-full border border-[#4338CA]/50 hover:border-[#818CF8] hover:bg-[#312E81]/20 disabled:opacity-40 rounded-xl py-3 text-[#818CF8] transition-colors text-sm"
+                >
+                  📝 Ajouter des cartes directement →
+                </button>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -362,8 +429,10 @@ function CreatePageInner() {
     <div className="min-h-screen bg-[#0F172A] text-white px-6 py-10">
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
-          <button onClick={() => existingDeckId ? router.push(`/decks/${deckId}`) : setStep('deck')}
-            className="text-gray-400 hover:text-white transition-colors">← Retour</button>
+          <button onClick={() => {
+            if (existingDeckId) router.push(`/decks/${deckId}`)
+            else { setDirectThemeId(''); setStep('deck') }
+          }} className="text-gray-400 hover:text-white transition-colors">← Retour</button>
           <h1 className="text-lg font-bold">{deckName ? `"${deckName}"` : 'Ajouter des cartes'}</h1>
           <div className="w-16" />
         </div>
