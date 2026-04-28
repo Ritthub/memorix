@@ -1,10 +1,12 @@
+export const runtime = 'edge'
+
 import { createServerSupabase } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import StatsView from './StatsView'
 
-function computeStreak(reviewedAtDates: string[]): number {
-  if (reviewedAtDates.length === 0) return 0
-  const days = new Set(reviewedAtDates.map(d => d.slice(0, 10)))
+function computeStreak(dates: string[]): number {
+  if (dates.length === 0) return 0
+  const days = new Set(dates.map(d => d.slice(0, 10)))
   let streak = 0
   const d = new Date()
   d.setHours(0, 0, 0, 0)
@@ -20,45 +22,91 @@ export default async function StatsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  const since365 = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()
-  const { data: reviews365 } = await supabase
-    .from('card_reviews')
-    .select('reviewed_at, rating, retrievability, lapses, card_id')
-    .eq('user_id', user.id)
-    .gte('reviewed_at', since365)
-    .not('reviewed_at', 'is', null)
-    .order('reviewed_at', { ascending: true })
+  const [
+    { data: allReviews },
+    { data: hardCardsRaw },
+    { data: forecastReviews },
+    { data: profile },
+  ] = await Promise.all([
+    supabase.from('card_reviews')
+      .select('reviewed_at, rating, scheduled_at, scheduled_days')
+      .eq('user_id', user.id)
+      .not('reviewed_at', 'is', null)
+      .gte('reviewed_at', new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString())
+      .order('reviewed_at', { ascending: false }),
 
-  // Fetch top candidates for hardest cards, sort by failure rate client-side
+    supabase.from('card_reviews')
+      .select('card_id, rating, cards!inner(question, deck_id, decks(name))')
+      .eq('user_id', user.id)
+      .not('reviewed_at', 'is', null)
+      .or('archived.is.null,archived.eq.false', { foreignTable: 'cards' }),
+
+    supabase.from('card_reviews')
+      .select('scheduled_at')
+      .eq('user_id', user.id)
+      .gte('scheduled_at', new Date().toISOString())
+      .lte('scheduled_at', new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString()),
+
+    supabase.from('profiles')
+      .select('name, retention_target')
+      .eq('id', user.id)
+      .single(),
+  ])
+
+  const streak = computeStreak((allReviews || []).map(r => r.reviewed_at as string))
+
+  // Hard cards: group by card_id, failure rate = rating===1 / total, min 3 reviews, top 8
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data: hardCandidates } = await supabase
-    .from('card_reviews')
-    .select('card_id, lapses, reps, rating, cards(question, answer, deck_id, decks(name))')
-    .eq('user_id', user.id)
-    .gt('lapses', 0)
-    .order('lapses', { ascending: false })
-    .limit(20) as { data: any[] | null }
+  const cardMap = new Map<string, { total: number; fails: number; card: any }>()
+  for (const r of hardCardsRaw || []) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { card_id, rating, cards } = r as any
+    const entry = cardMap.get(card_id) || { total: 0, fails: 0, card: cards }
+    entry.total++
+    if (rating === 1) entry.fails++
+    if (!entry.card) entry.card = cards
+    cardMap.set(card_id, entry)
+  }
+  const topHardCards = Array.from(cardMap.entries())
+    .filter(([, v]) => v.total >= 3)
+    .map(([id, v]) => ({
+      card_id: id,
+      failRate: Math.round(v.fails / v.total * 100),
+      question: (v.card?.question as string) || '—',
+      deck_id: (v.card?.deck_id as string | null) || null,
+      deck_name: (v.card?.decks?.name as string | null) || null,
+      total: v.total,
+    }))
+    .sort((a, b) => b.failRate - a.failRate)
+    .slice(0, 8)
 
-  // Sort by failure rate (lapses/reps) and keep top 5
-  const hardCards = (hardCandidates || [])
-    .map(c => ({ ...c, failureRate: c.reps > 0 ? c.lapses / c.reps : 0 }))
-    .sort((a, b) => b.failureRate - a.failureRate)
-    .slice(0, 5)
+  // Forecast: next 7 days scheduled count grouped by day
+  const forecastMap = new Map<string, number>()
+  for (const r of forecastReviews || []) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const day = (r as any).scheduled_at?.slice(0, 10)
+    if (day) forecastMap.set(day, (forecastMap.get(day) || 0) + 1)
+  }
+  const todayBase = new Date()
+  todayBase.setHours(0, 0, 0, 0)
+  const forecast = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(todayBase)
+    d.setDate(d.getDate() + i)
+    const day = d.toISOString().slice(0, 10)
+    const label = i === 0 ? "Aujourd'hui" : i === 1 ? 'Demain' : `Dans ${i} jours`
+    return { day, label, count: forecastMap.get(day) || 0 }
+  })
 
-  const totalReviews = reviews365?.length || 0
-  const successRate = reviews365 && reviews365.length > 0
-    ? Math.round(reviews365.filter(r => (r.rating || 0) >= 3).length / reviews365.length * 100)
-    : 0
-  const streak = computeStreak((reviews365 || []).map(r => r.reviewed_at as string))
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const retentionTarget = (profile as any)?.retention_target ?? 80
 
   return (
     <StatsView
-      reviews365={reviews365 || []}
-      hardCards={hardCards}
-      totalReviews={totalReviews}
-      successRate={successRate}
+      reviews={allReviews || []}
+      hardCards={topHardCards}
+      forecast={forecast}
       streak={streak}
+      retentionTarget={retentionTarget}
     />
   )
 }
-export const runtime = 'edge'
