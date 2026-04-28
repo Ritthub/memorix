@@ -84,6 +84,26 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
     handleUndoArchive, onTouchStart, onTouchMove, onTouchEnd,
   } = session
 
+  const [questionAtBottom, setQuestionAtBottom] = useState(false)
+  const [answerAtBottom, setAnswerAtBottom] = useState(false)
+  const questionScrollRef = useRef<HTMLDivElement>(null)
+  const answerScrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function atBottom(el: HTMLDivElement | null) { return !el || el.scrollHeight <= el.clientHeight + 2 }
+    setQuestionAtBottom(atBottom(questionScrollRef.current))
+    setAnswerAtBottom(atBottom(answerScrollRef.current))
+    if (questionScrollRef.current) questionScrollRef.current.scrollTop = 0
+    if (answerScrollRef.current) answerScrollRef.current.scrollTop = 0
+  }, [currentIndex])
+
+  useEffect(() => {
+    if (flipped && answerScrollRef.current) {
+      const el = answerScrollRef.current
+      setAnswerAtBottom(el.scrollHeight <= el.clientHeight + 2)
+    }
+  }, [flipped])
+
   if (isLoading) return (
     <div className="fixed inset-0 bg-[#0F172A] flex items-center justify-center">
       <div className="text-[#4338CA] text-xl">Chargement...</div>
@@ -180,26 +200,6 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
 
   const card = currentCard as Card
   const progress = Math.round((currentIndex / totalCards) * 100)
-
-  const [questionAtBottom, setQuestionAtBottom] = useState(false)
-  const [answerAtBottom, setAnswerAtBottom] = useState(false)
-  const questionScrollRef = useRef<HTMLDivElement>(null)
-  const answerScrollRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    function atBottom(el: HTMLDivElement | null) { return !el || el.scrollHeight <= el.clientHeight + 2 }
-    setQuestionAtBottom(atBottom(questionScrollRef.current))
-    setAnswerAtBottom(atBottom(answerScrollRef.current))
-    if (questionScrollRef.current) questionScrollRef.current.scrollTop = 0
-    if (answerScrollRef.current) answerScrollRef.current.scrollTop = 0
-  }, [currentIndex])
-
-  useEffect(() => {
-    if (flipped && answerScrollRef.current) {
-      const el = answerScrollRef.current
-      setAnswerAtBottom(el.scrollHeight <= el.clientHeight + 2)
-    }
-  }, [flipped])
 
   return (
     <div className="fixed inset-0 bg-[#0F172A] text-white flex flex-col select-none overflow-hidden"
