@@ -80,7 +80,12 @@ function LoginInner() {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     setLoading(false)
     if (error) {
-      setError('Email ou mot de passe incorrect.')
+      const msg = error.message?.toLowerCase() || ''
+      if (msg.includes('email not confirmed')) {
+        setError('Ton email n\'est pas encore confirmé. Clique sur le lien reçu lors de l\'inscription, ou utilise "Mot de passe oublié" pour renvoyer un email.')
+      } else {
+        setError('Email ou mot de passe incorrect.')
+      }
       return
     }
     router.push('/dashboard')
