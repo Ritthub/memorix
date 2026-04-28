@@ -73,14 +73,13 @@ export default async function DashboardPage() {
     return [themeId, ...children.flatMap(c => getSubtreeIds(c.id))]
   }
 
-  const rootThemes = allThemesList
-    .filter(t => !t.parent_id)
-    .map(t => ({
-      id: t.id,
-      name: t.name,
-      color: t.color,
-      due: getSubtreeIds(t.id).reduce((sum, id) => sum + (themeDueCounts[id] || 0), 0),
-    }))
+  const allThemesWithDue = allThemesList.map(t => ({
+    id: t.id,
+    name: t.name,
+    color: t.color,
+    parent_id: t.parent_id,
+    due: getSubtreeIds(t.id).reduce((sum, id) => sum + (themeDueCounts[id] || 0), 0),
+  }))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const safeThemes = (themes as any) || []
@@ -137,7 +136,7 @@ export default async function DashboardPage() {
           noThemeDue={noThemeDue}
         />
 
-        <ThemeReviewSection themes={rootThemes} />
+        <ThemeReviewSection themes={allThemesWithDue} />
 
         <div>
           <div className="flex items-center justify-between mb-4">

@@ -1,14 +1,121 @@
+'use client'
+
 import Link from 'next/link'
+import { useState } from 'react'
 
 interface ThemeItem {
   id: string
   name: string
   color: string
+  parent_id: string | null
   due: number
 }
 
+interface ThemeNode extends ThemeItem {
+  children: ThemeNode[]
+}
+
+function buildTree(themes: ThemeItem[]): ThemeNode[] {
+  const map = new Map<string, ThemeNode>()
+  themes.forEach(t => map.set(t.id, { ...t, children: [] }))
+  const roots: ThemeNode[] = []
+  themes.forEach(t => {
+    const node = map.get(t.id)!
+    if (t.parent_id && map.has(t.parent_id)) {
+      map.get(t.parent_id)!.children.push(node)
+    } else {
+      roots.push(node)
+    }
+  })
+  return roots
+}
+
+function ThemeRow({
+  node, depth, collapsed, onToggle,
+}: {
+  node: ThemeNode
+  depth: number
+  collapsed: Set<string>
+  onToggle: (id: string) => void
+}) {
+  const hasChildren = node.children.length > 0
+  const isExpanded = !collapsed.has(node.id)
+  const nameColor = depth === 0 ? '#F1F5F9' : depth === 1 ? '#94A3B8' : '#64748B'
+  const fontWeight = depth === 0 ? 500 : 400
+
+  return (
+    <>
+      <div
+        className="flex items-center gap-2 py-2.5 hover:bg-[#312E81]/10 transition-colors"
+        style={{ paddingLeft: `${8 + depth * 16}px`, paddingRight: '8px' }}
+      >
+        {hasChildren ? (
+          <button
+            onClick={() => onToggle(node.id)}
+            className="w-4 h-4 flex items-center justify-center text-gray-600 hover:text-gray-400 flex-shrink-0"
+          >
+            <svg
+              width="10" height="10" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" strokeWidth={2.5}
+              className={`transition-transform ${isExpanded ? '' : '-rotate-90'}`}
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        ) : (
+          <span className="w-4 flex-shrink-0" />
+        )}
+
+        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: node.color }} />
+
+        <span className="text-sm flex-1 truncate min-w-0" style={{ color: nameColor, fontWeight }}>
+          {node.name}
+        </span>
+
+        {node.due > 0 && (
+          <span className="text-xs text-[#818CF8] font-semibold flex-shrink-0 tabular-nums">{node.due}</span>
+        )}
+
+        {node.due > 0 ? (
+          <Link
+            href={`/review/theme/${node.id}`}
+            className="flex-shrink-0 bg-[#4338CA] hover:bg-[#3730A3] text-white text-[10px] font-bold rounded-md px-2 py-1 transition-colors leading-none"
+          >
+            ▶
+          </Link>
+        ) : (
+          <span className="flex-shrink-0 border border-[#334155] text-[#334155] text-[10px] rounded-md px-2 py-1 leading-none cursor-not-allowed select-none">
+            ▶
+          </span>
+        )}
+
+        <Link
+          href={`/review/theme/${node.id}?mode=free`}
+          className="flex-shrink-0 border border-[#334155] hover:border-amber-500/50 text-[#64748B] hover:text-amber-400 text-[10px] font-bold rounded-md px-2 py-1 transition-colors leading-none"
+        >
+          ∞
+        </Link>
+      </div>
+
+      {isExpanded && hasChildren && node.children.map(child => (
+        <ThemeRow key={child.id} node={child} depth={depth + 1} collapsed={collapsed} onToggle={onToggle} />
+      ))}
+    </>
+  )
+}
+
 export default function ThemeReviewSection({ themes }: { themes: ThemeItem[] }) {
-  if (themes.length === 0) return null
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const roots = buildTree(themes)
+  if (roots.length === 0) return null
+
+  const onToggle = (id: string) => {
+    setCollapsed(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
 
   return (
     <div className="mb-8">
@@ -19,49 +126,9 @@ export default function ThemeReviewSection({ themes }: { themes: ThemeItem[] }) 
         </Link>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
-        {themes.map(theme => (
-          <div
-            key={theme.id}
-            className="flex-shrink-0 bg-[#1E293B] border border-[#334155] rounded-xl p-3 flex flex-col gap-2"
-            style={{ minWidth: 160 }}
-          >
-            {/* Theme identity */}
-            <div className="flex items-center gap-2 min-w-0">
-              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: theme.color }} />
-              <span className="text-sm font-medium text-[#F1F5F9] truncate">{theme.name}</span>
-            </div>
-
-            {/* Due count */}
-            <p className="text-xs text-[#475569]">
-              {theme.due > 0
-                ? <><span className="text-[#818CF8] font-semibold">{theme.due}</span> due{theme.due > 1 ? 's' : ''}</>
-                : 'À jour ✓'
-              }
-            </p>
-
-            {/* Buttons */}
-            <div className="flex flex-col gap-1.5 mt-1">
-              {theme.due > 0 ? (
-                <Link
-                  href={`/review/theme/${theme.id}`}
-                  className="flex items-center justify-center gap-1 bg-[#4338CA] hover:bg-[#3730A3] text-white text-xs font-medium rounded-lg py-1.5 transition-colors"
-                >
-                  ▶ Réviser ({theme.due})
-                </Link>
-              ) : (
-                <span className="flex items-center justify-center gap-1 border border-[#334155] text-[#334155] text-xs rounded-lg py-1.5 cursor-not-allowed select-none">
-                  ▶ Réviser (0)
-                </span>
-              )}
-              <Link
-                href={`/review/theme/${theme.id}?mode=free`}
-                className="flex items-center justify-center gap-1 border border-[#334155] hover:border-amber-500/50 text-[#64748B] hover:text-amber-400 text-xs font-medium rounded-lg py-1.5 transition-colors"
-              >
-                ∞ Tout réviser
-              </Link>
-            </div>
-          </div>
+      <div className="bg-[#1E293B] border border-[#334155] rounded-xl overflow-hidden py-1">
+        {roots.map(root => (
+          <ThemeRow key={root.id} node={root} depth={0} collapsed={collapsed} onToggle={onToggle} />
         ))}
       </div>
     </div>
