@@ -14,10 +14,13 @@ export async function POST(request: NextRequest) {
 
     const isWiki = source === 'wikipedia'
     const maxN = typeof maxCards === 'number' ? maxCards : 20
+
+    // Sanitise user inputs before injecting into the prompt
+    const sanitize = (s: string) => s.replace(/"/g, "'").replace(/\n/g, ' ').slice(0, 200)
+    const articleTitle = typeof title === 'string' && title ? sanitize(title) : 'cet article'
     const prioStr = Array.isArray(priorities) && priorities.length > 0
-      ? priorities.join(', ')
+      ? priorities.filter((p: unknown) => typeof p === 'string').map((p: unknown) => sanitize(p as string)).join(', ')
       : 'tous les faits importants'
-    const articleTitle = typeof title === 'string' && title ? title : 'cet article'
 
     const prompt = isWiki
       ? `Tu génères des flashcards depuis l'article Wikipedia "${articleTitle}".
@@ -68,7 +71,7 @@ FORMAT JSON STRICT — réponds UNIQUEMENT avec ce tableau, sans texte avant ou 
 [{"q":"question précise","a":"réponse courte et exacte","expl":"contexte utile ou null","theme":"thème du document","difficulty":1}]
 
 DOCUMENT À ANALYSER :
-${text.slice(0, 8000)}`
+${text.slice(0, 30000)}`
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -78,7 +81,7 @@ ${text.slice(0, 8000)}`
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-opus-4-5',
+        model: 'claude-opus-4-7',
         max_tokens: 4000,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -106,7 +109,22 @@ ${text.slice(0, 8000)}`
       return NextResponse.json({ error: 'Erreur de parsing' }, { status: 500 })
     }
 
-    return NextResponse.json({ cards })
+    if (!Array.isArray(cards)) {
+      console.error('Claude returned non-array:', cards)
+      return NextResponse.json({ error: 'Format de réponse invalide' }, { status: 500 })
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const validCards = cards.filter((c: any) =>
+      c && typeof c.q === 'string' && c.q.trim() &&
+      typeof c.a === 'string' && c.a.trim()
+    )
+
+    if (validCards.length === 0) {
+      return NextResponse.json({ error: 'Aucune carte valide générée' }, { status: 500 })
+    }
+
+    return NextResponse.json({ cards: validCards })
 
   } catch (error) {
     console.error('Generate error:', error)

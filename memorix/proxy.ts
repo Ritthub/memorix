@@ -32,8 +32,8 @@ export async function proxy(request: NextRequest) {
   try {
     const { data } = await supabase.auth.getUser()
     user = data.user
-  } catch {
-    // malformed or missing session cookie — treat as unauthenticated
+  } catch (err) {
+    console.error('[proxy] getUser error:', err)
   }
 
   if (!user &&
