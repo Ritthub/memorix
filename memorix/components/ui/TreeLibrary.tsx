@@ -147,6 +147,16 @@ function isAncestor(themes: Theme[], ancestorId: string, descendantId: string): 
   return false
 }
 
+function getThemeDepth(themeId: string | null, themesMap: Map<string, Theme>): number {
+  let depth = 0
+  let current = themeId ? themesMap.get(themeId) : undefined
+  while (current?.parent_id) {
+    depth++
+    current = themesMap.get(current.parent_id)
+  }
+  return depth
+}
+
 function dropdownStyle(rect: DOMRect): CSSProperties {
   const MENU_H = 220
   const spaceBelow = window.innerHeight - rect.bottom
@@ -187,11 +197,11 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
   }, [])
 
   function startEdit(card: CardItem) {
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    setDeletingId(null)
     setEditingId(card.id)
     setEditQ(card.question)
     setEditA(card.answer)
-    setDeletingId(null)
-    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
   }
 
   function cancelEdit() {
@@ -476,11 +486,11 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
   }, [])
 
   function startEdit(card: CardItem) {
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    setDeletingId(null)
     setEditingId(card.id)
     setEditQ(card.question)
     setEditA(card.answer)
-    setDeletingId(null)
-    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
   }
 
   function cancelEdit() { setEditingId(null); setEditQ(''); setEditA('') }
@@ -799,6 +809,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
   const directDecks = decksMap.get(node.id) || []
   const isLeaf = node.children.length === 0 && directDecks.length === 0
   const isThemeExpanded = expandedThemes.has(node.id)
+  const showDirectCards = isLeaf || isThemeExpanded
   const due = subtreeDue(node, decksMap)
   const subtreeDeckIds = getDeckIdsInSubtree(node, decksMap)
   const allCardsExpanded = subtreeDeckIds.length > 0 && subtreeDeckIds.every(id => expandedDecks.has(id))
@@ -907,7 +918,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
 
           {/* Hover actions */}
           <div className="flex items-center gap-0.5 transition-opacity flex-shrink-0 opacity-100 sm:opacity-0 sm:group-hover:opacity-100">
-            {isLeaf && (
+            {showDirectCards && (
               <button
                 onClick={() => onToggleTheme(node.id)}
                 className={`w-6 h-6 flex items-center justify-center rounded text-xs transition-colors ${
@@ -986,8 +997,8 @@ function ThemeNode({ node }: { node: TreeNode }) {
         )}
       </div>
 
-      {/* Direct theme cards for leaf themes */}
-      {isLeaf && isThemeExpanded && (
+      {/* Direct theme cards */}
+      {isThemeExpanded && (
         <ThemeCardsList themeId={node.id} depth={node.depth} />
       )}
 
@@ -1112,15 +1123,18 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
 
   const onEditChange = useCallback((v: string) => setEditValue(v), [])
 
+  const editValueRef = useRef(editValue)
+  useEffect(() => { editValueRef.current = editValue }, [editValue])
+
   const onEditCommit = useCallback((id: string) => {
-    const name = editValue.trim() || 'Sans titre'
+    const name = editValueRef.current.trim() || 'Sans titre'
     setEditingId(null)
     setEditValue('')
     setThemes(prev => prev.map(t => t.id === id ? { ...t, name } : t))
     supabase.from('themes').update({ name }).eq('id', id)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .then(({ error }: any) => { if (error) console.error('theme rename error:', error) })
-  }, [editValue, supabase])
+  }, [supabase])
 
   const onEditCancel = useCallback(() => {
     setEditingId(null)
@@ -1185,11 +1199,12 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
     setLoadingDecks(prev => { const next = new Set(prev); next.add(deckId); return next })
     const { data } = await supabase
       .from('cards')
-      .select('*')
+      .select('id, question, answer')
       .eq('deck_id', deckId)
+      .or('archived.is.null,archived.eq.false')
       .order('created_at', { ascending: false })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const items: CardItem[] = (data || []).filter((c: any) => !c.archived).map((c: any) => ({
+    const items: CardItem[] = (data || []).map((c: any) => ({
       id: c.id, question: c.question, answer: c.answer,
     }))
     setDeckCards(prev => new Map(prev).set(deckId, items))
@@ -1371,16 +1386,16 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
 
   // ── DnD ────────────────────────────────────────────────────────────────────
 
-  const handleDragStart = (event: DragStartEvent) => {
+  const handleDragStart = useCallback((event: DragStartEvent) => {
     const id = event.active.id as string
     if (id.startsWith('theme:')) {
       setActiveTheme(themes.find(t => t.id === id.slice(6)) ?? null)
     } else {
       setActiveDeck(decks.find(d => d.id === id.slice(5)) ?? null)
     }
-  }
+  }, [themes, decks])
 
-  const handleDragEnd = async (event: DragEndEvent) => {
+  const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     setActiveDeck(null)
     setActiveTheme(null)
     const { active, over } = event
@@ -1418,6 +1433,9 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
         ))
       } else {
         const targetParentId = overParentId
+        // Guard: max 3 levels (depth 0–2)
+        const newDepth = getThemeDepth(targetParentId, themesById) + (targetParentId ? 1 : 0)
+        if (newDepth > 2) return
         const targetSiblings = themes
           .filter(t => (t.parent_id || null) === targetParentId && t.id !== activeRawId)
           .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
@@ -1456,7 +1474,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
       setDecks(prev => prev.map(d => d.id === activeRawId ? { ...d, theme_id: newThemeId } : d))
       await supabase.from('decks').update({ theme_id: newThemeId }).eq('id', activeRawId)
     }
-  }
+  }, [themes, decks, supabase, themesById])
 
   // ── Deck actions ───────────────────────────────────────────────────────────
 
