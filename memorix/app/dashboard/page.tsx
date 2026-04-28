@@ -2,6 +2,7 @@ import { createServerSupabase } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import ReviewSelector from './ReviewSelector'
+import ThemeReviewSection from './ThemeReviewSection'
 import { pluralCard } from '@/lib/utils'
 
 function computeStreak(reviewedAtDates: string[]): number {
@@ -51,7 +52,7 @@ export default async function DashboardPage() {
     if (deckId) deckDueMap.set(deckId, (deckDueMap.get(deckId) || 0) + 1)
   }
 
-  // Per-theme due counts (includes sub-themes: each deck points to its direct theme)
+  // Per-theme due counts (flat: each deck mapped to its direct theme_id)
   const themeDueCounts: Record<string, number> = {}
   let noThemeDue = 0
   for (const deck of decks || []) {
@@ -62,6 +63,24 @@ export default async function DashboardPage() {
     if (themeId) themeDueCounts[themeId] = (themeDueCounts[themeId] || 0) + due
     else noThemeDue += due
   }
+
+  // Build root-theme cards with recursive due counts for ThemeReviewSection
+  type ThemeRow = { id: string; name: string; color: string; position: number; parent_id: string | null }
+  const allThemesList = (themes as ThemeRow[] | null) || []
+
+  function getSubtreeIds(themeId: string): string[] {
+    const children = allThemesList.filter(t => t.parent_id === themeId)
+    return [themeId, ...children.flatMap(c => getSubtreeIds(c.id))]
+  }
+
+  const rootThemes = allThemesList
+    .filter(t => !t.parent_id)
+    .map(t => ({
+      id: t.id,
+      name: t.name,
+      color: t.color,
+      due: getSubtreeIds(t.id).reduce((sum, id) => sum + (themeDueCounts[id] || 0), 0),
+    }))
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const safeThemes = (themes as any) || []
@@ -117,6 +136,8 @@ export default async function DashboardPage() {
           themeDueCounts={themeDueCounts}
           noThemeDue={noThemeDue}
         />
+
+        <ThemeReviewSection themes={rootThemes} />
 
         <div>
           <div className="flex items-center justify-between mb-4">

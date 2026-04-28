@@ -17,7 +17,6 @@ type Selection = Set<string> // theme IDs + 'none' for no-theme decks
 export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThemeDue }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
-  const [themeListOpen, setThemeListOpen] = useState(false)
 
   const parentThemes = themes.filter(t => !t.parent_id)
   const subThemesByParent = (parentId: string) => themes.filter(t => t.parent_id === parentId)
@@ -100,18 +99,9 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
     )
   }
 
-  // Themes with due counts for the quick-access list
-  const themesWithDue = parentThemes
-    .map(t => {
-      const subs = subThemesByParent(t.id)
-      const due = [t, ...subs].reduce((s, x) => s + (themeDueCounts[x.id] || 0), 0)
-      return { theme: t, due }
-    })
-    .filter(x => x.due > 0)
-
   return (
     <>
-      <div className="flex gap-3 mb-4">
+      <div className="flex gap-3 mb-8">
         {/* IC-8: was <a href="/review">, now button+router */}
         <button
           onClick={() => router.push('/review')}
@@ -131,38 +121,6 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
           </svg>
         </button>
       </div>
-
-      {/* Phase 3: quick per-theme review links */}
-      {themesWithDue.length > 1 && (
-        <div className="mb-8">
-          <button
-            onClick={() => setThemeListOpen(v => !v)}
-            className="flex items-center gap-2 text-xs text-gray-500 hover:text-gray-300 transition-colors mb-2"
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
-              className={`transition-transform ${themeListOpen ? 'rotate-90' : ''}`}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-            </svg>
-            Réviser par thème
-          </button>
-          {themeListOpen && (
-            <div className="bg-[#1E293B] rounded-xl border border-[#334155] overflow-hidden">
-              {themesWithDue.map(({ theme, due }) => (
-                <Link
-                  key={theme.id}
-                  href={`/review/theme/${theme.id}`}
-                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#312E81]/20 transition-colors border-b border-[#1E293B] last:border-0"
-                >
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: theme.color }} />
-                  <span className="text-sm flex-1 text-gray-300">{theme.name}</span>
-                  <span className="text-xs text-gray-500 tabular-nums">{due}</span>
-                  <span className="text-[#4338CA] text-xs">▶</span>
-                </Link>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm" onClick={() => setOpen(false)}>
