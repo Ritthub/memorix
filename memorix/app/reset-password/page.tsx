@@ -14,8 +14,8 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
+    supabase.auth.getSession().then((res: { data: { session: unknown } }) => {
+      if (!res.data?.session) {
         router.replace('/login')
       } else {
         setReady(true)
