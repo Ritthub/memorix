@@ -72,4 +72,5 @@ export type CardReview = {
   lapses: number
 }
 
-export type Rating = 1 | 2 | 3 | 4
+export type Rating = 1 | 2 | 3 | 4     // rating FSRS interne
+export type UserRating = 1 | 2 | 3     // rating utilisateur Memorix (Non/Hésitation/Oui)

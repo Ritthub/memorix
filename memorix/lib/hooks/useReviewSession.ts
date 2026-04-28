@@ -4,11 +4,10 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { scheduleCard, shouldAutoEasy, ReviewHistoryItem } from '@/lib/fsrs'
 import { buildSession } from '@/lib/session-builder'
-import { Card, CardReview, Rating } from '@/types'
+import { Card, CardReview, Rating, UserRating } from '@/types'
 import { createClient } from '@/lib/supabase'
 
 type SupabaseClient = ReturnType<typeof createClient>
-type UserRating = 1 | 2 | 3
 
 export interface ReviewStats {
   non: number
@@ -101,8 +100,8 @@ export function useReviewSession({
         // Load non-archived cards by deck_id OR theme_id (for direct theme cards)
         const now = new Date().toISOString()
         const [{ data: byDeck }, { data: byTheme }] = await Promise.all([
-          supabase.from('cards').select('*, decks(name, theme_id, themes(name, color)), themes(name, color)').in('deck_id', ids).eq('archived', false),
-          supabase.from('cards').select('*, decks(name, theme_id, themes(name, color)), themes(name, color)').in('theme_id', ids).is('deck_id', null).eq('archived', false),
+          supabase.from('cards').select('*, decks(name, theme_id, themes(name, color)), themes(name, color)').in('deck_id', ids).or('archived.is.null,archived.eq.false'),
+          supabase.from('cards').select('*, decks(name, theme_id, themes(name, color)), themes(name, color)').in('theme_id', ids).is('deck_id', null).or('archived.is.null,archived.eq.false'),
         ])
         const allCards = deduplicateById([...(byDeck || []), ...(byTheme || [])])
 
@@ -274,6 +273,11 @@ export function useReviewSession({
       .update({ ...nextReview, reviewed_at: new Date().toISOString(), rating: fsrsRating })
       .eq('id', review.id)
       .then(({ error }: { error: unknown }) => { if (error) console.error('rating save:', error) })
+
+    ratingHistoryRef.current.set(card.id, [
+      ...history,
+      { rating: fsrsRating, scheduled_days: nextReview.scheduled_days },
+    ])
 
     setStats(s => {
       if (userRating === 1) return { ...s, non: s.non + 1 }

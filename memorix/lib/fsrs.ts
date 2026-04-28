@@ -62,8 +62,9 @@ export function scheduleCard(
     scheduleMultiplier = expansiveFactors[Math.min(reps, 2)]
   }
 
-  const finalStability = scheduled.stability * stabilityBonus
-  const finalScheduledDays = Math.max(1, Math.round(scheduled.scheduled_days * scheduleMultiplier))
+  const finalStability = scheduled.stability  // NE PAS modifier la stabilité FSRS interne
+  const finalScheduledDays = Math.max(1, Math.round(
+    scheduled.scheduled_days * scheduleMultiplier * stabilityBonus))
   const finalDue = new Date()
   finalDue.setDate(finalDue.getDate() + finalScheduledDays)
 
