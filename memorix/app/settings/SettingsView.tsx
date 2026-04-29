@@ -1,29 +1,11 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import { useTheme } from '@/components/ThemeProvider'
+import { themes, ThemeKey } from '@/lib/themes'
 
 type Profile = { name: string | null; retention_target: number | null; daily_goal: number | null }
-
-function useTheme() {
-  const [theme, setThemeState] = useState<'dark' | 'light'>('dark')
-
-  useEffect(() => {
-    const saved = localStorage.getItem('memorix-theme') as 'dark' | 'light' | null
-    if (saved) {
-      setThemeState(saved)
-      document.documentElement.classList.toggle('light-mode', saved === 'light')
-    }
-  }, [])
-
-  function setTheme(t: 'dark' | 'light') {
-    setThemeState(t)
-    localStorage.setItem('memorix-theme', t)
-    document.documentElement.classList.toggle('light-mode', t === 'light')
-  }
-
-  return { theme, setTheme }
-}
 
 export default function SettingsView({ profile, email }: { profile: Profile | null; email: string }) {
   const router = useRouter()
@@ -33,7 +15,6 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  // Change password
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [passwordSaving, setPasswordSaving] = useState(false)
@@ -71,114 +52,130 @@ export default function SettingsView({ profile, email }: { profile: Profile | nu
   }
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-white pb-24">
-      <header className="border-b border-[#334155] px-6 py-4">
-        <h1 className="text-xl font-bold text-[#4338CA]">Paramètres</h1>
+    <div className="min-h-screen pb-24" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+      <header className="border-b px-6 py-4" style={{ borderColor: 'var(--border-default)' }}>
+        <h1 className="text-xl font-bold" style={{ color: 'var(--accent)' }}>Paramètres</h1>
       </header>
 
       <main className="max-w-lg mx-auto px-4 py-6 space-y-6">
         {/* Profile */}
-        <section className="bg-[#1E293B] rounded-2xl p-6 border border-[#334155]">
-          <h2 className="font-semibold mb-4 text-gray-300">Profil</h2>
+        <section className="rounded-2xl p-6 border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}>
+          <h2 className="font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Profil</h2>
           <div className="space-y-4">
             <div>
-              <label className="text-gray-400 text-sm block mb-1">Prénom</label>
+              <label className="text-sm block mb-1" style={{ color: 'var(--text-muted)' }}>Prénom</label>
               <input
                 value={name}
                 onChange={e => setName(e.target.value)}
-                className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-[#818CF8] transition-colors"
+                className="w-full border rounded-xl px-4 py-2.5 focus:outline-none transition-colors"
+                style={{ background: 'var(--bg-base)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                onFocus={e => (e.currentTarget.style.borderColor = 'var(--border-focus)')}
+                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
               />
             </div>
             <div>
-              <label className="text-gray-400 text-sm block mb-1">Email</label>
-              <div className="bg-[#0F172A]/50 border border-[#1E293B] rounded-xl px-4 py-2.5 text-gray-500 text-sm">
+              <label className="text-sm block mb-1" style={{ color: 'var(--text-muted)' }}>Email</label>
+              <div className="border rounded-xl px-4 py-2.5 text-sm" style={{ background: 'var(--bg-base)', borderColor: 'var(--border-subtle)', color: 'var(--text-muted)' }}>
                 {email}
               </div>
             </div>
             <button
               onClick={saveProfile}
               disabled={saving || !name.trim()}
-              className="bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-xl px-6 py-2.5 font-medium text-sm transition-colors"
-            >
+              className="rounded-xl px-6 py-2.5 font-medium text-sm transition-colors disabled:opacity-40"
+              style={{ background: 'var(--accent)', color: '#fff' }}
+              onMouseOver={e => (e.currentTarget.style.background = 'var(--accent-hover)')}
+              onMouseOut={e => (e.currentTarget.style.background = 'var(--accent)')}>
               {saved ? '✓ Enregistré' : saving ? 'Sauvegarde...' : 'Enregistrer'}
             </button>
           </div>
         </section>
 
         {/* Appearance */}
-        <section className="bg-[#1E293B] rounded-2xl p-6 border border-[#334155]">
-          <h2 className="font-semibold mb-4 text-gray-300">Apparence</h2>
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-sm font-medium">Thème</div>
-              <div className="text-xs text-gray-500 mt-0.5">Mode d'affichage de l'interface</div>
-            </div>
-            <div className="flex bg-[#0F172A] rounded-xl p-1 gap-1">
-              <button
-                onClick={() => setTheme('dark')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  theme === 'dark' ? 'bg-[#4338CA] text-white' : 'text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                🌙 Sombre
-              </button>
-              <button
-                onClick={() => setTheme('light')}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  theme === 'light' ? 'bg-[#4338CA] text-white' : 'text-gray-400 hover:text-gray-200'
-                }`}
-              >
-                ☀️ Clair
-              </button>
-            </div>
+        <section className="rounded-2xl p-6 border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}>
+          <h2 className="font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Apparence</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {(Object.keys(themes) as ThemeKey[]).map(key => {
+              const t = themes[key]
+              const active = theme === key
+              return (
+                <button
+                  key={key}
+                  onClick={() => setTheme(key)}
+                  className="relative rounded-xl p-4 border-2 text-left transition-all"
+                  style={{
+                    background: 'var(--bg-base)',
+                    borderColor: active ? 'var(--accent)' : 'var(--border-default)',
+                  }}
+                >
+                  {active && (
+                    <span className="absolute top-2 right-2 text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full" style={{ background: 'var(--accent)', color: '#fff' }}>✓</span>
+                  )}
+                  <div className="w-8 h-8 rounded-full mb-2 border" style={{ background: t.preview, borderColor: 'var(--border-default)' }} />
+                  <div className="font-semibold text-sm" style={{ color: 'var(--text-primary)' }}>{t.name}</div>
+                  <div className="text-xs mt-0.5" style={{ color: 'var(--text-muted)' }}>{t.description}</div>
+                </button>
+              )
+            })}
           </div>
         </section>
 
         {/* Change password */}
-        <section className="bg-[#1E293B] rounded-2xl p-6 border border-[#334155]">
-          <h2 className="font-semibold mb-4 text-gray-300">Mot de passe</h2>
+        <section className="rounded-2xl p-6 border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}>
+          <h2 className="font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Mot de passe</h2>
           <div className="space-y-3">
             <div>
-              <label className="text-gray-400 text-sm mb-1 block">Nouveau mot de passe</label>
+              <label className="text-sm mb-1 block" style={{ color: 'var(--text-muted)' }}>Nouveau mot de passe</label>
               <input
                 type="password"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 placeholder="Au moins 8 caractères"
                 autoComplete="new-password"
-                className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors text-sm"
+                className="w-full border rounded-xl px-4 py-2.5 focus:outline-none transition-colors text-sm"
+                style={{ background: 'var(--bg-base)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                onFocus={e => (e.currentTarget.style.borderColor = 'var(--border-focus)')}
+                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
               />
             </div>
             <div>
-              <label className="text-gray-400 text-sm mb-1 block">Confirmer</label>
+              <label className="text-sm mb-1 block" style={{ color: 'var(--text-muted)' }}>Confirmer</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 autoComplete="new-password"
-                className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors text-sm"
+                className="w-full border rounded-xl px-4 py-2.5 focus:outline-none transition-colors text-sm"
+                style={{ background: 'var(--bg-base)', borderColor: 'var(--border-default)', color: 'var(--text-primary)' }}
+                onFocus={e => (e.currentTarget.style.borderColor = 'var(--border-focus)')}
+                onBlur={e => (e.currentTarget.style.borderColor = 'var(--border-default)')}
               />
             </div>
             {passwordError && (
-              <p className="text-red-400 text-xs bg-red-500/10 rounded-xl px-4 py-2.5">{passwordError}</p>
+              <p className="text-xs rounded-xl px-4 py-2.5" style={{ color: '#f87171', background: 'rgba(239,68,68,0.1)' }}>{passwordError}</p>
             )}
             <button
               onClick={savePassword}
               disabled={passwordSaving || !newPassword}
-              className="bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-xl px-6 py-2.5 font-medium text-sm transition-colors"
-            >
+              className="rounded-xl px-6 py-2.5 font-medium text-sm transition-colors disabled:opacity-40"
+              style={{ background: 'var(--accent)', color: '#fff' }}
+              onMouseOver={e => (e.currentTarget.style.background = 'var(--accent-hover)')}
+              onMouseOut={e => (e.currentTarget.style.background = 'var(--accent)')}>
               {passwordSaved ? '✓ Mot de passe mis à jour' : passwordSaving ? 'Sauvegarde…' : 'Changer le mot de passe'}
             </button>
           </div>
         </section>
 
         {/* Danger zone */}
-        <section className="bg-[#1E293B] rounded-2xl p-6 border border-red-500/20">
-          <h2 className="font-semibold mb-4 text-gray-300">Compte</h2>
+        <section className="rounded-2xl p-6 border" style={{ background: 'var(--bg-surface)', borderColor: 'rgba(239,68,68,0.2)' }}>
+          <h2 className="font-semibold mb-4" style={{ color: 'var(--text-secondary)' }}>Compte</h2>
           <button
             onClick={signOut}
-            className="w-full border border-red-500/40 hover:border-red-500 hover:bg-red-500/10 text-red-400 rounded-xl py-2.5 text-sm font-medium transition-colors"
+            className="w-full border rounded-xl py-2.5 text-sm font-medium transition-colors"
+            style={{ borderColor: 'rgba(239,68,68,0.4)', color: '#f87171' }}
+            onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,1)'; e.currentTarget.style.background = 'rgba(239,68,68,0.1)' }}
+            onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(239,68,68,0.4)'; e.currentTarget.style.background = '' }}
           >
             Se déconnecter
           </button>

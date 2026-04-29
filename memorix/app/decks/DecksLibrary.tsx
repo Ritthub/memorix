@@ -70,7 +70,7 @@ function DeckRow({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-3 bg-[#1E293B] rounded-xl p-3 border border-[#334155] hover:border-[#818CF8]/40 transition-colors group"
+      className="flex items-center gap-3 bg-[var(--bg-surface)] rounded-xl p-3 border border-[var(--border-default)] hover:border-[var(--border-focus)]/40 transition-colors group"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
       onTouchMove={handleTouchMove}
@@ -96,7 +96,7 @@ function DeckRow({
         </div>
       </Link>
       {deck.due_count > 0 && (
-        <span className="bg-[#4338CA] text-white text-xs font-bold rounded-full px-2 py-0.5 flex-shrink-0">
+        <span className="bg-[var(--accent)] text-white text-xs font-bold rounded-full px-2 py-0.5 flex-shrink-0">
           {deck.due_count}
         </span>
       )}
@@ -192,7 +192,7 @@ function ThemeSection({
             <div
               ref={setNodeRef}
               className={`space-y-1.5 rounded-xl transition-colors ${isSubTheme ? 'pl-3' : 'pl-4'} ${
-                isOver ? 'bg-[#312E81]/20 ring-1 ring-[#4338CA]/40' : ''
+                isOver ? 'bg-[var(--accent-subtle)]/20 ring-1 ring-[#4338CA]/40' : ''
               } ${directDecks.length === 0 ? 'min-h-[44px]' : 'min-h-[4px]'}`}
             >
               {directDecks.map(deck => (
@@ -200,7 +200,7 @@ function ThemeSection({
               ))}
               {isDragging && directDecks.length === 0 && (
                 <div className={`border-2 border-dashed rounded-xl h-11 flex items-center justify-center text-xs transition-colors ${
-                  isOver ? 'border-[#4338CA] text-[#4338CA]' : 'border-gray-700 text-gray-700'
+                  isOver ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-gray-700 text-gray-700'
                 }`}>
                   Déposer ici
                 </div>
@@ -208,7 +208,7 @@ function ThemeSection({
               {!isDragging && (
                 <Link
                   href={`/create${theme ? `?themeId=${theme.id}` : ''}`}
-                  className="flex items-center gap-1.5 text-xs text-gray-700 hover:text-[#4338CA] py-0.5 transition-colors"
+                  className="flex items-center gap-1.5 text-xs text-gray-700 hover:text-[var(--accent)] py-0.5 transition-colors"
                 >
                   <span>+</span> Ajouter un deck ici
                 </Link>
@@ -235,7 +235,7 @@ function KanbanCard({ deck, onOptionsClick }: { deck: DeckWithMeta; onOptionsCli
       style={style}
       {...attributes}
       {...listeners}
-      className="bg-[#1E293B] rounded-xl p-3 border border-[#334155] cursor-grab active:cursor-grabbing touch-none"
+      className="bg-[var(--bg-surface)] rounded-xl p-3 border border-[var(--border-default)] cursor-grab active:cursor-grabbing touch-none"
       onTouchStart={() => { timerRef.current = setTimeout(() => onOptionsClick(deck, null), 500) }}
       onTouchEnd={() => { if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null } }}
       onTouchMove={() => { if (timerRef.current) { clearTimeout(timerRef.current); timerRef.current = null } }}
@@ -244,7 +244,7 @@ function KanbanCard({ deck, onOptionsClick }: { deck: DeckWithMeta; onOptionsCli
         <span className="text-lg">{deck.icon || '📚'}</span>
         <span className="font-medium text-sm truncate flex-1">{deck.name}</span>
         {deck.due_count > 0 && (
-          <span className="bg-[#4338CA] text-white text-xs font-bold rounded-full px-1.5 py-0.5">{deck.due_count}</span>
+          <span className="bg-[var(--accent)] text-white text-xs font-bold rounded-full px-1.5 py-0.5">{deck.due_count}</span>
         )}
         <button
           ref={menuBtnRef}
@@ -273,11 +273,11 @@ function KanbanColumn({ theme, decks, onOptionsClick }: {
   const color = theme?.color || '#6B7280'
   const deckIds = decks.map(d => d.id)
   return (
-    <div className="flex-shrink-0 w-64 bg-[#13131F] rounded-2xl p-4 border border-[#334155]">
+    <div className="flex-shrink-0 w-64 bg-[#13131F] rounded-2xl p-4 border border-[var(--border-default)]">
       <div className="flex items-center gap-2 mb-4">
         <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
         <span className="font-semibold text-sm flex-1 truncate">{theme?.name || 'Sans thème'}</span>
-        <Link href={`/create${theme ? `?themeId=${theme.id}` : ''}`} className="text-gray-500 hover:text-[#4338CA] transition-colors">
+        <Link href={`/create${theme ? `?themeId=${theme.id}` : ''}`} className="text-gray-500 hover:text-[var(--accent)] transition-colors">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
@@ -508,9 +508,9 @@ const handleDragEnd = async (event: DragEndEvent) => {
   ] : []
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-white pb-20">
+    <div className="min-h-screen bg-[var(--bg-base)] text-white pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#0F172A]/95 backdrop-blur-md border-b border-[#334155] px-4 py-3">
+      <header className="sticky top-0 z-30 bg-[var(--bg-base)]/95 backdrop-blur-md border-b border-[var(--border-default)] px-4 py-3">
         <div className="flex items-center gap-3 mb-3">
           <Link href="/dashboard" className="text-gray-400 hover:text-white">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -518,10 +518,10 @@ const handleDragEnd = async (event: DragEndEvent) => {
             </svg>
           </Link>
           <h1 className="text-xl font-bold flex-1">Ma bibliothèque</h1>
-          <div className="flex bg-[#1E293B] rounded-lg p-1 gap-1">
+          <div className="flex bg-[var(--bg-surface)] rounded-lg p-1 gap-1">
             <button
               onClick={() => setViewPersist('list')}
-              className={`p-1.5 rounded transition-colors ${view === 'list' ? 'bg-[#4338CA] text-white' : 'text-gray-500'}`}
+              className={`p-1.5 rounded transition-colors ${view === 'list' ? 'bg-[var(--accent)] text-white' : 'text-gray-500'}`}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -529,7 +529,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
             </button>
             <button
               onClick={() => setViewPersist('kanban')}
-              className={`p-1.5 rounded transition-colors ${view === 'kanban' ? 'bg-[#4338CA] text-white' : 'text-gray-500'}`}
+              className={`p-1.5 rounded transition-colors ${view === 'kanban' ? 'bg-[var(--accent)] text-white' : 'text-gray-500'}`}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 4H5a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V5a1 1 0 00-1-1zm10 0h-4a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V5a1 1 0 00-1-1zM9 14H5a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1v-4a1 1 0 00-1-1zm10 0h-4a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1v-4a1 1 0 00-1-1z" />
@@ -539,25 +539,25 @@ const handleDragEnd = async (event: DragEndEvent) => {
           <div className="relative">
             <button
               onClick={() => setShowCreateMenu(v => !v)}
-              className="bg-[#4338CA] hover:bg-[#3730A3] rounded-xl w-9 h-9 flex items-center justify-center font-bold text-xl transition-colors"
+              className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl w-9 h-9 flex items-center justify-center font-bold text-xl transition-colors"
             >+</button>
             {showCreateMenu && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowCreateMenu(false)} />
-                <div className="absolute right-0 top-11 z-50 bg-[#1E293B] border border-[#334155] rounded-xl py-2 w-52 shadow-xl">
-                  <Link href="/create" onClick={() => setShowCreateMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#312E81]/30 transition-colors text-sm">
+                <div className="absolute right-0 top-11 z-50 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl py-2 w-52 shadow-xl">
+                  <Link href="/create" onClick={() => setShowCreateMenu(false)} className="flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--accent-subtle)]/30 transition-colors text-sm">
                     <span>📚</span> Nouveau deck
                   </Link>
                   <button
                     onClick={() => { setShowCreateMenu(false); setShowCreateTheme(true); setCreateThemeError(null); setNewThemeParent(null) }}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#312E81]/30 transition-colors text-sm text-left"
+                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--accent-subtle)]/30 transition-colors text-sm text-left"
                   >
                     <span>🗂️</span> Nouveau thème
                   </button>
                   {parentThemes.length > 0 && (
                     <button
                       onClick={() => { setShowCreateMenu(false); setShowCreateTheme(true); setCreateThemeError(null) }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[#312E81]/30 transition-colors text-sm text-left"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--accent-subtle)]/30 transition-colors text-sm text-left"
                     >
                       <span>📂</span> Nouveau sous-thème
                     </button>
@@ -576,7 +576,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
             placeholder="Rechercher un deck…"
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full bg-[#1E293B] border border-[#334155] rounded-xl py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:border-[#4338CA]/60 placeholder-gray-600"
+            className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:border-[var(--accent)]/60 placeholder-[var(--text-muted)]"
           />
         </div>
       </header>
@@ -633,7 +633,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
 
           <DragOverlay>
             {activeDeck && (
-              <div className="bg-[#1E293B] rounded-xl p-3 border border-[#4338CA]/60 shadow-xl opacity-90">
+              <div className="bg-[var(--bg-surface)] rounded-xl p-3 border border-[var(--accent)]/60 shadow-xl opacity-90">
                 <div className="flex items-center gap-2">
                   <span className="text-xl">{activeDeck.icon || '📚'}</span>
                   <span className="font-medium">{activeDeck.name}</span>
@@ -647,7 +647,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
       {/* ── Create Theme Modal ─────────────────────────────────────────────── */}
       {showCreateTheme && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#1E293B] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-[#334155]">
+          <div className="bg-[var(--bg-surface)] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-[var(--border-default)]">
             <h2 className="text-lg font-bold mb-4">Nouveau thème</h2>
             <input
               type="text"
@@ -656,7 +656,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
               onChange={e => { setNewThemeName(e.target.value); setCreateThemeError(null) }}
               onKeyDown={e => e.key === 'Enter' && handleCreateTheme()}
               autoFocus
-              className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3 mb-3 focus:outline-none focus:border-[#4338CA] text-sm"
+              className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 mb-3 focus:outline-none focus:border-[var(--accent)] text-sm"
             />
             {/* Parent theme selector */}
             {parentThemes.length > 0 && (
@@ -665,7 +665,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
                 <select
                   value={newThemeParent || ''}
                   onChange={e => setNewThemeParent(e.target.value || null)}
-                  className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#4338CA] text-gray-300"
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--accent)] text-gray-300"
                 >
                   <option value="">— Thème principal —</option>
                   {parentThemes.map(t => (
@@ -688,8 +688,8 @@ const handleDragEnd = async (event: DragEndEvent) => {
               ))}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowCreateTheme(false)} className="flex-1 border border-[#334155] rounded-xl py-2.5 text-sm hover:bg-[#312E81]/20">Annuler</button>
-              <button onClick={handleCreateTheme} className="flex-1 bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-2.5 text-sm font-semibold transition-colors">Créer</button>
+              <button onClick={() => setShowCreateTheme(false)} className="flex-1 border border-[var(--border-default)] rounded-xl py-2.5 text-sm hover:bg-[var(--accent-subtle)]/20">Annuler</button>
+              <button onClick={handleCreateTheme} className="flex-1 bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl py-2.5 text-sm font-semibold transition-colors">Créer</button>
             </div>
           </div>
         </div>
@@ -700,19 +700,19 @@ const handleDragEnd = async (event: DragEndEvent) => {
         <>
           <div className="fixed inset-0 z-40" onClick={closeOptions} />
           <div
-            className="fixed z-50 bg-[#1E293B] border border-[#334155] rounded-2xl py-2 w-52 shadow-2xl"
+            className="fixed z-50 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl py-2 w-52 shadow-2xl"
             style={{ top: optionsAnchor.y, left: optionsAnchor.x }}
           >
-            <div className="flex items-center gap-2 px-4 py-2 border-b border-[#1E293B] mb-1">
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-[var(--border-subtle)] mb-1">
               <span className="text-xl">{optionsDeck.icon || '📚'}</span>
               <span className="font-semibold text-sm truncate">{optionsDeck.name}</span>
             </div>
             {optionsItems.map(({ label, action }) => (
-              <button key={label} onClick={action} className="w-full text-left px-4 py-2 hover:bg-[#312E81]/40 transition-colors text-sm">
+              <button key={label} onClick={action} className="w-full text-left px-4 py-2 hover:bg-[var(--accent-subtle)]/40 transition-colors text-sm">
                 {label}
               </button>
             ))}
-            <div className="border-t border-[#1E293B] mt-1 pt-1">
+            <div className="border-t border-[var(--border-subtle)] mt-1 pt-1">
               <button
                 onClick={() => setDeleteConfirm(optionsDeck)}
                 className="w-full text-left px-4 py-2 hover:bg-red-500/10 transition-colors text-sm text-red-400"
@@ -727,13 +727,13 @@ const handleDragEnd = async (event: DragEndEvent) => {
       {/* ── Options: bottom sheet (mobile / long-press) ─────────────────────── */}
       {optionsDeck && !optionsAnchor && !movingDeck && !renamingDeck && !deleteConfirm && !emojiPicker && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={closeOptions}>
-          <div className="bg-[#1E293B] rounded-t-3xl p-2 w-full max-w-sm border-t border-[#334155]" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-3 px-4 py-3 border-b border-[#1E293B] mb-1">
+          <div className="bg-[var(--bg-surface)] rounded-t-3xl p-2 w-full max-w-sm border-t border-[var(--border-default)]" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-subtle)] mb-1">
               <span className="text-2xl">{optionsDeck.icon || '📚'}</span>
               <span className="font-semibold truncate">{optionsDeck.name}</span>
             </div>
             {optionsItems.map(({ label, action }) => (
-              <button key={label} onClick={action} className="w-full text-left px-4 py-3 hover:bg-[#312E81]/20 rounded-xl transition-colors text-sm">
+              <button key={label} onClick={action} className="w-full text-left px-4 py-3 hover:bg-[var(--accent-subtle)]/20 rounded-xl transition-colors text-sm">
                 {label}
               </button>
             ))}
@@ -750,13 +750,13 @@ const handleDragEnd = async (event: DragEndEvent) => {
       {/* ── Move to theme ───────────────────────────────────────────────────── */}
       {movingDeck && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setMovingDeck(null)}>
-          <div className="bg-[#1E293B] rounded-t-3xl p-2 w-full max-w-sm border-t border-[#334155] max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <p className="px-4 py-3 text-sm font-semibold text-gray-400 border-b border-[#1E293B] mb-1 sticky top-0 bg-[#1E293B]">Déplacer vers…</p>
+          <div className="bg-[var(--bg-surface)] rounded-t-3xl p-2 w-full max-w-sm border-t border-[var(--border-default)] max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <p className="px-4 py-3 text-sm font-semibold text-gray-400 border-b border-[var(--border-subtle)] mb-1 sticky top-0 bg-[var(--bg-surface)]">Déplacer vers…</p>
             {themeOptions.map(({ theme, depth }) => (
               <button
                 key={theme?.id ?? '__none__'}
                 onClick={() => handleMoveDeck(movingDeck, theme?.id ?? null)}
-                className="w-full text-left px-4 py-2.5 hover:bg-[#312E81]/20 rounded-xl text-sm transition-colors flex items-center gap-2"
+                className="w-full text-left px-4 py-2.5 hover:bg-[var(--accent-subtle)]/20 rounded-xl text-sm transition-colors flex items-center gap-2"
                 style={{ paddingLeft: depth > 0 ? '2rem' : undefined }}
               >
                 {theme ? (
@@ -777,7 +777,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
       {/* ── Rename modal ────────────────────────────────────────────────────── */}
       {renamingDeck && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#1E293B] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-[#334155]">
+          <div className="bg-[var(--bg-surface)] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-[var(--border-default)]">
             <h2 className="text-lg font-bold mb-4">Renommer le deck</h2>
             <input
               type="text"
@@ -785,11 +785,11 @@ const handleDragEnd = async (event: DragEndEvent) => {
               onChange={e => setRenameValue(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleRenameDeck()}
               autoFocus
-              className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3 mb-4 focus:outline-none focus:border-[#4338CA] text-sm"
+              className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 mb-4 focus:outline-none focus:border-[var(--accent)] text-sm"
             />
             <div className="flex gap-3">
-              <button onClick={() => setRenamingDeck(null)} className="flex-1 border border-[#334155] rounded-xl py-2.5 text-sm hover:bg-[#312E81]/20">Annuler</button>
-              <button onClick={handleRenameDeck} className="flex-1 bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-2.5 text-sm font-semibold transition-colors">Renommer</button>
+              <button onClick={() => setRenamingDeck(null)} className="flex-1 border border-[var(--border-default)] rounded-xl py-2.5 text-sm hover:bg-[var(--accent-subtle)]/20">Annuler</button>
+              <button onClick={handleRenameDeck} className="flex-1 bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl py-2.5 text-sm font-semibold transition-colors">Renommer</button>
             </div>
           </div>
         </div>
@@ -798,7 +798,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
       {/* ── Emoji picker ────────────────────────────────────────────────────── */}
       {emojiPicker && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#1E293B] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-[#334155]">
+          <div className="bg-[var(--bg-surface)] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-[var(--border-default)]">
             <h2 className="text-lg font-bold mb-4">Changer l&apos;icône</h2>
             <div className="flex items-center gap-3 mb-4">
               <span className="text-4xl">{emojiInput || '📚'}</span>
@@ -808,7 +808,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
                 onChange={e => setEmojiInput(e.target.value)}
                 placeholder="Entrez un emoji"
                 autoFocus
-                className="flex-1 bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3 focus:outline-none focus:border-[#4338CA] text-sm"
+                className="flex-1 bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 focus:outline-none focus:border-[var(--accent)] text-sm"
               />
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
@@ -817,8 +817,8 @@ const handleDragEnd = async (event: DragEndEvent) => {
               ))}
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setEmojiPicker(null)} className="flex-1 border border-[#334155] rounded-xl py-2.5 text-sm hover:bg-[#312E81]/20">Annuler</button>
-              <button onClick={handleChangeEmoji} className="flex-1 bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-2.5 text-sm font-semibold transition-colors">Changer</button>
+              <button onClick={() => setEmojiPicker(null)} className="flex-1 border border-[var(--border-default)] rounded-xl py-2.5 text-sm hover:bg-[var(--accent-subtle)]/20">Annuler</button>
+              <button onClick={handleChangeEmoji} className="flex-1 bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl py-2.5 text-sm font-semibold transition-colors">Changer</button>
             </div>
           </div>
         </div>
@@ -827,13 +827,13 @@ const handleDragEnd = async (event: DragEndEvent) => {
       {/* ── Delete confirmation ──────────────────────────────────────────────── */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#1E293B] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-red-500/30">
+          <div className="bg-[var(--bg-surface)] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-red-500/30">
             <h2 className="text-lg font-bold mb-2">Supprimer &quot;{deleteConfirm.name}&quot; ?</h2>
             <p className="text-gray-400 text-sm mb-5">
               Supprime aussi les {deleteConfirm.card_count} carte{deleteConfirm.card_count !== 1 ? 's' : ''}. Irréversible.
             </p>
             <div className="flex gap-3">
-              <button onClick={() => { setDeleteConfirm(null); closeOptions() }} className="flex-1 border border-[#334155] rounded-xl py-2.5 text-sm hover:bg-[#312E81]/20">Annuler</button>
+              <button onClick={() => { setDeleteConfirm(null); closeOptions() }} className="flex-1 border border-[var(--border-default)] rounded-xl py-2.5 text-sm hover:bg-[var(--accent-subtle)]/20">Annuler</button>
               <button onClick={() => handleDeleteDeck(deleteConfirm)} className="flex-1 bg-red-600 hover:bg-red-700 rounded-xl py-2.5 text-sm font-semibold transition-colors">Supprimer</button>
             </div>
           </div>

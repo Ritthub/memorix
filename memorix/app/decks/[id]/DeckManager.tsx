@@ -107,7 +107,7 @@ export default function DeckManager({
     const a = inlineA.trim()
 
     const tempId = `temp-${Date.now()}`
-    setCards(prev => [{ id: tempId, question: q, answer: a, difficulty: 1, created_by_ai: false, user_edited: false }, ...prev])
+    setCards(prev => [{ id: tempId, question: q, answer: a, difficulty: 3, created_by_ai: false, user_edited: false }, ...prev])
     setInlineQ('')
     setInlineA('')
     setInlineSaved(true)
@@ -116,7 +116,7 @@ export default function DeckManager({
 
     const { data: card } = await supabase
       .from('cards')
-      .insert({ deck_id: deck.id, question: q, answer: a, difficulty: 1, created_by_ai: false, user_edited: false })
+      .insert({ deck_id: deck.id, question: q, answer: a, difficulty: 3, created_by_ai: false, user_edited: false })
       .select('id')
       .single()
 
@@ -159,19 +159,19 @@ export default function DeckManager({
   const cardCount = cards.length
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-white px-6 py-10">
+    <div className="min-h-screen bg-[var(--bg-base)] text-white px-6 py-10">
       <div className="max-w-3xl mx-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">← Retour</Link>
-          <Link href={`/create?deckId=${deck.id}`} className="text-sm text-[#4338CA] hover:text-[#818CF8] transition-colors">
+          <Link href={`/create?deckId=${deck.id}`} className="text-sm text-[var(--accent)] hover:text-[var(--accent-light)] transition-colors">
             + Ajouter des cartes
           </Link>
         </div>
 
         {/* Deck info */}
-        <div className="bg-[#1E293B] rounded-2xl p-8 border border-[#334155] mb-6">
+        <div className="bg-[var(--bg-surface)] rounded-2xl p-8 border border-[var(--border-default)] mb-6">
           <div className="flex items-center gap-4 mb-4">
             <span className="text-4xl">{deck.icon}</span>
             <div>
@@ -180,16 +180,16 @@ export default function DeckManager({
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="bg-[#0F172A] rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-[#4338CA]">{cardCount}</div>
+            <div className="bg-[var(--bg-base)] rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--accent)]">{cardCount}</div>
               <div className="text-gray-400 text-xs mt-1">Cartes total</div>
             </div>
-            <div className="bg-[#0F172A] rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-[#4338CA]">{dueCount}</div>
+            <div className="bg-[var(--bg-base)] rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--accent)]">{dueCount}</div>
               <div className="text-gray-400 text-xs mt-1">À réviser</div>
             </div>
-            <div className="bg-[#0F172A] rounded-xl p-4 text-center">
-              <div className="text-2xl font-bold text-[#4338CA]">
+            <div className="bg-[var(--bg-base)] rounded-xl p-4 text-center">
+              <div className="text-2xl font-bold text-[var(--accent)]">
                 {cardCount > 0 ? Math.round(((cardCount - dueCount) / cardCount) * 100) : 0}%
               </div>
               <div className="text-gray-400 text-xs mt-1">Maîtrisées</div>
@@ -201,10 +201,10 @@ export default function DeckManager({
         <div className="mb-6">
           {dueCount > 0 ? (
             <>
-              <Link href={`/review/${deck.id}`} className="block w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-2xl p-5 text-center text-lg font-bold mb-2 transition-colors">
+              <Link href={`/review/${deck.id}`} className="block w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-2xl p-5 text-center text-lg font-bold mb-2 transition-colors">
                 Réviser ({dueCount} {pluralCard(dueCount)} due{dueCount !== 1 ? 's' : ''})
               </Link>
-              <Link href={`/review/${deck.id}?mode=free`} className="block w-full border border-[#334155] hover:border-[#818CF8]/50 rounded-2xl p-3 text-center text-sm text-[#94A3B8] hover:text-[#F1F5F9] transition-colors">
+              <Link href={`/review/${deck.id}?mode=free`} className="block w-full border border-[var(--border-default)] hover:border-[var(--border-focus)]/50 rounded-2xl p-3 text-center text-sm text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors">
                 Tout réviser ({cardCount} {pluralCard(cardCount)})
               </Link>
             </>
@@ -214,11 +214,11 @@ export default function DeckManager({
                 <span>✓</span>
                 <span>Aucune carte due aujourd&apos;hui</span>
               </div>
-              <Link href={`/review/${deck.id}?mode=free`} className="block w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-2xl p-5 text-center text-lg font-bold transition-colors">
+              <Link href={`/review/${deck.id}?mode=free`} className="block w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-2xl p-5 text-center text-lg font-bold transition-colors">
                 Tout réviser ({cardCount} {pluralCard(cardCount)})
               </Link>
               {nextDueDays && (
-                <p className="text-center text-[#475569] text-xs mt-2">
+                <p className="text-center text-[var(--text-hint)] text-xs mt-2">
                   Prochaine révision due dans {nextDueDays} jour{nextDueDays > 1 ? 's' : ''}
                 </p>
               )}
@@ -257,8 +257,8 @@ export default function DeckManager({
           {cards.map(card => (
             <div
               key={card.id}
-              className={`bg-[#1E293B] rounded-xl p-5 border transition-colors ${
-                selected.has(card.id) ? 'border-[#4338CA]' : 'border-[#334155]'
+              className={`bg-[var(--bg-surface)] rounded-xl p-5 border transition-colors ${
+                selected.has(card.id) ? 'border-[var(--accent)]' : 'border-[var(--border-default)]'
               }`}
             >
               <div className="flex items-start gap-3">
@@ -270,18 +270,18 @@ export default function DeckManager({
                 />
                 <div className="flex-1 min-w-0">
                   <p className="font-medium mb-1">{card.question}</p>
-                  <p className="text-[#818CF8] text-sm mb-1">{card.answer}</p>
+                  <p className="text-[var(--accent-light)] text-sm mb-1">{card.answer}</p>
                   {card.explanation && (
                     <p className="text-gray-500 text-xs">{card.explanation}</p>
                   )}
                   <div className="flex items-center gap-2 mt-2">
                     {card.theme && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-[#0F172A] text-gray-400">{card.theme}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-base)] text-gray-400">{card.theme}</span>
                     )}
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-[#0F172A] text-gray-400">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-base)] text-gray-400">
                       {card.card_reviews?.[0]?.state || 'new'}
                     </span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-[#0F172A] text-gray-400">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-base)] text-gray-400">
                       Difficulté {card.difficulty}/5
                     </span>
                   </div>
@@ -305,7 +305,7 @@ export default function DeckManager({
         )}
 
         {/* Inline quick-add */}
-        <div className="mt-4 rounded-xl border-2 border-dashed border-[#334155] focus-within:border-solid focus-within:border-[#818CF8] transition-colors p-3">
+        <div className="mt-4 rounded-xl border-2 border-dashed border-[var(--border-default)] focus-within:border-solid focus-within:border-[var(--border-focus)] transition-colors p-3">
           <div className="flex flex-col sm:flex-row gap-2">
             <textarea
               ref={inlineQRef}
@@ -317,7 +317,7 @@ export default function DeckManager({
               }}
               placeholder="Question…"
               rows={1}
-              className="flex-1 bg-transparent text-sm text-[#F1F5F9] placeholder-[#475569] outline-none resize-none"
+              className="flex-1 bg-transparent text-sm text-[var(--text-primary)] placeholder-[#475569] outline-none resize-none"
             />
             <textarea
               ref={inlineARef}
@@ -329,14 +329,14 @@ export default function DeckManager({
               }}
               placeholder="Réponse…"
               rows={1}
-              className="flex-1 bg-transparent text-sm text-[#818CF8] placeholder-[#475569] outline-none resize-none"
+              className="flex-1 bg-transparent text-sm text-[var(--accent-light)] placeholder-[#475569] outline-none resize-none"
             />
             <div className="flex items-center gap-2 flex-shrink-0">
               {inlineSaved && <span className="text-green-400 text-xs">✓ Carte ajoutée</span>}
               <button
                 onClick={saveInline}
                 disabled={!inlineQ.trim() || !inlineA.trim()}
-                className="w-7 h-7 flex items-center justify-center bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-lg text-white text-base leading-none transition-colors flex-shrink-0"
+                className="w-7 h-7 flex items-center justify-center bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 rounded-lg text-white text-base leading-none transition-colors flex-shrink-0"
               >
                 +
               </button>
@@ -348,7 +348,7 @@ export default function DeckManager({
         <div className="mt-8">
           <button
             onClick={toggleArchivedSection}
-            className="flex items-center gap-2 text-sm text-[#64748B] hover:text-[#94A3B8] transition-colors w-full text-left"
+            className="flex items-center gap-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-secondary)] transition-colors w-full text-left"
           >
             <svg
               width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
@@ -364,7 +364,7 @@ export default function DeckManager({
                   .filter((d): d is number => d !== null)
                   .sort((a, b) => a - b)[0]
                 return soonest !== undefined
-                  ? <span className="text-[#475569]"> · se suppriment dans {soonest} j</span>
+                  ? <span className="text-[var(--text-hint)]"> · se suppriment dans {soonest} j</span>
                   : null
               })()}
             </span>
@@ -378,13 +378,13 @@ export default function DeckManager({
               {archivedCards.map(card => {
                 const days = daysUntilDeletion(card.auto_delete_at)
                 return (
-                  <div key={card.id} className="opacity-50 bg-[#1E293B] rounded-xl p-4 border border-[#334155]">
+                  <div key={card.id} className="opacity-50 bg-[var(--bg-surface)] rounded-xl p-4 border border-[var(--border-default)]">
                     <div className="flex items-start gap-3">
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm mb-0.5">{card.question}</p>
-                        <p className="text-[#818CF8] text-xs">{card.answer}</p>
+                        <p className="text-[var(--accent-light)] text-xs">{card.answer}</p>
                         {days !== null && (
-                          <p className={`text-xs mt-1.5 ${days <= 7 ? 'text-red-400' : 'text-[#475569]'}`}>
+                          <p className={`text-xs mt-1.5 ${days <= 7 ? 'text-red-400' : 'text-[var(--text-hint)]'}`}>
                             Suppression dans {days} jour{days > 1 ? 's' : ''}
                           </p>
                         )}
@@ -392,7 +392,7 @@ export default function DeckManager({
                       <div className="flex flex-col gap-1.5 flex-shrink-0">
                         <button
                           onClick={() => restoreCard(card.id)}
-                          className="text-xs px-2.5 py-1 border border-[#334155] hover:border-[#818CF8] hover:text-[#818CF8] rounded-lg transition-colors text-gray-400"
+                          className="text-xs px-2.5 py-1 border border-[var(--border-default)] hover:border-[var(--border-focus)] hover:text-[var(--accent-light)] rounded-lg transition-colors text-gray-400"
                         >
                           Restaurer
                         </button>
@@ -416,7 +416,7 @@ export default function DeckManager({
       {/* Modal édition */}
       {editingCard && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50">
-          <div className="bg-[#1E293B] rounded-2xl p-6 w-full max-w-lg border border-[#334155]">
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-6 w-full max-w-lg border border-[var(--border-default)]">
             <h2 className="text-lg font-bold mb-4">Modifier la carte</h2>
             <div className="space-y-3">
               <div>
@@ -425,7 +425,7 @@ export default function DeckManager({
                   value={editingCard.question}
                   onChange={e => setEditingCard({ ...editingCard, question: e.target.value })}
                   rows={3}
-                  className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[#818CF8] transition-colors resize-none"
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none"
                 />
               </div>
               <div>
@@ -434,7 +434,7 @@ export default function DeckManager({
                   value={editingCard.answer}
                   onChange={e => setEditingCard({ ...editingCard, answer: e.target.value })}
                   rows={3}
-                  className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2 text-[#818CF8] text-sm focus:outline-none focus:border-[#818CF8] transition-colors resize-none"
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-[var(--accent-light)] text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none"
                 />
               </div>
               <div>
@@ -443,7 +443,7 @@ export default function DeckManager({
                   value={editingCard.explanation || ''}
                   onChange={e => setEditingCard({ ...editingCard, explanation: e.target.value })}
                   rows={2}
-                  className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2 text-gray-400 text-sm focus:outline-none focus:border-[#818CF8] transition-colors resize-none"
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-gray-400 text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none"
                 />
               </div>
             </div>
@@ -457,7 +457,7 @@ export default function DeckManager({
               <button
                 onClick={saveEdit}
                 disabled={saving}
-                className="flex-1 bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-xl py-2 font-medium transition-colors text-sm"
+                className="flex-1 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 rounded-xl py-2 font-medium transition-colors text-sm"
               >
                 {saving ? 'Sauvegarde...' : 'Sauvegarder'}
               </button>

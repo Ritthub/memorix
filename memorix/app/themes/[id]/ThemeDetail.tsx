@@ -8,7 +8,7 @@ import { Theme, Deck } from '@/types'
 import { pluralCard } from '@/lib/utils'
 
 const THEME_COLORS = [
-  '#534AB7', '#0D9488', '#E85D4A', '#F59E0B',
+  '#4338CA', '#0D9488', '#E85D4A', '#F59E0B',
   '#3B82F6', '#22C55E', '#EC4899', '#6B7280',
 ]
 
@@ -59,9 +59,9 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
   }
 
   return (
-    <div className="min-h-screen bg-[#0D0D1A] text-white pb-20">
+    <div className="min-h-screen bg-[var(--bg-base)] text-white pb-20">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#0D0D1A]/95 backdrop-blur-md border-b border-[#534AB7]/20 px-4 py-4">
+      <header className="sticky top-0 z-30 bg-[var(--bg-base)]/95 backdrop-blur-md border-b border-[var(--border-default)] px-4 py-4">
         <div className="flex items-center gap-3">
           <Link href="/decks" className="text-gray-400 hover:text-white flex-shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -82,11 +82,11 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
               onChange={e => setEditName(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') setEditing(false) }}
               autoFocus
-              className="flex-1 bg-[#1A1A2E] border border-[#534AB7]/50 rounded-lg px-3 py-1 text-lg font-bold focus:outline-none focus:border-[#534AB7]"
+              className="flex-1 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-lg px-3 py-1 text-lg font-bold focus:outline-none focus:border-[var(--border-focus)]"
             />
           ) : (
             <h1
-              className="text-xl font-bold flex-1 cursor-pointer hover:text-[#AFA9EC] transition-colors"
+              className="text-xl font-bold flex-1 cursor-pointer hover:text-[var(--accent-light)] transition-colors"
               onClick={() => setEditing(true)}
             >
               {name}
@@ -94,7 +94,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
           )}
 
           {editing ? (
-            <button onClick={handleRename} className="bg-[#534AB7] rounded-lg px-3 py-1 text-sm font-medium">OK</button>
+            <button onClick={handleRename} className="bg-[var(--accent)] rounded-lg px-3 py-1 text-sm font-medium">OK</button>
           ) : (
             <button
               onClick={() => setShowDeleteConfirm(true)}
@@ -124,15 +124,15 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
       <main className="max-w-2xl mx-auto px-4 py-6">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-[#1A1A2E] rounded-2xl p-4 border border-[#534AB7]/20">
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <div className="text-2xl font-bold" style={{ color }}>{decks.length}</div>
             <div className="text-gray-400 text-xs mt-0.5">Decks</div>
           </div>
-          <div className="bg-[#1A1A2E] rounded-2xl p-4 border border-[#534AB7]/20">
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <div className="text-2xl font-bold" style={{ color }}>{totalCards}</div>
             <div className="text-gray-400 text-xs mt-0.5">Cartes</div>
           </div>
-          <div className="bg-[#1A1A2E] rounded-2xl p-4 border border-[#534AB7]/20">
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <div className="text-2xl font-bold" style={{ color }}>{totalDue}</div>
             <div className="text-gray-400 text-xs mt-0.5">À réviser</div>
           </div>
@@ -144,7 +144,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
             <>
               <Link
                 href={`/review/theme/${theme.id}`}
-                className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#534AB7] to-[#7C6FCD] hover:from-[#3C3489] hover:to-[#534AB7] rounded-2xl p-4 font-bold mb-2 transition-all shadow-lg shadow-[#534AB7]/25"
+                className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#4338CA] to-[#818CF8] hover:from-[#3730A3] hover:to-[#4338CA] rounded-2xl p-4 font-bold mb-2 transition-all shadow-lg shadow-[#4338CA]/25"
               >
                 <span className="text-xl">⚡</span>
                 <span>Réviser tout le thème</span>
@@ -152,7 +152,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
               </Link>
               <Link
                 href={`/review/theme/${theme.id}?mode=free`}
-                className="flex items-center justify-center gap-3 w-full border border-[#334155] hover:border-[#534AB7] rounded-2xl p-3 text-gray-400 hover:text-white text-sm font-medium transition-colors"
+                className="flex items-center justify-center gap-3 w-full border border-[var(--border-default)] hover:border-[var(--accent)] rounded-2xl p-3 text-gray-400 hover:text-white text-sm font-medium transition-colors"
               >
                 Tout réviser ({totalCards} {pluralCard(totalCards)})
               </Link>
@@ -164,7 +164,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
               </div>
               <Link
                 href={`/review/theme/${theme.id}?mode=free`}
-                className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#534AB7] to-[#7C6FCD] hover:from-[#3C3489] hover:to-[#534AB7] rounded-2xl p-4 font-bold transition-all shadow-lg shadow-[#534AB7]/25"
+                className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#4338CA] to-[#818CF8] hover:from-[#3730A3] hover:to-[#4338CA] rounded-2xl p-4 font-bold transition-all shadow-lg shadow-[#4338CA]/25"
               >
                 Tout réviser ({totalCards} {pluralCard(totalCards)})
               </Link>
@@ -176,9 +176,9 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
         <div className="space-y-3">
           <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Decks ({decks.length})</h2>
           {decks.length === 0 ? (
-            <div className="bg-[#1A1A2E] rounded-2xl p-8 text-center border border-[#534AB7]/20">
+            <div className="bg-[var(--bg-surface)] rounded-2xl p-8 text-center border border-[var(--border-default)]">
               <p className="text-gray-500 text-sm mb-3">Aucun deck dans ce thème</p>
-              <Link href={`/create?themeId=${theme.id}`} className="text-[#534AB7] hover:text-[#AFA9EC] text-sm">+ Créer un deck</Link>
+              <Link href={`/create?themeId=${theme.id}`} className="text-[var(--accent)] hover:text-[var(--accent-light)] text-sm">+ Créer un deck</Link>
             </div>
           ) : (
             decks.map(deck => {
@@ -189,7 +189,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
                 <Link
                   key={deck.id}
                   href={`/decks/${deck.id}`}
-                  className="flex items-center gap-3 bg-[#1A1A2E] rounded-xl p-4 border border-[#534AB7]/20 hover:border-[#534AB7]/50 transition-colors"
+                  className="flex items-center gap-3 bg-[var(--bg-surface)] rounded-xl p-4 border border-[var(--border-default)] hover:border-[var(--border-focus)]/40 transition-colors"
                 >
                   <span className="text-2xl">{deck.icon || '📚'}</span>
                   <div className="flex-1 min-w-0">
@@ -197,7 +197,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
                     <p className="text-xs text-gray-500">{deck.card_count} {pluralCard(deck.card_count)} · {retention}% rétention</p>
                   </div>
                   {deck.due_count > 0 && (
-                    <span className="bg-[#534AB7] text-white text-xs font-bold rounded-full px-2 py-0.5">{deck.due_count}</span>
+                    <span className="bg-[var(--accent)] text-white text-xs font-bold rounded-full px-2 py-0.5">{deck.due_count}</span>
                   )}
                 </Link>
               )
@@ -209,18 +209,18 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
       {/* Delete confirmation */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#1A1A2E] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-red-500/30">
+          <div className="bg-[var(--bg-surface)] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-red-500/30">
             <h2 className="text-lg font-bold mb-2">Supprimer &quot;{name}&quot; ?</h2>
             <p className="text-gray-400 text-sm mb-4">Ce thème contient {decks.length} deck{decks.length !== 1 ? 's' : ''}.</p>
             <div className="space-y-2 mb-5">
-              <label className="flex items-center gap-3 p-3 rounded-xl border border-[#534AB7]/20 cursor-pointer hover:border-[#534AB7]/40">
+              <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-default)] cursor-pointer hover:border-[#475569]">
                 <input
                   type="radio"
                   name="deleteMode"
                   value="keep"
                   checked={deleteMode === 'keep'}
                   onChange={() => setDeleteMode('keep')}
-                  className="accent-[#534AB7]"
+                  className="accent-[#4338CA]"
                 />
                 <span className="text-sm">Garder les decks sans thème</span>
               </label>
@@ -237,7 +237,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
               </label>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 border border-[#534AB7]/30 rounded-xl py-2.5 text-sm hover:bg-[#534AB7]/10">Annuler</button>
+              <button onClick={() => setShowDeleteConfirm(false)} className="flex-1 border border-[var(--border-default)] rounded-xl py-2.5 text-sm hover:bg-[var(--accent)]/10">Annuler</button>
               <button onClick={handleDelete} className="flex-1 bg-red-600 hover:bg-red-700 rounded-xl py-2.5 text-sm font-semibold transition-colors">Supprimer</button>
             </div>
           </div>

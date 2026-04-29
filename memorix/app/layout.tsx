@@ -1,11 +1,15 @@
 import type { Metadata, Viewport } from 'next'
-import { Inter } from 'next/font/google'
+import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import MobileNav from '@/components/MobileNav'
-import ThemeProvider from '@/components/ThemeProvider'
+import { ThemeProvider } from '@/components/ThemeProvider'
 import QuickAdd from '@/components/ui/QuickAdd'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
+const jakarta = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-jakarta',
+})
 
 export const metadata: Metadata = {
   title: 'Memorix',
@@ -37,11 +41,12 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body className={`${inter.variable} pb-16`}>
-        <ThemeProvider />
-        {children}
-        <MobileNav />
-        <QuickAdd />
+      <body className={`${jakarta.variable} pb-16`}>
+        <ThemeProvider>
+          {children}
+          <MobileNav />
+          <QuickAdd />
+        </ThemeProvider>
       </body>
     </html>
   )

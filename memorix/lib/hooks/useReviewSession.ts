@@ -71,6 +71,7 @@ export function useReviewSession({
   const [swipeHint, setSwipeHint] = useState<'left' | 'right' | null>(null)
 
   const ratingHistoryRef = useRef<Map<string, ReviewHistoryItem[]>>(new Map())
+  const retentionTargetRef = useRef(0.9)
   const undoIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const undoTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const touchStartX = useRef<number | null>(null)
@@ -88,6 +89,13 @@ export function useReviewSession({
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.replace('/login'); return }
 
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('retention_target')
+        .eq('id', user.id)
+        .single()
+      retentionTargetRef.current = ((profileData as { retention_target?: number } | null)?.retention_target ?? 90) / 100
+
       const ids = await loadDeckIds(user.id)
       if (ids.length === 0) { setIsLoading(false); return }
 
@@ -98,7 +106,6 @@ export function useReviewSession({
 
       if (isFreeMode) {
         // Load non-archived cards by deck_id OR theme_id (for direct theme cards)
-        const now = new Date().toISOString()
         const [{ data: byDeck }, { data: byTheme }] = await Promise.all([
           supabase.from('cards').select('*, decks(name, theme_id, themes(name, color)), themes(name, color)').in('deck_id', ids).or('archived.is.null,archived.eq.false'),
           supabase.from('cards').select('*, decks(name, theme_id, themes(name, color)), themes(name, color)').in('theme_id', ids).is('deck_id', null).or('archived.is.null,archived.eq.false'),
@@ -262,7 +269,7 @@ export function useReviewSession({
     const isAutoEasy = userRating === 3 && shouldAutoEasy(history, review.scheduled_days || 0)
     const fsrsRating = (isAutoEasy ? 4 : userRating) as Rating
 
-    const nextReview = scheduleCard(review, fsrsRating, 0.9, {
+    const nextReview = scheduleCard(review, fsrsRating, retentionTargetRef.current, {
       userEdited: card.user_edited,
       createdByAi: card.created_by_ai,
       successRate,

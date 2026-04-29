@@ -128,7 +128,7 @@ export default function QuickAdd() {
       question: question.trim(),
       answer: answer.trim(),
       explanation: explanation.trim() || null,
-      difficulty: 1,
+      difficulty: 3,
       created_by_ai: false,
       user_edited: false,
     }
@@ -174,7 +174,7 @@ export default function QuickAdd() {
         <button
           onClick={() => { setLockedDeckId(null); setOpen(true) }}
           style={{ bottom: 80, right: 16 }}
-          className="fixed z-50 w-[52px] h-[52px] rounded-full bg-[#4338CA] shadow-lg
+          className="fixed z-50 w-[52px] h-[52px] rounded-full bg-[var(--accent)] shadow-lg
             flex items-center justify-center text-white text-2xl font-light
             hover:scale-105 active:scale-95 transition-transform duration-150"
           aria-label="Nouvelle carte"
@@ -193,17 +193,17 @@ export default function QuickAdd() {
           />
 
           <div className={`
-            fixed z-[101] bg-[#1E293B] border-[#334155] p-5
+            fixed z-[101] bg-[var(--bg-surface)] border-[var(--border-default)] p-5
             bottom-0 left-0 right-0 rounded-t-3xl border-t
             sm:bottom-auto sm:left-1/2 sm:-translate-x-1/2 sm:top-1/2 sm:-translate-y-1/2
             sm:w-full sm:max-w-md sm:rounded-2xl sm:border
             animate-quickadd
           `}>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-[#F1F5F9]">Nouvelle carte</h2>
+              <h2 className="font-semibold text-[var(--text-primary)]">Nouvelle carte</h2>
               <button
                 onClick={close}
-                className="w-7 h-7 flex items-center justify-center text-[#64748B] hover:text-[#F1F5F9] rounded-lg hover:bg-white/5 transition-colors text-sm"
+                className="w-7 h-7 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg hover:bg-white/5 transition-colors text-sm"
               >
                 ✕
               </button>
@@ -217,7 +217,7 @@ export default function QuickAdd() {
                 localStorage.setItem(LAST_DEST_KEY, e.target.value)
               }}
               disabled={!!lockedDeckId}
-              className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-3 py-2 text-sm text-[#F1F5F9] focus:outline-none focus:border-[#818CF8] transition-colors mb-3 disabled:opacity-60"
+              className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--border-focus)] transition-colors mb-3 disabled:opacity-60"
             >
               {destinations.map(d => <option key={d.value} value={d.value}>{d.label}</option>)}
             </select>
@@ -230,7 +230,7 @@ export default function QuickAdd() {
               onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); save() } }}
               placeholder="Question…"
               rows={2}
-              className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-3 py-2 text-sm text-[#F1F5F9] placeholder-[#475569] focus:outline-none focus:border-[#818CF8] transition-colors resize-none mb-3"
+              className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[#475569] focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none mb-3"
             />
 
             {/* Answer */}
@@ -240,14 +240,14 @@ export default function QuickAdd() {
               onKeyDown={e => { if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); save() } }}
               placeholder="Réponse…"
               rows={2}
-              className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-3 py-2 text-sm text-[#818CF8] placeholder-[#475569] focus:outline-none focus:border-[#818CF8] transition-colors resize-none mb-3"
+              className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-3 py-2 text-sm text-[var(--accent-light)] placeholder-[#475569] focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none mb-3"
             />
 
             {/* Explanation toggle */}
             {!showExplanation ? (
               <button
                 onClick={() => setShowExplanation(true)}
-                className="text-xs text-[#64748B] hover:text-[#94A3B8] mb-3 block transition-colors"
+                className="text-xs text-[var(--text-muted)] hover:text-[var(--text-secondary)] mb-3 block transition-colors"
               >
                 + Ajouter une explication
               </button>
@@ -257,14 +257,14 @@ export default function QuickAdd() {
                 onChange={e => setExplanation(e.target.value)}
                 placeholder="Explication (optionnel)…"
                 rows={2}
-                className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-3 py-2 text-sm text-[#94A3B8] placeholder-[#475569] focus:outline-none focus:border-[#818CF8] transition-colors resize-none mb-3"
+                className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-3 py-2 text-sm text-[var(--text-secondary)] placeholder-[#475569] focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none mb-3"
               />
             )}
 
             <button
               onClick={save}
               disabled={!question.trim() || !answer.trim() || !selectedDest || saving}
-              className="w-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-xl py-2.5 font-medium text-sm transition-colors"
+              className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 rounded-xl py-2.5 font-medium text-sm transition-colors"
             >
               {saving ? 'Sauvegarde…' : 'Sauvegarder'}
             </button>

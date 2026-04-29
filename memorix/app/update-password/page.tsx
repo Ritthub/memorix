@@ -33,11 +33,11 @@ export default function UpdatePasswordPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0D0D1A] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-[#1A1A2E] border border-[#534AB7]/30 rounded-2xl p-8">
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-8">
           <h1 className="text-xl font-bold mb-1">Nouveau mot de passe</h1>
-          <p className="text-gray-400 text-sm mb-6">Choisis un mot de passe d'au moins 8 caractères.</p>
+          <p className="text-gray-400 text-sm mb-6">Choisis un mot de passe d&apos;au moins 8 caractères.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -50,7 +50,7 @@ export default function UpdatePasswordPage() {
                 required
                 autoFocus
                 autoComplete="new-password"
-                className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors"
+                className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
               />
             </div>
             <div>
@@ -62,7 +62,7 @@ export default function UpdatePasswordPage() {
                 placeholder="••••••••"
                 required
                 autoComplete="new-password"
-                className="w-full bg-[#0D0D1A] border border-[#534AB7]/30 rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#534AB7] transition-colors"
+                className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
               />
             </div>
             {error && (
@@ -73,7 +73,7 @@ export default function UpdatePasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#534AB7] hover:bg-[#3C3489] disabled:opacity-40 text-white rounded-xl py-3 font-medium transition-colors"
+              className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-white rounded-xl py-3 font-medium transition-colors"
             >
               {loading ? '…' : 'Enregistrer le mot de passe'}
             </button>

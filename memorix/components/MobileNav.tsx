@@ -47,11 +47,11 @@ export default function MobileNav() {
   const pathname = usePathname()
 
   if (HIDDEN_ON.some(p => pathname.startsWith(p))) return null
-  // Also hide during active review session to avoid covering rating buttons
   if (pathname.startsWith('/review/')) return null
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-[#0F172A]/95 backdrop-blur-md border-t border-[#1E293B] safe-area-inset-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 backdrop-blur-md border-t safe-area-inset-bottom"
+      style={{ background: 'color-mix(in srgb, var(--bg-base) 95%, transparent)', borderColor: 'var(--border-subtle)' }}>
       <div className="flex items-stretch h-16">
         {TABS.map(tab => {
           const active =
@@ -62,15 +62,14 @@ export default function MobileNav() {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-150 relative ${
-                active ? 'text-[#818CF8]' : 'text-[#64748B] hover:text-[#94A3B8]'
-              }`}
+              className="flex-1 flex flex-col items-center justify-center gap-1 transition-all duration-150 relative"
+              style={{ color: active ? 'var(--accent-light)' : 'var(--text-muted)' }}
             >
               {active && (
-                <span className="absolute top-1.5 w-1 h-1 rounded-full bg-[#4338CA]" />
+                <span className="absolute top-1.5 w-1 h-1 rounded-full" style={{ background: 'var(--accent)' }} />
               )}
               {tab.icon(active)}
-              <span className={`text-[10px] font-medium leading-none ${active ? 'text-[#818CF8]' : ''}`}>
+              <span className="text-[10px] font-medium leading-none">
                 {tab.label}
               </span>
             </Link>

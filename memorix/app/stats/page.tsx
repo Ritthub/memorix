@@ -98,7 +98,7 @@ export default async function StatsPage() {
   })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const retentionTarget = (profile as any)?.retention_target ?? 80
+  const retentionTarget = (profile as any)?.retention_target ?? 90
 
   return (
     <StatsView

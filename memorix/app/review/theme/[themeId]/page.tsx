@@ -105,8 +105,8 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
   }, [flipped])
 
   if (isLoading) return (
-    <div className="fixed inset-0 bg-[#0F172A] flex items-center justify-center">
-      <div className="text-[#4338CA] text-xl">Chargement...</div>
+    <div className="fixed inset-0 bg-[var(--bg-base)] flex items-center justify-center">
+      <div className="text-[var(--accent)] text-xl">Chargement...</div>
     </div>
   )
 
@@ -114,7 +114,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
     const total = stats.non + stats.hesitation + stats.oui + (isFreeMode ? 0 : stats.autoEasy)
     if (isFreeMode) {
       return (
-        <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+        <div className="min-h-screen bg-[var(--bg-base)] text-white flex items-center justify-center p-6">
           <div className="max-w-md w-full text-center">
             <div className="text-7xl mb-4">🔄</div>
             <h1 className="text-3xl font-bold mb-2">Session libre terminée !</h1>
@@ -133,7 +133,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
               ))}
             </div>
             <button onClick={() => router.push(`/themes/${themeId}`)}
-              className="w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-3 font-medium transition-colors">
+              className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl py-3 font-medium transition-colors">
               Retour au thème
             </button>
           </div>
@@ -144,7 +144,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
     const msg = sessionMessage(stats)
     const totalNormal = stats.non + stats.hesitation + stats.oui + stats.autoEasy
     return (
-      <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[var(--bg-base)] text-white flex items-center justify-center p-6">
         <Confetti active={showConfetti} />
         <div className="max-w-md w-full text-center">
           <div className="text-7xl mb-4 animate-bounce-once">{msg.emoji}</div>
@@ -164,18 +164,18 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
             ))}
           </div>
           {stats.autoEasy > 0 && (
-            <div className="bg-[#1C1F2E] border border-[#4338CA]/30 rounded-xl p-3 mb-6 flex items-center gap-2 text-sm">
-              <span className="text-[#818CF8]">✨</span>
-              <span className="text-[#94A3B8]">{stats.autoEasy} intervalle{stats.autoEasy > 1 ? 's' : ''} optimisé{stats.autoEasy > 1 ? 's' : ''} automatiquement</span>
+            <div className="bg-[var(--btn-hes-bg)] border border-[var(--accent)]/30 rounded-xl p-3 mb-6 flex items-center gap-2 text-sm">
+              <span className="text-[var(--accent-light)]">✨</span>
+              <span className="text-[var(--text-secondary)]">{stats.autoEasy} intervalle{stats.autoEasy > 1 ? 's' : ''} optimisé{stats.autoEasy > 1 ? 's' : ''} automatiquement</span>
             </div>
           )}
           <div className="flex gap-4">
             <button onClick={() => router.push(`/themes/${themeId}`)}
-              className="flex-1 border border-[#334155] hover:border-[#4338CA] rounded-xl py-3 text-gray-400 hover:text-white transition-colors">
+              className="flex-1 border border-[var(--border-default)] hover:border-[var(--accent)] rounded-xl py-3 text-gray-400 hover:text-white transition-colors">
               Voir le thème
             </button>
             <button onClick={() => router.push('/dashboard')}
-              className="flex-1 bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-3 font-medium transition-colors">
+              className="flex-1 bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl py-3 font-medium transition-colors">
               Dashboard
             </button>
           </div>
@@ -185,13 +185,13 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
   }
 
   if (!currentCard) return (
-    <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[var(--bg-base)] text-white flex items-center justify-center p-6">
       <div className="text-center">
         <div className="text-4xl mb-4">✅</div>
         <h1 className="text-2xl font-bold mb-2">Rien à réviser !</h1>
         <p className="text-gray-400 mb-6">Toutes les cartes du thème sont à jour.</p>
         <button onClick={() => router.push(`/themes/${themeId}`)}
-          className="bg-[#4338CA] hover:bg-[#3730A3] rounded-xl px-6 py-3 transition-colors">
+          className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl px-6 py-3 transition-colors">
           Retour au thème
         </button>
       </div>
@@ -202,11 +202,11 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
   const progress = Math.round((currentIndex / totalCards) * 100)
 
   return (
-    <div className="fixed inset-0 bg-[#0F172A] text-white flex flex-col select-none overflow-hidden"
+    <div className="fixed inset-0 bg-[var(--bg-base)] text-white flex flex-col select-none overflow-hidden"
       onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
 
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[#334155]">
+      <div className="px-6 py-4 border-b border-[var(--border-default)]">
         <div className="max-w-lg mx-auto flex items-center justify-between">
           <button onClick={() => router.push(`/themes/${themeId}`)} className="text-gray-400 hover:text-white transition-colors">✕</button>
           <div className="text-center">
@@ -218,7 +218,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
               </span>
             )}
             {passNumber > 1 && !isFreeMode && (
-              <div className="text-[#818CF8] text-xs font-semibold mb-0.5">
+              <div className="text-[var(--accent-light)] text-xs font-semibold mb-0.5">
                 Passage {passNumber} — {totalCards} carte{totalCards > 1 ? 's' : ''} à retravailler
               </div>
             )}
@@ -227,8 +227,8 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
           <div className="w-8" />
         </div>
         <div className="max-w-lg mx-auto mt-3">
-          <div className="h-1 bg-[#1E293B] rounded-full overflow-hidden">
-            <div className="h-full bg-[#4338CA] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+          <div className="h-1 bg-[var(--bg-surface)] rounded-full overflow-hidden">
+            <div className="h-full bg-[var(--accent)] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
         </div>
       </div>
@@ -236,7 +236,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
       {/* Swipe hint */}
       {swipeHint && flipped && (
         <div className={`fixed inset-0 pointer-events-none z-10 flex items-center ${swipeHint === 'left' ? 'justify-start pl-8' : 'justify-end pr-8'}`}>
-          <div className={`rounded-2xl px-4 py-2 text-sm font-bold ${swipeHint === 'left' ? 'bg-[#2D1515] text-[#FCA5A5] border border-[#991B1B]' : 'bg-[#0C2D1E] text-[#5DCAA5] border border-[#0F6E56]'}`}>
+          <div className={`rounded-2xl px-4 py-2 text-sm font-bold ${swipeHint === 'left' ? 'bg-[var(--btn-non-bg)] text-[var(--btn-non-text)] border border-[var(--btn-non-border)]' : 'bg-[var(--btn-oui-bg)] text-[var(--btn-oui-text)] border border-[var(--btn-oui-border)]'}`}>
             {swipeHint === 'left' ? '← Non' : 'Oui →'}
           </div>
         </div>
@@ -251,7 +251,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
             ref={questionScrollRef}
             onClick={() => !flipped && handleFlip()}
             onScroll={e => { const el = e.currentTarget; setQuestionAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 2) }}
-            className={`relative overflow-y-auto bg-[#1E293B] rounded-3xl border border-[#334155] shadow-xl shadow-[#4338CA]/10 ${!flipped ? 'flex-1 cursor-pointer' : 'flex-none max-h-[40%]'}`}
+            className={`relative overflow-y-auto bg-[var(--bg-surface)] rounded-3xl border border-[var(--border-default)] shadow-xl shadow-[#4338CA]/10 ${!flipped ? 'flex-1 cursor-pointer' : 'flex-none max-h-[40%]'}`}
           >
             <div className="min-h-full p-8 flex flex-col items-center justify-center gap-4 text-center">
               {(card.decks?.name || card.themes?.name) && (
@@ -259,13 +259,13 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
                   {(card.decks?.themes?.color || card.themes?.color) && (
                     <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: card.decks?.themes?.color || card.themes?.color }} />
                   )}
-                  <span className="text-[11px] text-[#64748B]">
+                  <span className="text-[11px] text-[var(--text-muted)]">
                     {card.decks?.themes?.name && <>{card.decks.themes.name} › </>}
                     {card.decks?.name || card.themes?.name}
                   </span>
                 </div>
               )}
-              {card.theme && <span className="text-xs text-[#818CF8] font-medium uppercase tracking-widest opacity-70">{card.theme}</span>}
+              {card.theme && <span className="text-xs text-[var(--accent-light)] font-medium uppercase tracking-widest opacity-70">{card.theme}</span>}
               <p className="text-xl font-semibold text-center leading-relaxed">{card.question}</p>
               {!flipped && <p className="text-gray-600 text-sm mt-2">Appuyer pour révéler</p>}
             </div>
@@ -279,7 +279,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
             <div
               ref={answerScrollRef}
               onScroll={e => { const el = e.currentTarget; setAnswerAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 2) }}
-              className="flex-1 min-h-0 relative overflow-y-auto bg-[#0F0F1F] rounded-3xl border border-[#334155]"
+              className="flex-1 min-h-0 relative overflow-y-auto bg-[#0F0F1F] rounded-3xl border border-[var(--border-default)]"
             >
               <div className="min-h-full p-8 flex flex-col items-center justify-center gap-3 text-center">
                 <p className="text-lg text-center leading-relaxed whitespace-pre-wrap">{card.answer}</p>
@@ -296,12 +296,12 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
 
       {/* Rating or reveal */}
       {flipped ? (
-        <div className="px-6 py-4 border-t border-[#334155]">
+        <div className="px-6 py-4 border-t border-[var(--border-default)]">
           <div className="max-w-lg mx-auto grid grid-cols-3 gap-3">
             {([
-              { label: 'Non',        rating: 1, color: 'bg-[#2D1515] hover:brightness-110 border-[#991B1B] text-[#FCA5A5]' },
-              { label: 'Hésitation', rating: 2, color: 'bg-[#1C1F2E] hover:brightness-110 border-[#4338CA] text-[#818CF8]' },
-              { label: 'Oui',        rating: 3, color: 'bg-[#0C2D1E] hover:brightness-110 border-[#0F6E56] text-[#5DCAA5]' },
+              { label: 'Non',        rating: 1, color: 'bg-[var(--btn-non-bg)] hover:brightness-110 border-[var(--btn-non-border)] text-[var(--btn-non-text)]' },
+              { label: 'Hésitation', rating: 2, color: 'bg-[var(--btn-hes-bg)] hover:brightness-110 border-[var(--accent)] text-[var(--accent-light)]' },
+              { label: 'Oui',        rating: 3, color: 'bg-[var(--btn-oui-bg)] hover:brightness-110 border-[var(--btn-oui-border)] text-[var(--btn-oui-text)]' },
             ] as const).map(b => (
               <button key={b.label} onClick={() => handleRating(b.rating)} disabled={isSaving}
                 className={`${b.color} border rounded-2xl py-4 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50 min-h-[64px]`}>
@@ -310,10 +310,10 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
             ))}
           </div>
 
-          <div className="max-w-lg mx-auto mt-3 border-t border-[#334155] pt-3">
+          <div className="max-w-lg mx-auto mt-3 border-t border-[var(--border-default)] pt-3">
             {!showArchiveConfirm ? (
               <button onClick={handleArchiveRequest}
-                className="w-full h-10 flex items-center justify-center gap-2 text-[#64748B] border border-[#334155]/50 rounded-xl text-sm hover:border-[#818CF8] hover:text-[#94A3B8] transition-colors">
+                className="w-full h-10 flex items-center justify-center gap-2 text-[var(--text-muted)] border border-[var(--border-default)]/50 rounded-xl text-sm hover:border-[var(--border-focus)] hover:text-[var(--text-secondary)] transition-colors">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M21 8v13H3V8" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M1 3h22v5H1z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -322,10 +322,10 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
                 Archiver cette carte
               </button>
             ) : (
-              <div className="bg-[#0F172A] border border-[#334155] rounded-xl p-3 flex items-center gap-2">
-                <span className="text-[#94A3B8] flex-1 text-xs leading-snug">Cette carte disparaîtra des révisions. Récupérable 30 jours.</span>
-                <button onClick={handleArchiveCancel} className="text-[#64748B] hover:text-white text-xs px-2 py-1 rounded flex-shrink-0">Annuler</button>
-                <button onClick={handleArchiveConfirm} className="bg-[#334155] hover:bg-[#475569] text-white text-xs px-3 py-1 rounded flex-shrink-0">Archiver</button>
+              <div className="bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl p-3 flex items-center gap-2">
+                <span className="text-[var(--text-secondary)] flex-1 text-xs leading-snug">Cette carte disparaîtra des révisions. Récupérable 30 jours.</span>
+                <button onClick={handleArchiveCancel} className="text-[var(--text-muted)] hover:text-white text-xs px-2 py-1 rounded flex-shrink-0">Annuler</button>
+                <button onClick={handleArchiveConfirm} className="bg-[var(--bg-elevated)] hover:bg-[#475569] text-white text-xs px-3 py-1 rounded flex-shrink-0">Archiver</button>
               </div>
             )}
           </div>
@@ -333,10 +333,10 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
           <p className="text-center text-gray-700 text-xs mt-2">← Non · Hésitation · Oui →</p>
         </div>
       ) : (
-        <div className="px-6 py-4 border-t border-[#334155]">
+        <div className="px-6 py-4 border-t border-[var(--border-default)]">
           <div className="max-w-lg mx-auto">
             <button onClick={handleFlip}
-              className="w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-2xl py-4 font-semibold transition-colors">
+              className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-2xl py-4 font-semibold transition-colors">
               Révéler la réponse
             </button>
             <p className="text-center text-gray-600 text-xs mt-2">Espace · Entrée · Appuyer</p>
@@ -346,9 +346,9 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
 
       {/* Undo toast */}
       {undoData && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-2.5 text-sm flex items-center gap-3 shadow-lg whitespace-nowrap">
-          <span className="text-[#F1F5F9]">Archivée</span>
-          <button onClick={() => handleUndoArchive(undoData.cardId)} className="text-[#818CF8] hover:text-[#A5B4FC] font-medium transition-colors">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-2.5 text-sm flex items-center gap-3 shadow-lg whitespace-nowrap">
+          <span className="text-[var(--text-primary)]">Archivée</span>
+          <button onClick={() => handleUndoArchive(undoData.cardId)} className="text-[var(--accent-light)] hover:text-[#A5B4FC] font-medium transition-colors">
             Annuler ({undoData.countdown}s)
           </button>
         </div>

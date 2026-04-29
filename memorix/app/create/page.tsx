@@ -187,7 +187,7 @@ function CreatePageInner() {
 
     const targetDeckId = newDeck.id
 
-    const { error } = await supabase.from('cards').insert(
+    const { data: insertedCards, error } = await supabase.from('cards').insert(
       aiCards.map(c => ({
         deck_id: targetDeckId,
         question: c.q,
@@ -196,21 +196,19 @@ function CreatePageInner() {
         theme: c.theme || null,
         difficulty: c.difficulty || 3,
         created_by_ai: true,
+        user_edited: false,
       }))
-    )
+    ).select('id')
 
-    if (!error) {
-      const { data: allCards } = await supabase.from('cards').select('id').eq('deck_id', targetDeckId)
-      const { data: existingReviews } = await supabase.from('card_reviews').select('card_id').eq('user_id', user.id)
-      const existingIds = new Set(
-        (existingReviews as { card_id: string }[])?.map((r: { card_id: string }) => r.card_id) || []
+    if (!error && insertedCards && insertedCards.length > 0) {
+      await supabase.from('card_reviews').insert(
+        insertedCards.map((card: { id: string }) => ({
+          card_id: card.id,
+          user_id: user.id,
+          state: 'new',
+          scheduled_at: new Date().toISOString(),
+        }))
       )
-      const newCards = (allCards as { id: string }[])?.filter((c: { id: string }) => !existingIds.has(c.id)) || []
-      if (newCards.length > 0) {
-        await supabase.from('card_reviews').insert(
-          (newCards as { id: string }[]).map((card: { id: string }) => ({ card_id: card.id, user_id: user.id, state: 'new', scheduled_at: new Date().toISOString() }))
-        )
-      }
       router.push(`/decks/${targetDeckId}`)
     }
     setLoading(false)
@@ -292,7 +290,7 @@ function CreatePageInner() {
     const targetThemeId = directThemeId
     const targetDeckId = deckId
 
-    const { error } = await supabase.from('cards').insert(
+    const { data: insertedCards, error } = await supabase.from('cards').insert(
       cardsToSave.map(c => ({
         ...(targetThemeId ? { theme_id: targetThemeId } : { deck_id: targetDeckId }),
         question: c.question || c.q,
@@ -301,26 +299,19 @@ function CreatePageInner() {
         theme: c.theme || null,
         difficulty: c.difficulty || 3,
         created_by_ai: mode === 'ai',
+        user_edited: false,
       }))
-    )
+    ).select('id')
 
-    if (!error) {
-      const allCardsQuery = targetThemeId
-        ? supabase.from('cards').select('id').eq('theme_id', targetThemeId).is('deck_id', null)
-        : supabase.from('cards').select('id').eq('deck_id', targetDeckId)
-      const { data: allCards } = await allCardsQuery
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data: existingReviews } = await supabase.from('card_reviews').select('card_id').eq('user_id', user.id)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const existingIds = new Set((existingReviews as any[])?.map((r: any) => r.card_id) || [])
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const newCards = (allCards as any[])?.filter((c: any) => !existingIds.has(c.id)) || []
-      if (newCards.length > 0) {
-        await supabase.from('card_reviews').insert(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (newCards as any[]).map((card: any) => ({ card_id: card.id, user_id: user.id, state: 'new', scheduled_at: new Date().toISOString() }))
-        )
-      }
+    if (!error && insertedCards && insertedCards.length > 0) {
+      await supabase.from('card_reviews').insert(
+        insertedCards.map((card: { id: string }) => ({
+          card_id: card.id,
+          user_id: user.id,
+          state: 'new',
+          scheduled_at: new Date().toISOString(),
+        }))
+      )
       router.push(targetThemeId ? `/themes/${targetThemeId}` : `/decks/${targetDeckId}`)
     }
     setLoading(false)
@@ -343,7 +334,7 @@ function CreatePageInner() {
   }
 
   if (step === 'deck') return (
-    <div className="min-h-screen bg-[#0F172A] text-white px-6 py-10">
+    <div className="min-h-screen bg-[var(--bg-base)] text-white px-6 py-10">
       <div className="max-w-lg mx-auto">
         <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white mb-8 block transition-colors">← Retour</button>
         <h1 className="text-3xl font-bold mb-8">Nouveau deck</h1>
@@ -352,47 +343,47 @@ function CreatePageInner() {
             <label className="text-gray-400 text-sm mb-2 block">Nom du deck</label>
             <input value={deck.name} onChange={e => setDeck({ ...deck, name: e.target.value })}
               placeholder="Ex: Term-sheet ISAI, Espagnol B2..."
-              className="w-full bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors" />
+              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
           </div>
           <div>
             <label className="text-gray-400 text-sm mb-2 block">Description (optionnel)</label>
             <textarea value={deck.description} onChange={e => setDeck({ ...deck, description: e.target.value })}
               placeholder="Décrivez le contenu de ce deck..." rows={3}
-              className="w-full bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors resize-none" />
+              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
           </div>
           <div>
             <label className="text-gray-400 text-sm mb-2 block">Icône</label>
             <div className="flex gap-3 flex-wrap">
               {icons.map(icon => (
                 <button key={icon} onClick={() => setDeck({ ...deck, icon })}
-                  className={`text-2xl p-2 rounded-xl transition-colors ${deck.icon === icon ? 'bg-[#4338CA]' : 'bg-[#1E293B] hover:bg-[#4338CA]/30'}`}>
+                  className={`text-2xl p-2 rounded-xl transition-colors ${deck.icon === icon ? 'bg-[var(--accent)]' : 'bg-[var(--bg-surface)] hover:bg-[var(--accent)]/30'}`}>
                   {icon}
                 </button>
               ))}
             </div>
           </div>
           <button onClick={createDeck} disabled={!deck.name || loading}
-            className="w-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-xl py-3 font-medium transition-colors">
+            className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 rounded-xl py-3 font-medium transition-colors">
             {loading ? 'Création...' : 'Créer le deck →'}
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-[#312E81]/30" />
+            <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
             <span className="text-gray-600 text-xs">ou</span>
-            <div className="flex-1 h-px bg-[#312E81]/30" />
+            <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
           </div>
 
           <button onClick={enterWikiMode}
-            className="w-full border border-[#334155] hover:border-[#818CF8]/50 rounded-xl py-3 text-gray-400 hover:text-white transition-colors text-sm">
+            className="w-full border border-[var(--border-default)] hover:border-[var(--border-focus)]/50 rounded-xl py-3 text-gray-400 hover:text-white transition-colors text-sm">
             🌐 Importer depuis Wikipedia →
           </button>
 
           {leafThemes.length > 0 && (
             <>
               <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-[#312E81]/30" />
+                <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
                 <span className="text-gray-600 text-xs">ou</span>
-                <div className="flex-1 h-px bg-[#312E81]/30" />
+                <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
               </div>
 
               <div>
@@ -400,7 +391,7 @@ function CreatePageInner() {
                 <select
                   value={selectedLeafTheme}
                   onChange={e => setSelectedLeafTheme(e.target.value)}
-                  className="w-full bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#818CF8] transition-colors mb-3"
+                  className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[var(--border-focus)] transition-colors mb-3"
                 >
                   {leafThemes.map(t => (
                     <option key={t.id} value={t.id}>{t.name}</option>
@@ -415,7 +406,7 @@ function CreatePageInner() {
                     setStep('cards')
                   }}
                   disabled={!selectedLeafTheme}
-                  className="w-full border border-[#4338CA]/50 hover:border-[#818CF8] hover:bg-[#312E81]/20 disabled:opacity-40 rounded-xl py-3 text-[#818CF8] transition-colors text-sm"
+                  className="w-full border border-[var(--accent)]/50 hover:border-[var(--border-focus)] hover:bg-[var(--accent-subtle)]/20 disabled:opacity-40 rounded-xl py-3 text-[var(--accent-light)] transition-colors text-sm"
                 >
                   📝 Ajouter des cartes directement →
                 </button>
@@ -428,7 +419,7 @@ function CreatePageInner() {
   )
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-white px-6 py-10">
+    <div className="min-h-screen bg-[var(--bg-base)] text-white px-6 py-10">
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <button onClick={() => {
@@ -440,17 +431,17 @@ function CreatePageInner() {
         </div>
 
         {/* Mode tabs */}
-        <div className="flex gap-1 mb-8 bg-[#1E293B] p-1 rounded-xl">
+        <div className="flex gap-1 mb-8 bg-[var(--bg-surface)] p-1 rounded-xl">
           <button onClick={() => setMode('manual')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-[#4338CA] text-white' : 'text-gray-400 hover:text-white'}`}>
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-[var(--accent)] text-white' : 'text-gray-400 hover:text-white'}`}>
             Saisie manuelle
           </button>
           <button onClick={() => setMode('ai')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'ai' ? 'bg-[#4338CA] text-white' : 'text-gray-400 hover:text-white'}`}>
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'ai' ? 'bg-[var(--accent)] text-white' : 'text-gray-400 hover:text-white'}`}>
             Générer avec Claude
           </button>
           <button onClick={() => { setMode('wikipedia'); setWikiStep('search') }}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'wikipedia' ? 'bg-[#4338CA] text-white' : 'text-gray-400 hover:text-white'}`}>
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'wikipedia' ? 'bg-[var(--accent)] text-white' : 'text-gray-400 hover:text-white'}`}>
             Wikipedia
           </button>
         </div>
@@ -460,7 +451,7 @@ function CreatePageInner() {
           <div>
             <div className="space-y-4 mb-6">
               {cards.map((card, idx) => (
-                <div key={idx} className="bg-[#1E293B] rounded-2xl p-6 border border-[#334155]">
+                <div key={idx} className="bg-[var(--bg-surface)] rounded-2xl p-6 border border-[var(--border-default)]">
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-gray-400 text-sm font-medium">Carte {idx + 1}</span>
                     {cards.length > 1 && (
@@ -469,21 +460,21 @@ function CreatePageInner() {
                   </div>
                   <div className="space-y-3">
                     <input value={card.question} onChange={e => updateCard(idx, 'question', e.target.value)}
-                      placeholder="Question..." className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors" />
+                      placeholder="Question..." className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
                     <input value={card.answer} onChange={e => updateCard(idx, 'answer', e.target.value)}
-                      placeholder="Réponse..." className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors" />
+                      placeholder="Réponse..." className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
                     <input value={card.explanation} onChange={e => updateCard(idx, 'explanation', e.target.value)}
-                      placeholder="Explication (optionnel)..." className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors" />
+                      placeholder="Explication (optionnel)..." className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
                   </div>
                 </div>
               ))}
             </div>
             <div className="flex gap-4">
-              <button onClick={addCard} className="flex-1 border border-[#334155] hover:border-[#4338CA] rounded-xl py-3 text-gray-400 hover:text-white transition-colors">
+              <button onClick={addCard} className="flex-1 border border-[var(--border-default)] hover:border-[var(--accent)] rounded-xl py-3 text-gray-400 hover:text-white transition-colors">
                 + Ajouter une carte
               </button>
               <button onClick={() => saveCards(cards)} disabled={!cards.some(c => c.question && c.answer) || loading}
-                className="flex-1 bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors">
+                className="flex-1 bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors">
                 {loading ? '⏳ Sauvegarde...' : 'Sauvegarder →'}
               </button>
             </div>
@@ -499,7 +490,7 @@ function CreatePageInner() {
                   <label className="text-gray-400 text-sm mb-2 block">Option 1 — Uploadez un PDF</label>
                   <label
                     className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
-                      dragOver ? 'border-[#4338CA] bg-[#312E81]/20' : 'border-[#334155] hover:border-[#818CF8]/50'
+                      dragOver ? 'border-[var(--accent)] bg-[var(--accent-subtle)]/20' : 'border-[var(--border-default)] hover:border-[var(--border-focus)]/50'
                     }`}
                     onDragOver={e => { e.preventDefault(); setDragOver(true) }}
                     onDragLeave={() => setDragOver(false)}
@@ -529,22 +520,22 @@ function CreatePageInner() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 h-px bg-[#312E81]/30" />
+                  <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
                   <span className="text-gray-600 text-xs">ou</span>
-                  <div className="flex-1 h-px bg-[#312E81]/30" />
+                  <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
                 </div>
 
                 <div>
                   <label className="text-gray-400 text-sm mb-2 block">Option 2 — Collez votre texte</label>
                   <textarea value={aiText} onChange={e => { setAiText(e.target.value); setPdfName('') }}
                     placeholder="Collez ici votre texte, vos notes, un résumé, un term-sheet..." rows={8}
-                    className="w-full bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors resize-none" />
+                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
                   <p className="text-gray-600 text-xs mt-1">{aiText.length} caractères</p>
                 </div>
 
                 {aiError && <p className="text-red-400 text-sm">{aiError}</p>}
                 <button onClick={generateCards} disabled={generating || aiText.length < 50}
-                  className="w-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-xl py-3 font-medium transition-colors">
+                  className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 rounded-xl py-3 font-medium transition-colors">
                   {generating ? 'Claude analyse votre document...' : 'Générer les flashcards avec Claude →'}
                 </button>
               </div>
@@ -573,7 +564,7 @@ function CreatePageInner() {
                     value={wikiQuery}
                     onChange={e => setWikiQuery(e.target.value)}
                     placeholder="Rechercher un article Wikipedia..."
-                    className="w-full bg-[#1E293B] border border-[#334155] rounded-xl pl-11 pr-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors"
+                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl pl-11 pr-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
                     autoFocus
                   />
                   {wikiSearchLoading && (
@@ -596,12 +587,12 @@ function CreatePageInner() {
                       <button
                         key={title}
                         onClick={() => fetchWikiArticle(title)}
-                        className="w-full text-left bg-[#1E293B] hover:bg-[#1E293B]/70 border border-[#334155] hover:border-[#818CF8]/40 rounded-xl px-4 py-3 transition-colors group"
+                        className="w-full text-left bg-[var(--bg-surface)] hover:bg-[var(--bg-surface)]/70 border border-[var(--border-default)] hover:border-[var(--border-focus)]/40 rounded-xl px-4 py-3 transition-colors group"
                       >
                         <div className="flex items-start gap-3">
                           <span className="shrink-0 w-6 h-6 mt-0.5 flex items-center justify-center rounded bg-black text-white text-xs font-bold font-serif">W</span>
                           <div className="min-w-0">
-                            <p className="text-white font-medium text-sm group-hover:text-[#818CF8] transition-colors truncate">{title}</p>
+                            <p className="text-white font-medium text-sm group-hover:text-[var(--accent-light)] transition-colors truncate">{title}</p>
                             {desc && <p className="text-gray-500 text-xs mt-0.5 line-clamp-2">{desc}</p>}
                           </div>
                         </div>
@@ -631,7 +622,7 @@ function CreatePageInner() {
                   <h2 className="text-base font-bold truncate flex-1">{wikiTitle}</h2>
                 </div>
 
-                <div className="flex-1 overflow-y-auto bg-[#1E293B] rounded-2xl border border-[#334155] p-6 mb-3">
+                <div className="flex-1 overflow-y-auto bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-6 mb-3">
                   <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{wikiSummary}</p>
                 </div>
 
@@ -639,14 +630,14 @@ function CreatePageInner() {
                   href={`https://fr.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-center text-[#818CF8] hover:text-white text-xs mb-3 transition-colors"
+                  className="block text-center text-[var(--accent-light)] hover:text-white text-xs mb-3 transition-colors"
                 >
                   Voir l'article complet sur Wikipedia →
                 </a>
 
                 <button
                   onClick={() => setWikiStep('params')}
-                  className="shrink-0 w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-3 font-medium transition-colors"
+                  className="shrink-0 w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl py-3 font-medium transition-colors"
                 >
                   Générer des flashcards depuis cet article →
                 </button>
@@ -661,17 +652,17 @@ function CreatePageInner() {
                   <h2 className="text-base font-bold">Paramètres de génération</h2>
                 </div>
 
-                <div className="bg-[#1E293B] rounded-2xl border border-[#334155] p-5">
+                <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5">
                   <label className="text-gray-400 text-sm mb-2 block">Nom du deck</label>
                   <input
                     value={wikiDeckName}
                     onChange={e => setWikiDeckName(e.target.value)}
                     placeholder="Nom du deck..."
-                    className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors"
+                    className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
                   />
                 </div>
 
-                <div className="bg-[#1E293B] rounded-2xl border border-[#334155] p-5">
+                <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5">
                   <label className="text-gray-400 text-sm mb-4 block">
                     Nombre maximum de cartes : <span className="text-white font-bold">{wikiMaxCards}</span>
                   </label>
@@ -689,7 +680,7 @@ function CreatePageInner() {
                   </div>
                 </div>
 
-                <div className="bg-[#1E293B] rounded-2xl border border-[#334155] p-5">
+                <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5">
                   <label className="text-gray-400 text-sm mb-3 block">
                     Priorités <span className="text-gray-600">(optionnel)</span>
                   </label>
@@ -700,8 +691,8 @@ function CreatePageInner() {
                         onClick={() => toggleWikiPriority(p)}
                         className={`text-left px-3 py-2 rounded-xl text-sm border transition-colors ${
                           wikiPriorities.has(p)
-                            ? 'bg-[#4338CA]/30 border-[#4338CA] text-[#818CF8]'
-                            : 'border-[#334155] text-gray-400 hover:border-[#818CF8]/40 hover:text-white'
+                            ? 'bg-[var(--accent)]/30 border-[var(--accent)] text-[var(--accent-light)]'
+                            : 'border-[var(--border-default)] text-gray-400 hover:border-[var(--border-focus)]/40 hover:text-white'
                         }`}
                       >
                         {p}
@@ -715,7 +706,7 @@ function CreatePageInner() {
                 <button
                   onClick={generateFromWiki}
                   disabled={generating || !wikiDeckName.trim()}
-                  className="w-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 rounded-xl py-3 font-medium transition-colors"
+                  className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 rounded-xl py-3 font-medium transition-colors"
                 >
                   {generating ? 'Claude génère vos flashcards...' : 'Générer avec Claude →'}
                 </button>
@@ -733,10 +724,10 @@ function CreatePageInner() {
 
                 <div className="space-y-4 mb-6">
                   {aiCards.map((card, idx) => (
-                    <div key={idx} className="bg-[#1E293B] rounded-2xl p-6 border border-[#334155]">
+                    <div key={idx} className="bg-[var(--bg-surface)] rounded-2xl p-6 border border-[var(--border-default)]">
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
-                          {card.theme && <span className="text-xs px-2 py-1 bg-[#312E81]/30 text-[#818CF8] rounded-full">{card.theme}</span>}
+                          {card.theme && <span className="text-xs px-2 py-1 bg-[var(--accent-subtle)]/30 text-[var(--accent-light)] rounded-full">{card.theme}</span>}
                           <span className="text-xs text-gray-500">Difficulté {card.difficulty}/5</span>
                         </div>
                         <button onClick={() => removeAiCard(idx)} className="text-red-400 hover:text-red-300 text-sm transition-colors">Supprimer</button>
@@ -745,17 +736,17 @@ function CreatePageInner() {
                         <div>
                           <label className="text-gray-500 text-xs mb-1 block">Question</label>
                           <textarea value={card.q || ''} onChange={e => updateAiCard(idx, 'q', e.target.value)} rows={2}
-                            className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[#818CF8] transition-colors resize-none" />
+                            className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
                         </div>
                         <div>
                           <label className="text-gray-500 text-xs mb-1 block">Réponse</label>
                           <textarea value={card.a || ''} onChange={e => updateAiCard(idx, 'a', e.target.value)} rows={2}
-                            className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2 text-[#818CF8] text-sm focus:outline-none focus:border-[#818CF8] transition-colors resize-none" />
+                            className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-[var(--accent-light)] text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
                         </div>
                         <div>
                           <label className="text-gray-500 text-xs mb-1 block">Explication (optionnel)</label>
                           <textarea value={card.expl || ''} onChange={e => updateAiCard(idx, 'expl', e.target.value)} rows={1}
-                            className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2 text-gray-500 text-sm focus:outline-none focus:border-[#818CF8] transition-colors resize-none" />
+                            className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-gray-500 text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
                         </div>
                       </div>
                     </div>
@@ -765,7 +756,7 @@ function CreatePageInner() {
                 <button
                   onClick={saveWikiCards}
                   disabled={aiCards.length === 0 || loading}
-                  className="w-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors"
+                  className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors"
                 >
                   {loading
                     ? '⏳ Import en cours...'
@@ -798,10 +789,10 @@ function AiCardsReview({
       </div>
       <div className="space-y-4 mb-6">
         {aiCards.map((card, idx) => (
-          <div key={idx} className="bg-[#1E293B] rounded-2xl p-6 border border-[#334155]">
+          <div key={idx} className="bg-[var(--bg-surface)] rounded-2xl p-6 border border-[var(--border-default)]">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                {card.theme && <span className="text-xs px-2 py-1 bg-[#312E81]/30 text-[#818CF8] rounded-full">{card.theme}</span>}
+                {card.theme && <span className="text-xs px-2 py-1 bg-[var(--accent-subtle)]/30 text-[var(--accent-light)] rounded-full">{card.theme}</span>}
                 <span className="text-xs text-gray-500">Difficulté {card.difficulty}/5</span>
               </div>
               <button onClick={() => onRemove(idx)} className="text-red-400 hover:text-red-300 text-sm transition-colors">Supprimer</button>
@@ -810,17 +801,17 @@ function AiCardsReview({
               <div>
                 <label className="text-gray-500 text-xs mb-1 block">Question</label>
                 <textarea value={card.q || ''} onChange={e => onUpdate(idx, 'q', e.target.value)} rows={2}
-                  className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[#818CF8] transition-colors resize-none" />
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
               </div>
               <div>
                 <label className="text-gray-500 text-xs mb-1 block">Réponse</label>
                 <textarea value={card.a || ''} onChange={e => onUpdate(idx, 'a', e.target.value)} rows={2}
-                  className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2 text-[#818CF8] text-sm focus:outline-none focus:border-[#818CF8] transition-colors resize-none" />
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-[var(--accent-light)] text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
               </div>
               <div>
                 <label className="text-gray-500 text-xs mb-1 block">Explication (optionnel)</label>
                 <textarea value={card.expl || ''} onChange={e => onUpdate(idx, 'expl', e.target.value)} rows={1}
-                  className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-2 text-gray-500 text-sm focus:outline-none focus:border-[#818CF8] transition-colors resize-none" />
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-gray-500 text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
               </div>
             </div>
           </div>
@@ -829,7 +820,7 @@ function AiCardsReview({
       <button
         onClick={onSave}
         disabled={aiCards.length === 0 || loading}
-        className="w-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors"
+        className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors"
       >
         {loading ? '⏳ Import en cours...' : `Importer ${aiCards.length} cartes →`}
       </button>
@@ -839,7 +830,7 @@ function AiCardsReview({
 
 export default function CreatePage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#0F172A]" />}>
+    <Suspense fallback={<div className="min-h-screen bg-[var(--bg-base)]" />}>
       <CreatePageInner />
     </Suspense>
   )

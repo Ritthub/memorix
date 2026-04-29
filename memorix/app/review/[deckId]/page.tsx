@@ -85,8 +85,8 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
   }, [flipped])
 
   if (isLoading) return (
-    <div className="fixed inset-0 bg-[#0F172A] flex items-center justify-center">
-      <div className="text-[#818CF8] text-xl">Chargement...</div>
+    <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'var(--bg-base)' }}>
+      <div style={{ color: 'var(--accent-light)' }} className="text-xl">Chargement...</div>
     </div>
   )
 
@@ -94,17 +94,17 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
     const total = stats.non + stats.hesitation + stats.oui + stats.autoEasy
     if (isFreeMode) {
       return (
-        <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+        <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
           <div className="max-w-md w-full text-center">
             <div className="text-7xl mb-4">🔄</div>
             <h1 className="text-3xl font-bold mb-2">Session libre terminée !</h1>
-            <p className="text-[#94A3B8] mb-1">Vos intervalles de révision FSRS n&apos;ont pas été modifiés.</p>
-            <p className="text-gray-500 text-sm mb-6">{total} carte{total > 1 ? 's' : ''} révisée{total > 1 ? 's' : ''}</p>
+            <p className="mb-1" style={{ color: 'var(--text-secondary)' }}>Vos intervalles de révision FSRS n&apos;ont pas été modifiés.</p>
+            <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>{total} carte{total > 1 ? 's' : ''} révisée{total > 1 ? 's' : ''}</p>
             <div className="grid grid-cols-3 gap-3 mb-6">
               {[
-                { label: 'Non',        value: stats.non,        bg: '#2D1515', text: '#FCA5A5', border: '#991B1B' },
-                { label: 'Hésitation', value: stats.hesitation, bg: '#1C1F2E', text: '#818CF8', border: '#4338CA' },
-                { label: 'Oui',        value: stats.oui,        bg: '#0C2D1E', text: '#5DCAA5', border: '#0F6E56' },
+                { label: 'Non',        value: stats.non,        bg: 'var(--btn-non-bg)', text: 'var(--btn-non-text)', border: 'var(--btn-non-border)' },
+                { label: 'Hésitation', value: stats.hesitation, bg: 'var(--btn-hes-bg)', text: 'var(--btn-hes-text)', border: 'var(--btn-hes-border)' },
+                { label: 'Oui',        value: stats.oui,        bg: 'var(--btn-oui-bg)', text: 'var(--btn-oui-text)', border: 'var(--btn-oui-border)' },
               ].map(s => (
                 <div key={s.label} className="rounded-xl p-4 border" style={{ background: s.bg, borderColor: s.border }}>
                   <div className="text-2xl font-bold" style={{ color: s.text }}>{s.value}</div>
@@ -113,7 +113,10 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
               ))}
             </div>
             <button onClick={() => router.push(`/decks/${deckId}`)}
-              className="w-full bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-3 font-medium transition-all duration-150 text-[#E0E7FF]">
+              className="w-full rounded-xl py-3 font-medium transition-all duration-150"
+              style={{ background: 'var(--accent)', color: 'var(--accent-muted)' }}
+              onMouseOver={e => (e.currentTarget.style.background = 'var(--accent-hover)')}
+              onMouseOut={e => (e.currentTarget.style.background = 'var(--accent)')}>
               Retour au deck
             </button>
           </div>
@@ -123,18 +126,18 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
 
     const msg = sessionMessage(stats)
     return (
-      <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+      <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
         <Confetti active={showConfetti} />
         <div className="max-w-md w-full text-center">
           <div className="text-7xl mb-4 animate-bounce-once">{msg.emoji}</div>
           <h1 className="text-3xl font-bold mb-2">{msg.title}</h1>
-          <p className="text-gray-400 mb-2">{msg.sub}</p>
-          <p className="text-gray-500 text-sm mb-6">{total} carte{total > 1 ? 's' : ''} révisée{total > 1 ? 's' : ''}</p>
+          <p className="mb-2" style={{ color: 'var(--text-secondary)' }}>{msg.sub}</p>
+          <p className="text-sm mb-6" style={{ color: 'var(--text-muted)' }}>{total} carte{total > 1 ? 's' : ''} révisée{total > 1 ? 's' : ''}</p>
           <div className="grid grid-cols-3 gap-3 mb-4">
             {[
-              { label: 'Non',        value: stats.non,        bg: '#2D1515', text: '#FCA5A5', border: '#991B1B' },
-              { label: 'Hésitation', value: stats.hesitation, bg: '#1C1F2E', text: '#818CF8', border: '#4338CA' },
-              { label: 'Oui',        value: stats.oui,        bg: '#0C2D1E', text: '#5DCAA5', border: '#0F6E56' },
+              { label: 'Non',        value: stats.non,        bg: 'var(--btn-non-bg)', text: 'var(--btn-non-text)', border: 'var(--btn-non-border)' },
+              { label: 'Hésitation', value: stats.hesitation, bg: 'var(--btn-hes-bg)', text: 'var(--btn-hes-text)', border: 'var(--btn-hes-border)' },
+              { label: 'Oui',        value: stats.oui,        bg: 'var(--btn-oui-bg)', text: 'var(--btn-oui-text)', border: 'var(--btn-oui-border)' },
             ].map(s => (
               <div key={s.label} className="rounded-xl p-4 border" style={{ background: s.bg, borderColor: s.border }}>
                 <div className="text-2xl font-bold" style={{ color: s.text }}>{s.value}</div>
@@ -143,18 +146,20 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
             ))}
           </div>
           {stats.autoEasy > 0 && (
-            <div className="bg-[#1C1F2E] border border-[#4338CA]/30 rounded-xl p-3 mb-6 flex items-center gap-2 text-sm">
-              <span className="text-[#818CF8]">✨</span>
-              <span className="text-[#94A3B8]">{stats.autoEasy} intervalle{stats.autoEasy > 1 ? 's' : ''} optimisé{stats.autoEasy > 1 ? 's' : ''} automatiquement</span>
+            <div className="border rounded-xl p-3 mb-6 flex items-center gap-2 text-sm" style={{ background: 'var(--btn-hes-bg)', borderColor: 'var(--btn-hes-border)' }}>
+              <span style={{ color: 'var(--accent-light)' }}>✨</span>
+              <span style={{ color: 'var(--text-secondary)' }}>{stats.autoEasy} intervalle{stats.autoEasy > 1 ? 's' : ''} optimisé{stats.autoEasy > 1 ? 's' : ''} automatiquement</span>
             </div>
           )}
           <div className="flex gap-4">
             <button onClick={() => router.push(`/decks/${deckId}`)}
-              className="flex-1 border border-[#334155] hover:border-[#818CF8]/50 rounded-xl py-3 text-[#94A3B8] hover:text-[#F1F5F9] transition-all duration-150">
+              className="flex-1 border rounded-xl py-3 transition-all duration-150"
+              style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
               Voir le deck
             </button>
             <button onClick={() => router.push('/dashboard')}
-              className="flex-1 bg-[#4338CA] hover:bg-[#3730A3] rounded-xl py-3 font-medium transition-all duration-150 text-[#E0E7FF]">
+              className="flex-1 rounded-xl py-3 font-medium transition-all duration-150"
+              style={{ background: 'var(--accent)', color: 'var(--accent-muted)' }}>
               Dashboard
             </button>
           </div>
@@ -164,12 +169,14 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
   }
 
   if (!currentCard) return (
-    <div className="min-h-screen bg-[#0F172A] text-white flex items-center justify-center p-6">
+    <div className="min-h-screen flex items-center justify-center p-6" style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
       <div className="text-center">
         <div className="text-4xl mb-4">✅</div>
         <h1 className="text-2xl font-bold mb-2">Rien à réviser !</h1>
-        <p className="text-gray-400 mb-6">Toutes les cartes sont à jour.</p>
-        <button onClick={() => router.push('/dashboard')} className="bg-[#4338CA] hover:bg-[#3730A3] rounded-xl px-6 py-3 transition-colors">
+        <p className="mb-6" style={{ color: 'var(--text-secondary)' }}>Toutes les cartes sont à jour.</p>
+        <button onClick={() => router.push('/dashboard')}
+          className="rounded-xl px-6 py-3 transition-colors"
+          style={{ background: 'var(--accent)' }}>
           Retour au dashboard
         </button>
       </div>
@@ -180,21 +187,22 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
   const progress = Math.round((currentIndex / totalCards) * 100)
 
   return (
-    <div className="fixed inset-0 bg-[#0F172A] text-white flex flex-col select-none overflow-hidden"
+    <div className="fixed inset-0 flex flex-col select-none overflow-hidden"
+      style={{ background: 'var(--bg-base)', color: 'var(--text-primary)' }}
       onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
 
       {/* Header */}
-      <div className="px-6 py-4 border-b border-[#1E293B]">
+      <div className="px-6 py-4 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <button onClick={() => router.push(`/decks/${deckId}`)} className="text-[#64748B] hover:text-[#F1F5F9] transition-colors">✕</button>
+          <button onClick={() => router.push(`/decks/${deckId}`)} className="transition-colors" style={{ color: 'var(--text-muted)' }}>✕</button>
           <div className="text-center">
             {passNumber > 1 && (
-              <div className="text-[#818CF8] text-xs font-semibold mb-0.5">
+              <div className="text-xs font-semibold mb-0.5" style={{ color: 'var(--accent-light)' }}>
                 Passage {passNumber} — {totalCards} carte{totalCards > 1 ? 's' : ''} à retravailler
               </div>
             )}
             <div className="flex items-center gap-2 justify-center">
-              <span className="text-[#64748B] text-sm">{currentIndex + 1} / {totalCards}</span>
+              <span className="text-sm" style={{ color: 'var(--text-muted)' }}>{currentIndex + 1} / {totalCards}</span>
               {isFreeMode && (
                 <span className="text-xs px-2 py-0.5 rounded-full font-medium"
                   style={{ background: '#854F0B', color: '#FAC775' }}
@@ -206,7 +214,8 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
           </div>
           <button
             onClick={() => window.dispatchEvent(new CustomEvent('memorix:quickadd:open', { detail: { deckId, locked: true } }))}
-            className="w-8 h-8 flex items-center justify-center text-[#64748B] hover:text-[#818CF8] opacity-60 hover:opacity-100 transition-all rounded-lg hover:bg-white/5"
+            className="w-8 h-8 flex items-center justify-center opacity-60 hover:opacity-100 transition-all rounded-lg"
+            style={{ color: 'var(--text-muted)' }}
             title="Ajouter une carte"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -215,8 +224,8 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
           </button>
         </div>
         <div className="max-w-lg mx-auto mt-3">
-          <div className="h-0.5 bg-[#334155] rounded-full overflow-hidden">
-            <div className="h-full bg-[#818CF8] rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+          <div className="h-0.5 rounded-full overflow-hidden" style={{ background: 'var(--border-default)' }}>
+            <div className="h-full rounded-full transition-all duration-500" style={{ width: `${progress}%`, background: 'var(--accent-light)' }} />
           </div>
         </div>
       </div>
@@ -224,7 +233,10 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
       {/* Swipe hint */}
       {swipeHint && flipped && (
         <div className={`fixed inset-0 pointer-events-none z-10 flex items-center ${swipeHint === 'left' ? 'justify-start pl-8' : 'justify-end pr-8'}`}>
-          <div className={`rounded-2xl px-4 py-2 text-sm font-bold ${swipeHint === 'left' ? 'bg-[#2D1515] text-[#FCA5A5] border border-[#991B1B]' : 'bg-[#0C2D1E] text-[#5DCAA5] border border-[#0F6E56]'}`}>
+          <div className="rounded-2xl px-4 py-2 text-sm font-bold border"
+            style={swipeHint === 'left'
+              ? { background: 'var(--btn-non-bg)', color: 'var(--btn-non-text)', borderColor: 'var(--btn-non-border)' }
+              : { background: 'var(--btn-oui-bg)', color: 'var(--btn-oui-text)', borderColor: 'var(--btn-oui-border)' }}>
             {swipeHint === 'left' ? '← Non' : 'Oui →'}
           </div>
         </div>
@@ -237,8 +249,8 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
             <div style={{ transformStyle: 'preserve-3d', transition: 'transform 0.5s cubic-bezier(.4,0,.2,1)', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)', position: 'absolute', inset: 0 }}>
 
               {/* Front face */}
-              <div style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}
-                className="absolute inset-0 bg-[#1E293B] rounded-[20px] border border-[#334155] overflow-hidden">
+              <div style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
+                className="absolute inset-0 rounded-[20px] border overflow-hidden">
                 <div ref={questionScrollRef}
                   onScroll={e => { const el = e.currentTarget; setQuestionAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 2) }}
                   className="h-full overflow-y-auto">
@@ -248,36 +260,36 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
                         {(card.decks?.themes?.color || card.themes?.color) && (
                           <div className="w-2 h-2 rounded-sm flex-shrink-0" style={{ background: card.decks?.themes?.color || card.themes?.color }} />
                         )}
-                        <span className="text-[11px] text-[#64748B]">
+                        <span className="text-[11px]" style={{ color: 'var(--text-muted)' }}>
                           {card.decks?.themes?.name && <>{card.decks.themes.name} › </>}
                           {card.decks?.name || card.themes?.name}
                         </span>
                       </div>
                     )}
-                    <div className="text-[10px] text-[#475569] uppercase tracking-[0.04em] font-medium mb-6">Question</div>
-                    <p className="text-[15px] font-medium leading-relaxed text-[#F1F5F9]">{card.question}</p>
-                    {!flipped && <p className="text-[#475569] text-sm mt-8">Appuyez · Espace · Glissez pour révéler</p>}
+                    <div className="text-[10px] uppercase tracking-[0.04em] font-medium mb-6" style={{ color: 'var(--text-hint)' }}>Question</div>
+                    <p className="text-[15px] font-medium leading-relaxed" style={{ color: 'var(--text-primary)' }}>{card.question}</p>
+                    {!flipped && <p className="text-sm mt-8" style={{ color: 'var(--text-hint)' }}>Appuyez · Espace · Glissez pour révéler</p>}
                   </div>
                 </div>
                 {!questionAtBottom && (
-                  <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1E293B] to-transparent pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none" style={{ background: 'linear-gradient(to top, var(--bg-surface), transparent)' }} />
                 )}
               </div>
 
               {/* Back face */}
-              <div style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
-                className="absolute inset-0 bg-[#1E293B] rounded-[20px] border border-[#334155] overflow-hidden">
+              <div style={{ backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)', background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}
+                className="absolute inset-0 rounded-[20px] border overflow-hidden">
                 <div ref={answerScrollRef}
                   onScroll={e => { const el = e.currentTarget; setAnswerAtBottom(el.scrollTop + el.clientHeight >= el.scrollHeight - 2) }}
                   className="h-full overflow-y-auto">
                   <div className="min-h-full p-8 flex flex-col items-center justify-center text-center">
-                    <div className="text-[10px] text-[#475569] uppercase tracking-[0.04em] font-medium mb-6">Réponse</div>
-                    <p className="text-2xl font-bold text-[#818CF8] leading-relaxed whitespace-pre-wrap">{card.answer}</p>
-                    {card.explanation && <p className="text-[#94A3B8] text-sm mt-4">{card.explanation}</p>}
+                    <div className="text-[10px] uppercase tracking-[0.04em] font-medium mb-6" style={{ color: 'var(--text-hint)' }}>Réponse</div>
+                    <p className="text-2xl font-bold leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--accent-light)' }}>{card.answer}</p>
+                    {card.explanation && <p className="text-sm mt-4" style={{ color: 'var(--text-secondary)' }}>{card.explanation}</p>}
                   </div>
                 </div>
                 {!answerAtBottom && (
-                  <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1E293B] to-transparent pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none" style={{ background: 'linear-gradient(to top, var(--bg-surface), transparent)' }} />
                 )}
               </div>
 
@@ -288,15 +300,15 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
 
       {/* Rating buttons */}
       {flipped && (
-        <div className="px-4 pb-4 pt-3 border-t border-[#1E293B]">
-          <div className="max-w-lg mx-auto flex justify-between text-xs text-[#475569] mb-2 sm:hidden">
+        <div className="px-4 pb-4 pt-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
+          <div className="max-w-lg mx-auto flex justify-between text-xs mb-2 sm:hidden" style={{ color: 'var(--text-hint)' }}>
             <span>← Non</span><span>Oui →</span>
           </div>
           <div className="max-w-lg mx-auto grid grid-cols-3 gap-2.5">
             {([
-              { rating: 1, label: 'Non',        sub: "Je n'savais pas · 1", bg: '#2D1515', text: '#FCA5A5', border: '#991B1B' },
-              { rating: 2, label: 'Hésitation', sub: 'Avec effort · 2',     bg: '#1C1F2E', text: '#818CF8', border: '#4338CA' },
-              { rating: 3, label: 'Oui',        sub: 'Je savais · 3',       bg: '#0C2D1E', text: '#5DCAA5', border: '#0F6E56' },
+              { rating: 1, label: 'Non',        sub: "Je n'savais pas · 1", bg: 'var(--btn-non-bg)', text: 'var(--btn-non-text)', border: 'var(--btn-non-border)' },
+              { rating: 2, label: 'Hésitation', sub: 'Avec effort · 2',     bg: 'var(--btn-hes-bg)', text: 'var(--btn-hes-text)', border: 'var(--btn-hes-border)' },
+              { rating: 3, label: 'Oui',        sub: 'Je savais · 3',       bg: 'var(--btn-oui-bg)', text: 'var(--btn-oui-text)', border: 'var(--btn-oui-border)' },
             ] as const).map(({ rating, label, sub, bg, text, border }) => (
               <button key={rating} onClick={() => handleRating(rating)} disabled={isSaving}
                 style={{ backgroundColor: bg, color: text, borderColor: border }}
@@ -309,10 +321,11 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
           </div>
 
           {/* Archive */}
-          <div className="max-w-lg mx-auto mt-3 border-t border-[#1E293B] pt-3">
+          <div className="max-w-lg mx-auto mt-3 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
             {!showArchiveConfirm ? (
               <button onClick={handleArchiveRequest}
-                className="w-full h-10 flex items-center justify-center gap-2 text-[#64748B] border border-[#334155]/50 rounded-xl text-sm hover:border-[#818CF8] hover:text-[#94A3B8] transition-colors">
+                className="w-full h-10 flex items-center justify-center gap-2 border rounded-xl text-sm transition-colors"
+                style={{ color: 'var(--text-muted)', borderColor: 'var(--border-default)' }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                   <path d="M21 8v13H3V8" strokeLinecap="round" strokeLinejoin="round"/>
                   <path d="M1 3h22v5H1z" strokeLinecap="round" strokeLinejoin="round"/>
@@ -321,15 +334,15 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
                 Archiver cette carte
               </button>
             ) : (
-              <div className="bg-[#0F172A] border border-[#334155] rounded-xl p-3 flex items-center gap-2">
-                <span className="text-[#94A3B8] flex-1 text-xs leading-snug">Cette carte disparaîtra des révisions. Récupérable 30 jours.</span>
-                <button onClick={handleArchiveCancel} className="text-[#64748B] hover:text-white text-xs px-2 py-1 rounded flex-shrink-0">Annuler</button>
-                <button onClick={handleArchiveConfirm} className="bg-[#334155] hover:bg-[#475569] text-white text-xs px-3 py-1 rounded flex-shrink-0">Archiver</button>
+              <div className="border rounded-xl p-3 flex items-center gap-2" style={{ background: 'var(--bg-base)', borderColor: 'var(--border-default)' }}>
+                <span className="flex-1 text-xs leading-snug" style={{ color: 'var(--text-secondary)' }}>Cette carte disparaîtra des révisions. Récupérable 30 jours.</span>
+                <button onClick={handleArchiveCancel} className="text-xs px-2 py-1 rounded flex-shrink-0" style={{ color: 'var(--text-muted)' }}>Annuler</button>
+                <button onClick={handleArchiveConfirm} className="text-xs px-3 py-1 rounded flex-shrink-0" style={{ background: 'var(--bg-elevated)', color: 'var(--text-primary)' }}>Archiver</button>
               </div>
             )}
           </div>
 
-          <p className="text-center text-[#475569] text-xs mt-2 hidden sm:block">
+          <p className="text-center text-xs mt-2 hidden sm:block" style={{ color: 'var(--text-hint)' }}>
             Espace = retourner · 1 Non · 2 Hésitation · 3 Oui
           </p>
         </div>
@@ -337,9 +350,10 @@ export default function ReviewPage({ params }: { params: Promise<{ deckId: strin
 
       {/* Undo toast */}
       {undoData && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] bg-[#1E293B] border border-[#334155] rounded-xl px-4 py-2.5 text-sm flex items-center gap-3 shadow-lg whitespace-nowrap">
-          <span className="text-[#F1F5F9]">Archivée</span>
-          <button onClick={() => handleUndoArchive(undoData.cardId)} className="text-[#818CF8] hover:text-[#A5B4FC] font-medium transition-colors">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] border rounded-xl px-4 py-2.5 text-sm flex items-center gap-3 shadow-lg whitespace-nowrap"
+          style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}>
+          <span style={{ color: 'var(--text-primary)' }}>Archivée</span>
+          <button onClick={() => handleUndoArchive(undoData.cardId)} className="font-medium transition-colors" style={{ color: 'var(--accent-light)' }}>
             Annuler ({undoData.countdown}s)
           </button>
         </div>

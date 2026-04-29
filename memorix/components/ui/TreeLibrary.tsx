@@ -245,8 +245,8 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
   if (isLoading) {
     return (
       <div className="py-1.5 space-y-1.5" style={{ paddingLeft: pl }}>
-        <div className="h-3 bg-[#1E293B] rounded animate-pulse" style={{ width: '65%' }} />
-        <div className="h-3 bg-[#1E293B] rounded animate-pulse" style={{ width: '45%' }} />
+        <div className="h-3 bg-[var(--bg-surface)] rounded animate-pulse" style={{ width: '65%' }} />
+        <div className="h-3 bg-[var(--bg-surface)] rounded animate-pulse" style={{ width: '45%' }} />
       </div>
     )
   }
@@ -255,7 +255,7 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
     <div className="pb-1">
       {/* Empty state */}
       {cards?.length === 0 && (
-        <p className="text-xs text-[#475569] italic py-0.5" style={{ paddingLeft: pl }}>
+        <p className="text-xs text-[var(--text-hint)] italic py-0.5" style={{ paddingLeft: pl }}>
           Aucune carte — ajoutez-en une ci-dessous
         </p>
       )}
@@ -273,10 +273,10 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
                   if (e.key === 'Tab') { e.preventDefault(); editARef.current?.focus() }
                   if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
                 }}
-                className="flex-1 bg-transparent text-xs text-[#94A3B8] outline-none border-b border-[#818CF8] py-0.5 min-w-0"
+                className="flex-1 bg-transparent text-xs text-[var(--text-secondary)] outline-none border-b border-[var(--border-focus)] py-0.5 min-w-0"
                 style={{ maxWidth: '50%' }}
               />
-              <span className="text-xs text-[#475569] flex-shrink-0">·</span>
+              <span className="text-xs text-[var(--text-hint)] flex-shrink-0">·</span>
               <input
                 ref={editARef}
                 value={editA}
@@ -286,7 +286,7 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
                   if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
                 }}
                 onBlur={commitEdit}
-                className="flex-1 bg-transparent text-xs text-[#64748B] outline-none border-b border-[#818CF8] py-0.5 min-w-0"
+                className="flex-1 bg-transparent text-xs text-[var(--text-muted)] outline-none border-b border-[var(--border-focus)] py-0.5 min-w-0"
                 style={{ maxWidth: '35%' }}
               />
             </div>
@@ -295,17 +295,17 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
               className="flex items-center gap-1.5 py-0.5 pr-2 group/card rounded hover:bg-white/5 transition-colors"
               style={{ paddingLeft: pl }}
             >
-              <span className="w-1 h-1 rounded-full bg-[#334155] flex-shrink-0" />
+              <span className="w-1 h-1 rounded-full bg-[var(--bg-elevated)] flex-shrink-0" />
               <span
-                className="text-xs text-[#94A3B8] truncate"
+                className="text-xs text-[var(--text-secondary)] truncate"
                 style={{ maxWidth: '50%' }}
                 title={card.question}
               >
                 {card.question}
               </span>
-              <span className="text-xs text-[#475569] flex-shrink-0">·</span>
+              <span className="text-xs text-[var(--text-hint)] flex-shrink-0">·</span>
               <span
-                className="text-xs text-[#64748B] truncate"
+                className="text-xs text-[var(--text-muted)] truncate"
                 style={{ maxWidth: '35%' }}
                 title={card.answer}
               >
@@ -314,14 +314,14 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
               <div className="ml-auto flex items-center gap-0 opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0">
                 <button
                   onClick={() => startEdit(card)}
-                  className="w-5 h-5 flex items-center justify-center text-[#475569] hover:text-[#818CF8] rounded text-xs transition-colors"
+                  className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-[var(--accent-light)] rounded text-xs transition-colors"
                   title="Modifier"
                 >
                   ✏
                 </button>
                 <button
                   onClick={() => { setMovingCardId(card.id); setMoveSearch('') }}
-                  className="w-5 h-5 flex items-center justify-center text-[#475569] hover:text-[#818CF8] rounded text-xs transition-colors"
+                  className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-[var(--accent-light)] rounded text-xs transition-colors"
                   title="Déplacer vers un autre deck"
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
@@ -330,7 +330,7 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
                 </button>
                 <button
                   onClick={() => startDelete(card.id)}
-                  className="w-5 h-5 flex items-center justify-center text-[#475569] hover:text-red-400 rounded text-xs transition-colors"
+                  className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-red-400 rounded text-xs transition-colors"
                   title="Supprimer"
                 >
                   ✕
@@ -370,11 +370,11 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
           onClick={() => setMovingCardId(null)}
         >
           <div
-            className="bg-[#1E293B] rounded-t-3xl p-2 w-full max-w-sm border-t border-[#334155] max-h-[65vh] flex flex-col pb-safe"
+            className="bg-[var(--bg-surface)] rounded-t-3xl p-2 w-full max-w-sm border-t border-[var(--border-default)] max-h-[65vh] flex flex-col pb-safe"
             style={{ paddingBottom: 'max(env(safe-area-inset-bottom), 20px)' }}
             onClick={e => e.stopPropagation()}
           >
-            <p className="px-4 py-3 text-sm font-semibold text-gray-400 border-b border-[#334155] shrink-0">
+            <p className="px-4 py-3 text-sm font-semibold text-gray-400 border-b border-[var(--border-default)] shrink-0">
               Déplacer la carte vers…
             </p>
             <div className="px-3 py-2 shrink-0">
@@ -383,7 +383,7 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
                 value={moveSearch}
                 onChange={e => setMoveSearch(e.target.value)}
                 placeholder="Rechercher un deck…"
-                className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#4338CA]/60 placeholder-gray-600"
+                className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)]/60 placeholder-[var(--text-muted)]"
               />
             </div>
             <div className="overflow-y-auto flex-1">
@@ -399,7 +399,7 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
                         setMovingCardId(null)
                         await onMoveCard(cid, deckId, d.id)
                       }}
-                      className="w-full text-left px-4 py-2.5 hover:bg-[#312E81]/20 rounded-xl text-sm flex items-center gap-2"
+                      className="w-full text-left px-4 py-2.5 hover:bg-[var(--accent-subtle)]/20 rounded-xl text-sm flex items-center gap-2"
                     >
                       <span className="text-lg flex-shrink-0">{d.icon || '📚'}</span>
                       <div className="min-w-0">
@@ -419,7 +419,7 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
 
       {/* Inline add form */}
       <div
-        className="flex items-center gap-1.5 py-1 pr-2 border-b border-[#1E293B]"
+        className="flex items-center gap-1.5 py-1 pr-2 border-b border-[var(--border-subtle)]"
         style={{ paddingLeft: pl }}
       >
         <input
@@ -430,7 +430,7 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
             if (e.key === 'Tab') { e.preventDefault(); aRef.current?.focus() }
           }}
           placeholder="Question…"
-          className="flex-1 bg-transparent text-xs text-[#94A3B8] placeholder-[#334155] outline-none border-b border-transparent focus:border-[#818CF8] py-0.5 min-w-0 transition-colors"
+          className="flex-1 bg-transparent text-xs text-[var(--text-secondary)] placeholder-[var(--border-default)] outline-none border-b border-transparent focus:border-[var(--border-focus)] py-0.5 min-w-0 transition-colors"
           style={{ maxWidth: '45%' }}
         />
         <input
@@ -441,14 +441,14 @@ function DeckCardsList({ deckId, depth }: { deckId: string; depth: number }) {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAdd() }
           }}
           placeholder="Réponse…"
-          className="flex-1 bg-transparent text-xs text-[#64748B] placeholder-[#334155] outline-none border-b border-transparent focus:border-[#818CF8] py-0.5 min-w-0 transition-colors"
+          className="flex-1 bg-transparent text-xs text-[var(--text-muted)] placeholder-[var(--border-default)] outline-none border-b border-transparent focus:border-[var(--border-focus)] py-0.5 min-w-0 transition-colors"
           style={{ maxWidth: '45%' }}
         />
         {savedFlash && <span className="text-green-400 text-xs flex-shrink-0">✓</span>}
         <button
           onClick={handleAdd}
           disabled={!newQ.trim() || !newA.trim() || addSaving}
-          className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 text-white text-xs leading-none transition-colors"
+          className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-white text-xs leading-none transition-colors"
           title="Ajouter"
         >
           +
@@ -530,8 +530,8 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
   if (isLoading) {
     return (
       <div className="py-1.5 space-y-1.5" style={{ paddingLeft: pl }}>
-        <div className="h-3 bg-[#1E293B] rounded animate-pulse" style={{ width: '65%' }} />
-        <div className="h-3 bg-[#1E293B] rounded animate-pulse" style={{ width: '45%' }} />
+        <div className="h-3 bg-[var(--bg-surface)] rounded animate-pulse" style={{ width: '65%' }} />
+        <div className="h-3 bg-[var(--bg-surface)] rounded animate-pulse" style={{ width: '45%' }} />
       </div>
     )
   }
@@ -539,7 +539,7 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
   return (
     <div className="pb-1">
       {cards?.length === 0 && (
-        <p className="text-xs text-[#475569] italic py-0.5" style={{ paddingLeft: pl }}>
+        <p className="text-xs text-[var(--text-hint)] italic py-0.5" style={{ paddingLeft: pl }}>
           Aucune carte — ajoutez-en une ci-dessous
         </p>
       )}
@@ -554,10 +554,10 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
                   if (e.key === 'Tab') { e.preventDefault(); editARef.current?.focus() }
                   if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
                 }}
-                className="flex-1 bg-transparent text-xs text-[#94A3B8] outline-none border-b border-[#818CF8] py-0.5 min-w-0"
+                className="flex-1 bg-transparent text-xs text-[var(--text-secondary)] outline-none border-b border-[var(--border-focus)] py-0.5 min-w-0"
                 style={{ maxWidth: '50%' }}
               />
-              <span className="text-xs text-[#475569] flex-shrink-0">·</span>
+              <span className="text-xs text-[var(--text-hint)] flex-shrink-0">·</span>
               <input
                 ref={editARef} value={editA} onChange={e => setEditA(e.target.value)}
                 onKeyDown={e => {
@@ -565,7 +565,7 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
                   if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
                 }}
                 onBlur={commitEdit}
-                className="flex-1 bg-transparent text-xs text-[#64748B] outline-none border-b border-[#818CF8] py-0.5 min-w-0"
+                className="flex-1 bg-transparent text-xs text-[var(--text-muted)] outline-none border-b border-[var(--border-focus)] py-0.5 min-w-0"
                 style={{ maxWidth: '35%' }}
               />
             </div>
@@ -574,21 +574,21 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
               className="flex items-center gap-1.5 py-0.5 pr-2 group/card rounded hover:bg-white/5 transition-colors"
               style={{ paddingLeft: pl }}
             >
-              <span className="w-1 h-1 rounded-full bg-[#4338CA]/60 flex-shrink-0" />
-              <span className="text-xs text-[#94A3B8] truncate" style={{ maxWidth: '50%' }} title={card.question}>
+              <span className="w-1 h-1 rounded-full bg-[var(--accent)]/60 flex-shrink-0" />
+              <span className="text-xs text-[var(--text-secondary)] truncate" style={{ maxWidth: '50%' }} title={card.question}>
                 {card.question}
               </span>
-              <span className="text-xs text-[#475569] flex-shrink-0">·</span>
-              <span className="text-xs text-[#64748B] truncate" style={{ maxWidth: '35%' }} title={card.answer}>
+              <span className="text-xs text-[var(--text-hint)] flex-shrink-0">·</span>
+              <span className="text-xs text-[var(--text-muted)] truncate" style={{ maxWidth: '35%' }} title={card.answer}>
                 {card.answer}
               </span>
               <div className="ml-auto flex items-center gap-0 opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0">
                 <button onClick={() => startEdit(card)}
-                  className="w-5 h-5 flex items-center justify-center text-[#475569] hover:text-[#818CF8] rounded text-xs transition-colors" title="Modifier">
+                  className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-[var(--accent-light)] rounded text-xs transition-colors" title="Modifier">
                   ✏
                 </button>
                 <button onClick={() => startDelete(card.id)}
-                  className="w-5 h-5 flex items-center justify-center text-[#475569] hover:text-red-400 rounded text-xs transition-colors" title="Supprimer">
+                  className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-red-400 rounded text-xs transition-colors" title="Supprimer">
                   ✕
                 </button>
               </div>
@@ -612,22 +612,22 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
       ))}
 
       {/* Inline add form */}
-      <div className="flex items-center gap-1.5 py-1 pr-2 border-b border-[#1E293B]" style={{ paddingLeft: pl }}>
+      <div className="flex items-center gap-1.5 py-1 pr-2 border-b border-[var(--border-subtle)]" style={{ paddingLeft: pl }}>
         <input ref={qRef} value={newQ} onChange={e => setNewQ(e.target.value)}
           onKeyDown={e => { if (e.key === 'Tab') { e.preventDefault(); aRef.current?.focus() } }}
           placeholder="Question…"
-          className="flex-1 bg-transparent text-xs text-[#94A3B8] placeholder-[#334155] outline-none border-b border-transparent focus:border-[#818CF8] py-0.5 min-w-0 transition-colors"
+          className="flex-1 bg-transparent text-xs text-[var(--text-secondary)] placeholder-[var(--border-default)] outline-none border-b border-transparent focus:border-[var(--border-focus)] py-0.5 min-w-0 transition-colors"
           style={{ maxWidth: '45%' }}
         />
         <input ref={aRef} value={newA} onChange={e => setNewA(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAdd() } }}
           placeholder="Réponse…"
-          className="flex-1 bg-transparent text-xs text-[#64748B] placeholder-[#334155] outline-none border-b border-transparent focus:border-[#818CF8] py-0.5 min-w-0 transition-colors"
+          className="flex-1 bg-transparent text-xs text-[var(--text-muted)] placeholder-[var(--border-default)] outline-none border-b border-transparent focus:border-[var(--border-focus)] py-0.5 min-w-0 transition-colors"
           style={{ maxWidth: '45%' }}
         />
         {savedFlash && <span className="text-green-400 text-xs flex-shrink-0">✓</span>}
         <button onClick={handleAdd} disabled={!newQ.trim() || !newA.trim() || addSaving}
-          className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 text-white text-xs leading-none transition-colors"
+          className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-white text-xs leading-none transition-colors"
           title="Ajouter">
           +
         </button>
@@ -667,7 +667,7 @@ function InlineDeckCreator({ themeId, pl, onDone }: { themeId: string | null; pl
         {showPicker && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setShowPicker(false)} />
-            <div className="absolute left-0 top-7 z-50 bg-[#1E293B] border border-[#334155] rounded-xl p-2 flex flex-wrap gap-1 shadow-xl" style={{ maxWidth: 180 }}>
+            <div className="absolute left-0 top-7 z-50 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-2 flex flex-wrap gap-1 shadow-xl" style={{ maxWidth: 180 }}>
               {DECK_ICONS.map(i => (
                 <button key={i} onClick={() => { setIcon(i); setShowPicker(false) }} className="text-base hover:scale-125 transition-transform p-0.5">{i}</button>
               ))}
@@ -684,19 +684,19 @@ function InlineDeckCreator({ themeId, pl, onDone }: { themeId: string | null; pl
           if (e.key === 'Escape') { e.preventDefault(); onDone() }
         }}
         placeholder="Nom du deck…"
-        className="flex-1 bg-transparent text-sm text-[#94A3B8] placeholder-[#334155] outline-none border-b border-[#4338CA] py-0.5 min-w-0"
+        className="flex-1 bg-transparent text-sm text-[var(--text-secondary)] placeholder-[var(--border-default)] outline-none border-b border-[var(--accent)] py-0.5 min-w-0"
       />
       <button
         onClick={submit}
         disabled={!name.trim() || saving}
-        className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 text-white text-xs leading-none transition-colors"
+        className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-white text-xs leading-none transition-colors"
         title="Créer"
       >
         ↵
       </button>
       <button
         onClick={onDone}
-        className="w-5 h-5 flex-shrink-0 flex items-center justify-center text-[#475569] hover:text-red-400 text-xs transition-colors"
+        className="w-5 h-5 flex-shrink-0 flex items-center justify-center text-[var(--text-hint)] hover:text-red-400 text-xs transition-colors"
         title="Annuler"
       >
         ✕
@@ -750,7 +750,7 @@ function DeckRow({ deck, depth }: { deck: DeckWithMeta; depth: number }) {
           <span className="text-xs text-gray-600 flex-shrink-0">{deck.card_count} {pluralCard(deck.card_count)}</span>
         </Link>
         {deck.due_count > 0 && (
-          <span className="bg-[#4338CA] text-white text-xs font-bold rounded-full px-1.5 py-0.5 tabular-nums flex-shrink-0">
+          <span className="bg-[var(--accent)] text-white text-xs font-bold rounded-full px-1.5 py-0.5 tabular-nums flex-shrink-0">
             {deck.due_count}
           </span>
         )}
@@ -872,7 +872,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
             {showColorPicker && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => onColorToggle(null)} />
-                <div className="absolute left-0 top-5 z-50 bg-[#1E293B] border border-[#334155] rounded-xl p-2 flex gap-1.5 shadow-xl">
+                <div className="absolute left-0 top-5 z-50 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl p-2 flex gap-1.5 shadow-xl">
                   {COLORS.map(c => (
                     <button
                       key={c}
@@ -898,7 +898,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
                 if (e.key === 'Tab') { e.preventDefault(); onEditCommit(node.id) }
               }}
               onBlur={() => onEditCommit(node.id)}
-              className="flex-1 bg-transparent border-b border-[#4338CA] text-sm font-medium text-white outline-none py-0.5 min-w-0"
+              className="flex-1 bg-transparent border-b border-[var(--accent)] text-sm font-medium text-white outline-none py-0.5 min-w-0"
             />
           ) : (
             <span
@@ -911,7 +911,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
 
           {/* Due badge */}
           {due > 0 && (
-            <span className="bg-[#4338CA] text-white text-xs font-bold rounded-full px-1.5 py-0.5 tabular-nums flex-shrink-0">
+            <span className="bg-[var(--accent)] text-white text-xs font-bold rounded-full px-1.5 py-0.5 tabular-nums flex-shrink-0">
               {due}
             </span>
           )}
@@ -922,7 +922,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
               <button
                 onClick={() => onToggleTheme(node.id)}
                 className={`w-6 h-6 flex items-center justify-center rounded text-xs transition-colors ${
-                  isThemeExpanded ? 'text-[#818CF8]' : 'text-gray-600 hover:text-[#818CF8]'
+                  isThemeExpanded ? 'text-[var(--accent-light)]' : 'text-gray-600 hover:text-[var(--accent-light)]'
                 }`}
                 title="Cartes directes"
               >
@@ -932,7 +932,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
             {subtreeDeckIds.length > 0 && (
               <button
                 onClick={() => onToggleAllDecksInTheme(node)}
-                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${allCardsExpanded ? 'text-[#818CF8]' : 'text-gray-600 hover:text-[#818CF8]'}`}
+                className={`w-6 h-6 flex items-center justify-center rounded transition-colors ${allCardsExpanded ? 'text-[var(--accent-light)]' : 'text-gray-600 hover:text-[var(--accent-light)]'}`}
                 title={allCardsExpanded ? 'Masquer toutes les cartes' : 'Voir toutes les cartes'}
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -946,7 +946,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
             <Link
               href={`/review/theme/${node.id}`}
               onClick={e => e.stopPropagation()}
-              className="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-[#4338CA] rounded text-xs"
+              className="w-6 h-6 flex items-center justify-center text-gray-600 hover:text-[var(--accent)] rounded text-xs"
               title={due > 0 ? `Réviser ce thème (${due} dues)` : 'Réviser ce thème'}
             >
               ▶
@@ -1025,7 +1025,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
             <div style={{ paddingLeft: INDENT * (node.depth + 1) + 24 }}>
               <button
                 onClick={() => setCreatingDeck(true)}
-                className="flex items-center gap-1 text-xs text-gray-700 hover:text-[#4338CA] py-0.5 transition-colors"
+                className="flex items-center gap-1 text-xs text-gray-700 hover:text-[var(--accent)] py-0.5 transition-colors"
               >
                 + Ajouter un deck
               </button>
@@ -1227,7 +1227,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
   const onAddCard = useCallback(async (deckId: string, q: string, a: string) => {
     const { data: card } = await supabase
       .from('cards')
-      .insert({ deck_id: deckId, question: q, answer: a, difficulty: 1, created_by_ai: false, user_edited: false })
+      .insert({ deck_id: deckId, question: q, answer: a, difficulty: 3, created_by_ai: false, user_edited: false })
       .select('id')
       .single()
     if (!card) return
@@ -1335,7 +1335,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
   const onAddThemeCard = useCallback(async (themeId: string, q: string, a: string) => {
     const { data: card } = await supabase
       .from('cards')
-      .insert({ theme_id: themeId, question: q, answer: a, difficulty: 1, created_by_ai: false, user_edited: false })
+      .insert({ theme_id: themeId, question: q, answer: a, difficulty: 3, created_by_ai: false, user_edited: false })
       .select('id')
       .single()
     if (!card) return
@@ -1515,9 +1515,9 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
 
   return (
     <LibCtx.Provider value={ctxValue}>
-      <div className="min-h-screen bg-[#0F172A] text-white pb-20">
+      <div className="min-h-screen bg-[var(--bg-base)] text-white pb-20">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-[#0F172A]/95 backdrop-blur-md border-b border-[#334155] px-4 py-3">
+        <header className="sticky top-0 z-30 bg-[var(--bg-base)]/95 backdrop-blur-md border-b border-[var(--border-default)] px-4 py-3">
           <div className="flex items-center gap-3 mb-3">
             <Link href="/dashboard" className="text-gray-400 hover:text-white">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -1528,14 +1528,14 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
             <div className="flex items-center gap-2">
               <button
                 onClick={handleCreateRootTheme}
-                className="text-gray-500 hover:text-white border border-[#334155] hover:border-[#818CF8]/50 rounded-xl px-3 h-9 text-sm transition-colors"
+                className="text-gray-500 hover:text-white border border-[var(--border-default)] hover:border-[var(--border-focus)]/50 rounded-xl px-3 h-9 text-sm transition-colors"
                 title="Nouveau thème"
               >
                 + Thème
               </button>
               <Link
                 href="/create"
-                className="bg-[#4338CA] hover:bg-[#3730A3] rounded-xl w-9 h-9 flex items-center justify-center font-bold text-xl transition-colors"
+                className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl w-9 h-9 flex items-center justify-center font-bold text-xl transition-colors"
                 title="Nouveau deck"
               >
                 +
@@ -1551,7 +1551,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
               placeholder="Rechercher un deck…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full bg-[#1E293B] border border-[#334155] rounded-xl py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:border-[#4338CA]/60 placeholder-gray-600"
+              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:border-[var(--accent)]/60 placeholder-[var(--text-muted)]"
             />
           </div>
         </header>
@@ -1575,7 +1575,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
               <div className="text-center py-16 text-gray-600">
                 <p className="text-4xl mb-4">📚</p>
                 <p className="text-sm">Aucun deck pour l&apos;instant.</p>
-                <Link href="/create" className="inline-block mt-4 text-[#4338CA] hover:text-[#7B73D4] text-sm">
+                <Link href="/create" className="inline-block mt-4 text-[var(--accent)] hover:text-[var(--accent-light)] text-sm">
                   Créer mon premier deck →
                 </Link>
               </div>
@@ -1583,7 +1583,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
 
             {/* Unthemed decks */}
             {unthemedDecks.length > 0 && (
-              <div className={tree.length > 0 ? 'mt-4 pt-3 border-t border-[#1E293B]' : ''}>
+              <div className={tree.length > 0 ? 'mt-4 pt-3 border-t border-[var(--border-subtle)]' : ''}>
                 {tree.length > 0 && (
                   <p className="text-xs text-gray-600 px-6 mb-1">Sans thème</p>
                 )}
@@ -1598,7 +1598,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
                   <div style={{ paddingLeft: 24 }}>
                     <button
                       onClick={() => setCreatingNoThemeDeck(true)}
-                      className="flex items-center gap-1 text-xs text-gray-700 hover:text-[#4338CA] py-0.5 transition-colors"
+                      className="flex items-center gap-1 text-xs text-gray-700 hover:text-[var(--accent)] py-0.5 transition-colors"
                     >
                       + Ajouter un deck
                     </button>
@@ -1609,13 +1609,13 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
 
             <DragOverlay dropAnimation={{ duration: 180, easing: 'ease' }}>
               {activeDeck && (
-                <div className="bg-[#1E293B] rounded-xl px-3 py-2 border border-[#4338CA]/60 shadow-2xl opacity-90 flex items-center gap-2 cursor-grabbing">
+                <div className="bg-[var(--bg-surface)] rounded-xl px-3 py-2 border border-[var(--accent)]/60 shadow-2xl opacity-90 flex items-center gap-2 cursor-grabbing">
                   <span>{activeDeck.icon || '📚'}</span>
                   <span className="text-sm font-medium">{activeDeck.name}</span>
                 </div>
               )}
               {activeTheme && (
-                <div className="bg-[#1E293B] rounded-xl px-3 py-2 border border-[#4338CA]/60 shadow-2xl opacity-90 flex items-center gap-2 cursor-grabbing">
+                <div className="bg-[var(--bg-surface)] rounded-xl px-3 py-2 border border-[var(--accent)]/60 shadow-2xl opacity-90 flex items-center gap-2 cursor-grabbing">
                   <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: activeTheme.color }} />
                   <span className="text-sm font-semibold">{activeTheme.name}</span>
                 </div>
@@ -1632,10 +1632,10 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
               onClick={() => { setOptionsDeck(null); setOptionsAnchor(null) }}
             >
               <div
-                className="bg-[#1E293B] rounded-t-3xl p-2 w-full max-w-sm border-t border-[#334155] pb-20"
+                className="bg-[var(--bg-surface)] rounded-t-3xl p-2 w-full max-w-sm border-t border-[var(--border-default)] pb-20"
                 onClick={e => e.stopPropagation()}
               >
-                <div className="flex items-center gap-3 px-4 py-3 border-b border-[#334155] mb-1">
+                <div className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-default)] mb-1">
                   <span className="text-2xl">{optionsDeck.icon || '📚'}</span>
                   <span className="font-semibold truncate">{optionsDeck.name}</span>
                 </div>
@@ -1644,7 +1644,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
                   { label: '➕ Ajouter des cartes', action: () => { router.push(`/create?deckId=${optionsDeck.id}`); setOptionsDeck(null); setOptionsAnchor(null) } },
                   { label: '🗂️ Déplacer vers un thème', action: () => setMovingDeck(optionsDeck) },
                 ].map(({ label, action }) => (
-                  <button key={label} onClick={action} className="w-full text-left px-4 py-3 hover:bg-[#312E81]/20 rounded-xl text-sm">
+                  <button key={label} onClick={action} className="w-full text-left px-4 py-3 hover:bg-[var(--accent-subtle)]/20 rounded-xl text-sm">
                     {label}
                   </button>
                 ))}
@@ -1663,11 +1663,11 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
                 onClick={() => { setOptionsDeck(null); setOptionsAnchor(null) }}
               />
               <div
-                className="fixed z-[60] bg-[#1E293B] rounded-xl shadow-2xl border border-[#334155] w-56 overflow-hidden"
+                className="fixed z-[60] bg-[var(--bg-surface)] rounded-xl shadow-2xl border border-[var(--border-default)] w-56 overflow-hidden"
                 style={dropdownStyle(optionsAnchor.rect)}
                 onClick={e => e.stopPropagation()}
               >
-                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[#334155]">
+                <div className="flex items-center gap-2 px-3 py-2.5 border-b border-[var(--border-default)]">
                   <span className="text-lg">{optionsDeck.icon || '📚'}</span>
                   <span className="font-medium text-sm truncate">{optionsDeck.name}</span>
                 </div>
@@ -1676,7 +1676,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
                   { label: '➕ Ajouter des cartes', action: () => { router.push(`/create?deckId=${optionsDeck.id}`); setOptionsDeck(null); setOptionsAnchor(null) } },
                   { label: '🗂️ Déplacer vers un thème', action: () => setMovingDeck(optionsDeck) },
                 ].map(({ label, action }) => (
-                  <button key={label} onClick={action} className="w-full text-left px-3 py-2.5 hover:bg-[#312E81]/20 text-sm transition-colors">
+                  <button key={label} onClick={action} className="w-full text-left px-3 py-2.5 hover:bg-[var(--accent-subtle)]/20 text-sm transition-colors">
                     {label}
                   </button>
                 ))}
@@ -1698,15 +1698,15 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
             onClick={() => setMovingDeck(null)}
           >
             <div
-              className="bg-[#1E293B] rounded-t-3xl p-2 w-full max-w-sm border-t border-[#334155] max-h-[70vh] overflow-y-auto pb-20"
+              className="bg-[var(--bg-surface)] rounded-t-3xl p-2 w-full max-w-sm border-t border-[var(--border-default)] max-h-[70vh] overflow-y-auto pb-20"
               onClick={e => e.stopPropagation()}
             >
-              <p className="px-4 py-3 text-sm font-semibold text-gray-400 border-b border-[#1E293B] mb-1 sticky top-0 bg-[#1E293B]">
+              <p className="px-4 py-3 text-sm font-semibold text-gray-400 border-b border-[var(--border-subtle)] mb-1 sticky top-0 bg-[var(--bg-surface)]">
                 Déplacer vers…
               </p>
               <button
                 onClick={() => handleMoveDeck(movingDeck, null)}
-                className="w-full text-left px-4 py-2.5 hover:bg-[#312E81]/20 rounded-xl text-sm text-gray-400"
+                className="w-full text-left px-4 py-2.5 hover:bg-[var(--accent-subtle)]/20 rounded-xl text-sm text-gray-400"
               >
                 Sans thème
               </button>
@@ -1714,7 +1714,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
                 <button
                   key={theme.id}
                   onClick={() => handleMoveDeck(movingDeck, theme.id)}
-                  className="w-full text-left py-2.5 hover:bg-[#312E81]/20 rounded-xl text-sm flex items-center gap-2"
+                  className="w-full text-left py-2.5 hover:bg-[var(--accent-subtle)]/20 rounded-xl text-sm flex items-center gap-2"
                   style={{ paddingLeft: depth * 12 + 16 }}
                 >
                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: theme.color }} />
@@ -1729,7 +1729,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
         {/* ── Delete deck confirmation ───────────────────────────────────── */}
         {deletingDeck && (
           <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
-            <div className="bg-[#1E293B] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-red-500/30">
+            <div className="bg-[var(--bg-surface)] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-red-500/30">
               <h2 className="text-lg font-bold mb-2">Supprimer &ldquo;{deletingDeck.name}&rdquo; ?</h2>
               <p className="text-gray-400 text-sm mb-5">
                 Supprime aussi les {deletingDeck.card_count} {pluralCard(deletingDeck.card_count)}. Irréversible.
@@ -1737,7 +1737,7 @@ export default function TreeLibrary({ initialThemes, initialDecks, userId }: Tre
               <div className="flex gap-3">
                 <button
                   onClick={() => { setDeletingDeck(null); setOptionsDeck(null); setOptionsAnchor(null) }}
-                  className="flex-1 border border-[#334155] rounded-xl py-2.5 text-sm hover:bg-[#312E81]/20"
+                  className="flex-1 border border-[var(--border-default)] rounded-xl py-2.5 text-sm hover:bg-[var(--accent-subtle)]/20"
                 >
                   Annuler
                 </button>
