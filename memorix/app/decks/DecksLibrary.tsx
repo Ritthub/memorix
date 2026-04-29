@@ -79,7 +79,7 @@ function DeckRow({
       <button
         {...attributes}
         {...listeners}
-        className="text-gray-600 hover:text-gray-400 touch-none flex-shrink-0 cursor-grab active:cursor-grabbing"
+        className="text-[var(--text-muted)] hover:text-[var(--text-muted)] touch-none flex-shrink-0 cursor-grab active:cursor-grabbing"
         aria-label="Déplacer"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
@@ -92,7 +92,7 @@ function DeckRow({
         <span className="text-xl flex-shrink-0">{deck.icon || '📚'}</span>
         <div className="flex-1 min-w-0">
           <p className="font-medium truncate">{deck.name}</p>
-          <p className="text-xs text-gray-500">{deck.card_count} carte{deck.card_count !== 1 ? 's' : ''} · {retention}% rétention</p>
+          <p className="text-xs text-[var(--text-muted)]">{deck.card_count} carte{deck.card_count !== 1 ? 's' : ''} · {retention}% rétention</p>
         </div>
       </Link>
       {deck.due_count > 0 && (
@@ -103,7 +103,7 @@ function DeckRow({
       <button
         ref={menuBtnRef}
         onClick={handleMenuClick}
-        className="text-gray-600 hover:text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 p-1"
+        className="text-[var(--text-muted)] hover:text-[var(--text-muted)] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 p-1"
         aria-label="Options"
       >
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -146,15 +146,15 @@ function ThemeSection({
         className="w-full flex items-center gap-2 py-1.5 px-1 text-left hover:opacity-80 transition-opacity"
       >
         <span className={`rounded-full flex-shrink-0 ${isSubTheme ? 'w-2 h-2' : 'w-2.5 h-2.5'}`} style={{ background: color }} />
-        <span className={`font-semibold text-gray-300 flex-1 ${isSubTheme ? 'text-xs' : 'text-sm'}`}>
+        <span className={`font-semibold text-[var(--text-secondary)] flex-1 ${isSubTheme ? 'text-xs' : 'text-sm'}`}>
           {theme?.name || 'Sans thème'}
         </span>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-[var(--text-muted)]">
           {directDecks.length + (subThemes?.reduce((s, st) => s + (subThemeDecksMap?.get(st.id)?.length || 0), 0) || 0)}
         </span>
         <svg
           width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
-          className={`text-gray-500 transition-transform ${collapsed ? '' : 'rotate-180'}`}
+          className={`text-[var(--text-muted)] transition-transform ${collapsed ? '' : 'rotate-180'}`}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </svg>
@@ -162,7 +162,7 @@ function ThemeSection({
           <Link
             href={`/themes/${theme.id}`}
             onClick={e => e.stopPropagation()}
-            className="text-gray-600 hover:text-gray-400 text-xs ml-0.5"
+            className="text-[var(--text-muted)] hover:text-[var(--text-muted)] text-xs ml-0.5"
           >→</Link>
         )}
       </button>
@@ -200,7 +200,7 @@ function ThemeSection({
               ))}
               {isDragging && directDecks.length === 0 && (
                 <div className={`border-2 border-dashed rounded-xl h-11 flex items-center justify-center text-xs transition-colors ${
-                  isOver ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-gray-700 text-gray-700'
+                  isOver ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border-default)] text-[var(--text-secondary)]'
                 }`}>
                   Déposer ici
                 </div>
@@ -208,7 +208,7 @@ function ThemeSection({
               {!isDragging && (
                 <Link
                   href={`/create${theme ? `?themeId=${theme.id}` : ''}`}
-                  className="flex items-center gap-1.5 text-xs text-gray-700 hover:text-[var(--accent)] py-0.5 transition-colors"
+                  className="flex items-center gap-1.5 text-xs text-[var(--text-secondary)] hover:text-[var(--accent)] py-0.5 transition-colors"
                 >
                   <span>+</span> Ajouter un deck ici
                 </Link>
@@ -254,14 +254,14 @@ function KanbanCard({ deck, onOptionsClick }: { deck: DeckWithMeta; onOptionsCli
             if (rect) onOptionsClick(deck, { x: Math.max(4, rect.right - 208), y: rect.bottom + 4 })
             else onOptionsClick(deck, null)
           }}
-          className="text-gray-600 hover:text-gray-400 p-0.5"
+          className="text-[var(--text-muted)] hover:text-[var(--text-muted)] p-0.5"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
             <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
           </svg>
         </button>
       </div>
-      <p className="text-xs text-gray-500">{deck.card_count} {pluralCard(deck.card_count)}</p>
+      <p className="text-xs text-[var(--text-muted)]">{deck.card_count} {pluralCard(deck.card_count)}</p>
     </div>
   )
 }
@@ -277,7 +277,7 @@ function KanbanColumn({ theme, decks, onOptionsClick }: {
       <div className="flex items-center gap-2 mb-4">
         <span className="w-2.5 h-2.5 rounded-full" style={{ background: color }} />
         <span className="font-semibold text-sm flex-1 truncate">{theme?.name || 'Sans thème'}</span>
-        <Link href={`/create${theme ? `?themeId=${theme.id}` : ''}`} className="text-gray-500 hover:text-[var(--accent)] transition-colors">
+        <Link href={`/create${theme ? `?themeId=${theme.id}` : ''}`} className="text-[var(--text-muted)] hover:text-[var(--accent)] transition-colors">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
           </svg>
@@ -508,11 +508,11 @@ const handleDragEnd = async (event: DragEndEvent) => {
   ] : []
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] text-white pb-20">
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] pb-20">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[var(--bg-base)]/95 backdrop-blur-md border-b border-[var(--border-default)] px-4 py-3">
         <div className="flex items-center gap-3 mb-3">
-          <Link href="/dashboard" className="text-gray-400 hover:text-white">
+          <Link href="/dashboard" className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m7-7l-7 7 7 7" />
             </svg>
@@ -521,7 +521,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
           <div className="flex bg-[var(--bg-surface)] rounded-lg p-1 gap-1">
             <button
               onClick={() => setViewPersist('list')}
-              className={`p-1.5 rounded transition-colors ${view === 'list' ? 'bg-[var(--accent)] text-white' : 'text-gray-500'}`}
+              className={`p-1.5 rounded transition-colors ${view === 'list' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)]'}`}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -529,7 +529,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
             </button>
             <button
               onClick={() => setViewPersist('kanban')}
-              className={`p-1.5 rounded transition-colors ${view === 'kanban' ? 'bg-[var(--accent)] text-white' : 'text-gray-500'}`}
+              className={`p-1.5 rounded transition-colors ${view === 'kanban' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)]'}`}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 4H5a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V5a1 1 0 00-1-1zm10 0h-4a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V5a1 1 0 00-1-1zM9 14H5a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1v-4a1 1 0 00-1-1zm10 0h-4a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1v-4a1 1 0 00-1-1z" />
@@ -568,7 +568,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
           </div>
         </div>
         <div className="relative">
-          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+          <svg className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
             <circle cx="11" cy="11" r="8"/><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35"/>
           </svg>
           <input
@@ -661,11 +661,11 @@ const handleDragEnd = async (event: DragEndEvent) => {
             {/* Parent theme selector */}
             {parentThemes.length > 0 && (
               <div className="mb-3">
-                <label className="text-xs text-gray-500 mb-1.5 block">Sous-thème de (optionnel)</label>
+                <label className="text-xs text-[var(--text-muted)] mb-1.5 block">Sous-thème de (optionnel)</label>
                 <select
                   value={newThemeParent || ''}
                   onChange={e => setNewThemeParent(e.target.value || null)}
-                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--accent)] text-gray-300"
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[var(--accent)] text-[var(--text-secondary)]"
                 >
                   <option value="">— Thème principal —</option>
                   {parentThemes.map(t => (
@@ -751,7 +751,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
       {movingDeck && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setMovingDeck(null)}>
           <div className="bg-[var(--bg-surface)] rounded-t-3xl p-2 w-full max-w-sm border-t border-[var(--border-default)] max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <p className="px-4 py-3 text-sm font-semibold text-gray-400 border-b border-[var(--border-subtle)] mb-1 sticky top-0 bg-[var(--bg-surface)]">Déplacer vers…</p>
+            <p className="px-4 py-3 text-sm font-semibold text-[var(--text-muted)] border-b border-[var(--border-subtle)] mb-1 sticky top-0 bg-[var(--bg-surface)]">Déplacer vers…</p>
             {themeOptions.map(({ theme, depth }) => (
               <button
                 key={theme?.id ?? '__none__'}
@@ -762,11 +762,11 @@ const handleDragEnd = async (event: DragEndEvent) => {
                 {theme ? (
                   <>
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: theme.color }} />
-                    {depth > 0 && <span className="text-gray-600 text-xs">└</span>}
+                    {depth > 0 && <span className="text-[var(--text-muted)] text-xs">└</span>}
                     {theme.name}
                   </>
                 ) : (
-                  <span className="text-gray-400">Sans thème</span>
+                  <span className="text-[var(--text-muted)]">Sans thème</span>
                 )}
               </button>
             ))}
@@ -829,7 +829,7 @@ const handleDragEnd = async (event: DragEndEvent) => {
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-[var(--bg-surface)] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-red-500/30">
             <h2 className="text-lg font-bold mb-2">Supprimer &quot;{deleteConfirm.name}&quot; ?</h2>
-            <p className="text-gray-400 text-sm mb-5">
+            <p className="text-[var(--text-muted)] text-sm mb-5">
               Supprime aussi les {deleteConfirm.card_count} carte{deleteConfirm.card_count !== 1 ? 's' : ''}. Irréversible.
             </p>
             <div className="flex gap-3">

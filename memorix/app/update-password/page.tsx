@@ -37,11 +37,11 @@ export default function UpdatePasswordPage() {
       <div className="w-full max-w-md">
         <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-8">
           <h1 className="text-xl font-bold mb-1">Nouveau mot de passe</h1>
-          <p className="text-gray-400 text-sm mb-6">Choisis un mot de passe d&apos;au moins 8 caractères.</p>
+          <p className="text-[var(--text-muted)] text-sm mb-6">Choisis un mot de passe d&apos;au moins 8 caractères.</p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-gray-400 text-sm mb-1.5 block">Nouveau mot de passe</label>
+              <label className="text-[var(--text-muted)] text-sm mb-1.5 block">Nouveau mot de passe</label>
               <input
                 type="password"
                 value={password}
@@ -50,11 +50,11 @@ export default function UpdatePasswordPage() {
                 required
                 autoFocus
                 autoComplete="new-password"
-                className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
+                className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
               />
             </div>
             <div>
-              <label className="text-gray-400 text-sm mb-1.5 block">Confirmer le mot de passe</label>
+              <label className="text-[var(--text-muted)] text-sm mb-1.5 block">Confirmer le mot de passe</label>
               <input
                 type="password"
                 value={confirm}
@@ -62,7 +62,7 @@ export default function UpdatePasswordPage() {
                 placeholder="••••••••"
                 required
                 autoComplete="new-password"
-                className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
+                className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
               />
             </div>
             {error && (

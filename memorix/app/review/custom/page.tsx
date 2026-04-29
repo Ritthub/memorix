@@ -85,12 +85,12 @@ function CustomReviewInner() {
     const msg = sessionMessage(stats)
     const total = stats.non + stats.hesitation + stats.oui + stats.autoEasy
     return (
-      <div className="min-h-screen bg-[var(--bg-base)] text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] flex items-center justify-center p-6">
         <Confetti active={showConfetti} />
         <div className="max-w-md w-full text-center">
           <div className="text-7xl mb-4 animate-bounce-once">{msg.emoji}</div>
           <h1 className="text-3xl font-bold mb-2">{msg.title}</h1>
-          <p className="text-gray-400 mb-6">{msg.sub}</p>
+          <p className="text-[var(--text-muted)] mb-6">{msg.sub}</p>
           <div className="grid grid-cols-3 gap-3 mb-4">
             {[
               { label: 'Non', value: stats.non, bg: '#2D1515', text: '#FCA5A5', border: '#991B1B' },
@@ -109,10 +109,10 @@ function CustomReviewInner() {
               <span className="text-[var(--text-secondary)]">{stats.autoEasy} intervalle{stats.autoEasy > 1 ? 's' : ''} optimisé{stats.autoEasy > 1 ? 's' : ''} automatiquement</span>
             </div>
           )}
-          <p className="text-gray-500 text-sm mb-6">{total} carte{total > 1 ? 's' : ''} révisée{total > 1 ? 's' : ''}</p>
+          <p className="text-[var(--text-muted)] text-sm mb-6">{total} carte{total > 1 ? 's' : ''} révisée{total > 1 ? 's' : ''}</p>
           <div className="flex gap-4">
             <button onClick={() => router.push('/dashboard')}
-              className="flex-1 border border-[var(--border-default)] hover:border-[var(--accent)] rounded-xl py-3 text-gray-400 hover:text-white transition-colors">
+              className="flex-1 border border-[var(--border-default)] hover:border-[var(--accent)] rounded-xl py-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
               Dashboard
             </button>
             <button onClick={() => router.push('/decks')}
@@ -126,11 +126,11 @@ function CustomReviewInner() {
   }
 
   if (!currentCard) return (
-    <div className="min-h-screen bg-[var(--bg-base)] text-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] flex items-center justify-center p-6">
       <div className="text-center">
         <div className="text-4xl mb-4">✅</div>
         <h1 className="text-2xl font-bold mb-2">Rien à réviser !</h1>
-        <p className="text-gray-400 mb-6">Toutes les cartes de la sélection sont à jour.</p>
+        <p className="text-[var(--text-muted)] mb-6">Toutes les cartes de la sélection sont à jour.</p>
         <button onClick={() => router.push('/dashboard')}
           className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl px-6 py-3 transition-colors">
           Retour au dashboard
@@ -143,20 +143,20 @@ function CustomReviewInner() {
   const progress = Math.round((currentIndex / totalCards) * 100)
 
   return (
-    <div className="fixed inset-0 bg-[var(--bg-base)] text-white flex flex-col select-none overflow-hidden"
+    <div className="fixed inset-0 bg-[var(--bg-base)] text-[var(--text-primary)] flex flex-col select-none overflow-hidden"
       onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
 
       {/* Header */}
       <div className="px-6 py-4 border-b border-[var(--border-default)]">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white transition-colors">✕</button>
+          <button onClick={() => router.push('/dashboard')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">✕</button>
           <div className="text-center">
             {passNumber > 1 && (
               <div className="text-[var(--accent-light)] text-xs font-semibold mb-0.5">
                 Passage {passNumber} — {totalCards} carte{totalCards > 1 ? 's' : ''}
               </div>
             )}
-            <span className="text-gray-400 text-sm">{currentIndex + 1} / {totalCards}</span>
+            <span className="text-[var(--text-muted)] text-sm">{currentIndex + 1} / {totalCards}</span>
           </div>
           <div className="w-8" />
         </div>
@@ -183,13 +183,13 @@ function CustomReviewInner() {
             <div className="bg-[var(--bg-surface)] rounded-3xl p-8 border border-[var(--border-default)] min-h-[240px] flex flex-col items-center justify-center gap-4 shadow-xl shadow-[#4338CA]/10">
               {card.theme && <span className="text-xs text-[var(--accent-light)] font-medium uppercase tracking-widest opacity-70">{card.theme}</span>}
               <p className="text-xl font-semibold text-center leading-relaxed">{card.question}</p>
-              {!flipped && <p className="text-gray-600 text-sm mt-2">Appuyer pour révéler</p>}
+              {!flipped && <p className="text-[var(--text-muted)] text-sm mt-2">Appuyer pour révéler</p>}
             </div>
           </button>
           {flipped && (
             <div className="mt-4 bg-[#0F0F1F] rounded-3xl p-8 border border-[var(--border-default)] min-h-[180px] flex flex-col items-center justify-center gap-3">
               <p className="text-lg text-center leading-relaxed whitespace-pre-wrap">{card.answer}</p>
-              {card.explanation && <p className="text-sm text-gray-500 text-center italic">{card.explanation}</p>}
+              {card.explanation && <p className="text-sm text-[var(--text-muted)] text-center italic">{card.explanation}</p>}
             </div>
           )}
         </div>
@@ -225,8 +225,8 @@ function CustomReviewInner() {
             ) : (
               <div className="bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl p-3 flex items-center gap-2">
                 <span className="text-[var(--text-secondary)] flex-1 text-xs leading-snug">Cette carte disparaîtra des révisions. Récupérable 30 jours.</span>
-                <button onClick={handleArchiveCancel} className="text-[var(--text-muted)] hover:text-white text-xs px-2 py-1 rounded flex-shrink-0">Annuler</button>
-                <button onClick={handleArchiveConfirm} className="bg-[var(--bg-elevated)] hover:bg-[#475569] text-white text-xs px-3 py-1 rounded flex-shrink-0">Archiver</button>
+                <button onClick={handleArchiveCancel} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs px-2 py-1 rounded flex-shrink-0">Annuler</button>
+                <button onClick={handleArchiveConfirm} className="bg-[var(--bg-elevated)] hover:bg-[#475569] text-[var(--text-primary)] text-xs px-3 py-1 rounded flex-shrink-0">Archiver</button>
               </div>
             )}
           </div>

@@ -52,7 +52,7 @@ function ThemeRow({
         {hasChildren ? (
           <button
             onClick={() => onToggle(node.id)}
-            className="w-4 h-4 flex items-center justify-center text-gray-600 hover:text-gray-400 flex-shrink-0"
+            className="w-4 h-4 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-muted)] flex-shrink-0"
           >
             <svg
               width="10" height="10" viewBox="0 0 24 24"
@@ -73,25 +73,25 @@ function ThemeRow({
         </span>
 
         {node.due > 0 && (
-          <span className="text-xs text-[#818CF8] font-semibold flex-shrink-0 tabular-nums">{node.due}</span>
+          <span className="text-xs text-[var(--accent-light)] font-semibold flex-shrink-0 tabular-nums">{node.due}</span>
         )}
 
         {node.due > 0 ? (
           <Link
             href={`/review/theme/${node.id}`}
-            className="flex-shrink-0 bg-[#4338CA] hover:bg-[#3730A3] text-white text-[10px] font-bold rounded-md px-2 py-1 transition-colors leading-none"
+            className="flex-shrink-0 bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-[var(--text-primary)] text-[10px] font-bold rounded-md px-2 py-1 transition-colors leading-none"
           >
             ▶
           </Link>
         ) : (
-          <span className="flex-shrink-0 border border-[#334155] text-[#334155] text-[10px] rounded-md px-2 py-1 leading-none cursor-not-allowed select-none">
+          <span className="flex-shrink-0 border border-[var(--border-default)] text-[#334155] text-[10px] rounded-md px-2 py-1 leading-none cursor-not-allowed select-none">
             ▶
           </span>
         )}
 
         <Link
           href={`/review/theme/${node.id}?mode=free`}
-          className="flex-shrink-0 border border-[#334155] hover:border-amber-500/50 text-[#64748B] hover:text-amber-400 text-[10px] font-bold rounded-md px-2 py-1 transition-colors leading-none"
+          className="flex-shrink-0 border border-[var(--border-default)] hover:border-amber-500/50 text-[#64748B] hover:text-amber-400 text-[10px] font-bold rounded-md px-2 py-1 transition-colors leading-none"
         >
           ∞
         </Link>
@@ -121,12 +121,12 @@ export default function ThemeReviewSection({ themes }: { themes: ThemeItem[] }) 
     <div className="mb-8">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wide">Réviser par thème</h3>
-        <Link href="/decks" className="text-xs text-[#4338CA] hover:text-[#818CF8] transition-colors">
+        <Link href="/decks" className="text-xs text-[var(--accent)] hover:text-[var(--accent-light)] transition-colors">
           Voir tout →
         </Link>
       </div>
 
-      <div className="bg-[#1E293B] border border-[#334155] rounded-xl overflow-hidden py-1">
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl overflow-hidden py-1">
         {roots.map(root => (
           <ThemeRow key={root.id} node={root} depth={0} collapsed={collapsed} onToggle={onToggle} />
         ))}

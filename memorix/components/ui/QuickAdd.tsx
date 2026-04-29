@@ -203,7 +203,7 @@ export default function QuickAdd() {
               <h2 className="font-semibold text-[var(--text-primary)]">Nouvelle carte</h2>
               <button
                 onClick={close}
-                className="w-7 h-7 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg hover:bg-white/5 transition-colors text-sm"
+                className="w-7 h-7 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-elevated)]/20 transition-colors text-sm"
               >
                 ✕
               </button>

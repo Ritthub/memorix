@@ -159,12 +159,12 @@ export default function DeckManager({
   const cardCount = cards.length
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] text-white px-6 py-10">
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] px-6 py-10">
       <div className="max-w-3xl mx-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
-          <Link href="/dashboard" className="text-gray-400 hover:text-white transition-colors">← Retour</Link>
+          <Link href="/dashboard" className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">← Retour</Link>
           <Link href={`/create?deckId=${deck.id}`} className="text-sm text-[var(--accent)] hover:text-[var(--accent-light)] transition-colors">
             + Ajouter des cartes
           </Link>
@@ -176,23 +176,23 @@ export default function DeckManager({
             <span className="text-4xl">{deck.icon}</span>
             <div>
               <h1 className="text-2xl font-bold">{deck.name}</h1>
-              {deck.description && <p className="text-gray-400 mt-1">{deck.description}</p>}
+              {deck.description && <p className="text-[var(--text-muted)] mt-1">{deck.description}</p>}
             </div>
           </div>
           <div className="grid grid-cols-3 gap-4 mt-6">
             <div className="bg-[var(--bg-base)] rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-[var(--accent)]">{cardCount}</div>
-              <div className="text-gray-400 text-xs mt-1">Cartes total</div>
+              <div className="text-[var(--text-muted)] text-xs mt-1">Cartes total</div>
             </div>
             <div className="bg-[var(--bg-base)] rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-[var(--accent)]">{dueCount}</div>
-              <div className="text-gray-400 text-xs mt-1">À réviser</div>
+              <div className="text-[var(--text-muted)] text-xs mt-1">À réviser</div>
             </div>
             <div className="bg-[var(--bg-base)] rounded-xl p-4 text-center">
               <div className="text-2xl font-bold text-[var(--accent)]">
                 {cardCount > 0 ? Math.round(((cardCount - dueCount) / cardCount) * 100) : 0}%
               </div>
-              <div className="text-gray-400 text-xs mt-1">Maîtrisées</div>
+              <div className="text-[var(--text-muted)] text-xs mt-1">Maîtrisées</div>
             </div>
           </div>
         </div>
@@ -236,7 +236,7 @@ export default function DeckManager({
                 onChange={toggleAll}
                 className="w-4 h-4 accent-[#4338CA] cursor-pointer"
               />
-              <span className="text-gray-400 text-sm">
+              <span className="text-[var(--text-muted)] text-sm">
                 {selected.size > 0 ? `${selected.size} sélectionnée(s)` : `${cardCount} ${pluralCard(cardCount)}`}
               </span>
             </div>
@@ -272,23 +272,23 @@ export default function DeckManager({
                   <p className="font-medium mb-1">{card.question}</p>
                   <p className="text-[var(--accent-light)] text-sm mb-1">{card.answer}</p>
                   {card.explanation && (
-                    <p className="text-gray-500 text-xs">{card.explanation}</p>
+                    <p className="text-[var(--text-muted)] text-xs">{card.explanation}</p>
                   )}
                   <div className="flex items-center gap-2 mt-2">
                     {card.theme && (
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-base)] text-gray-400">{card.theme}</span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-base)] text-[var(--text-muted)]">{card.theme}</span>
                     )}
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-base)] text-gray-400">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-base)] text-[var(--text-muted)]">
                       {card.card_reviews?.[0]?.state || 'new'}
                     </span>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-base)] text-gray-400">
+                    <span className="text-xs px-2 py-0.5 rounded-full bg-[var(--bg-base)] text-[var(--text-muted)]">
                       Difficulté {card.difficulty}/5
                     </span>
                   </div>
                 </div>
                 <button
                   onClick={() => setEditingCard({ ...card })}
-                  className="text-gray-500 hover:text-white transition-colors flex-shrink-0 text-sm px-3 py-1 border border-gray-700 hover:border-gray-400 rounded-lg"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors flex-shrink-0 text-sm px-3 py-1 border border-[var(--border-default)] hover:border-[var(--border-default)] rounded-lg"
                 >
                   Modifier
                 </button>
@@ -298,7 +298,7 @@ export default function DeckManager({
         </div>
 
         {cards.length === 0 && (
-          <div className="text-center py-10 text-gray-500">
+          <div className="text-center py-10 text-[var(--text-muted)]">
             <div className="text-4xl mb-4">📭</div>
             <p>Aucune carte dans ce deck</p>
           </div>
@@ -373,7 +373,7 @@ export default function DeckManager({
           {showArchived && (
             <div className="mt-3 space-y-2">
               {archivedCards.length === 0 && (
-                <p className="text-gray-500 text-sm text-center py-4">Aucune carte archivée</p>
+                <p className="text-[var(--text-muted)] text-sm text-center py-4">Aucune carte archivée</p>
               )}
               {archivedCards.map(card => {
                 const days = daysUntilDeletion(card.auto_delete_at)
@@ -392,7 +392,7 @@ export default function DeckManager({
                       <div className="flex flex-col gap-1.5 flex-shrink-0">
                         <button
                           onClick={() => restoreCard(card.id)}
-                          className="text-xs px-2.5 py-1 border border-[var(--border-default)] hover:border-[var(--border-focus)] hover:text-[var(--accent-light)] rounded-lg transition-colors text-gray-400"
+                          className="text-xs px-2.5 py-1 border border-[var(--border-default)] hover:border-[var(--border-focus)] hover:text-[var(--accent-light)] rounded-lg transition-colors text-[var(--text-muted)]"
                         >
                           Restaurer
                         </button>
@@ -420,16 +420,16 @@ export default function DeckManager({
             <h2 className="text-lg font-bold mb-4">Modifier la carte</h2>
             <div className="space-y-3">
               <div>
-                <label className="text-gray-400 text-xs mb-1 block">Question</label>
+                <label className="text-[var(--text-muted)] text-xs mb-1 block">Question</label>
                 <textarea
                   value={editingCard.question}
                   onChange={e => setEditingCard({ ...editingCard, question: e.target.value })}
                   rows={3}
-                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none"
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none"
                 />
               </div>
               <div>
-                <label className="text-gray-400 text-xs mb-1 block">Réponse</label>
+                <label className="text-[var(--text-muted)] text-xs mb-1 block">Réponse</label>
                 <textarea
                   value={editingCard.answer}
                   onChange={e => setEditingCard({ ...editingCard, answer: e.target.value })}
@@ -438,19 +438,19 @@ export default function DeckManager({
                 />
               </div>
               <div>
-                <label className="text-gray-400 text-xs mb-1 block">Explication (optionnel)</label>
+                <label className="text-[var(--text-muted)] text-xs mb-1 block">Explication (optionnel)</label>
                 <textarea
                   value={editingCard.explanation || ''}
                   onChange={e => setEditingCard({ ...editingCard, explanation: e.target.value })}
                   rows={2}
-                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-gray-400 text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none"
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-[var(--text-muted)] text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none"
                 />
               </div>
             </div>
             <div className="flex gap-3 mt-5">
               <button
                 onClick={() => setEditingCard(null)}
-                className="flex-1 border border-gray-700 hover:border-gray-400 rounded-xl py-2 text-gray-400 hover:text-white transition-colors text-sm"
+                className="flex-1 border border-[var(--border-default)] hover:border-[var(--border-default)] rounded-xl py-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-sm"
               >
                 Annuler
               </button>

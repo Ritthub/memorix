@@ -114,12 +114,12 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
     const total = stats.non + stats.hesitation + stats.oui + (isFreeMode ? 0 : stats.autoEasy)
     if (isFreeMode) {
       return (
-        <div className="min-h-screen bg-[var(--bg-base)] text-white flex items-center justify-center p-6">
+        <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] flex items-center justify-center p-6">
           <div className="max-w-md w-full text-center">
             <div className="text-7xl mb-4">🔄</div>
             <h1 className="text-3xl font-bold mb-2">Session libre terminée !</h1>
-            <p className="text-gray-400 mb-2">Vos intervalles de révision FSRS n&apos;ont pas été modifiés.</p>
-            <p className="text-gray-500 text-sm mb-6">{total} carte{total > 1 ? 's' : ''} révisée{total > 1 ? 's' : ''}</p>
+            <p className="text-[var(--text-muted)] mb-2">Vos intervalles de révision FSRS n&apos;ont pas été modifiés.</p>
+            <p className="text-[var(--text-muted)] text-sm mb-6">{total} carte{total > 1 ? 's' : ''} révisée{total > 1 ? 's' : ''}</p>
             <div className="grid grid-cols-3 gap-3 mb-6">
               {[
                 { label: 'Non', value: stats.non, bg: '#2D1515', text: '#FCA5A5', border: '#991B1B' },
@@ -144,13 +144,13 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
     const msg = sessionMessage(stats)
     const totalNormal = stats.non + stats.hesitation + stats.oui + stats.autoEasy
     return (
-      <div className="min-h-screen bg-[var(--bg-base)] text-white flex items-center justify-center p-6">
+      <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] flex items-center justify-center p-6">
         <Confetti active={showConfetti} />
         <div className="max-w-md w-full text-center">
           <div className="text-7xl mb-4 animate-bounce-once">{msg.emoji}</div>
           <h1 className="text-3xl font-bold mb-2">{msg.title}</h1>
-          <p className="text-gray-400 mb-2">{msg.sub}</p>
-          <p className="text-gray-500 text-sm mb-6">{totalNormal} carte{totalNormal > 1 ? 's' : ''} révisée{totalNormal > 1 ? 's' : ''}</p>
+          <p className="text-[var(--text-muted)] mb-2">{msg.sub}</p>
+          <p className="text-[var(--text-muted)] text-sm mb-6">{totalNormal} carte{totalNormal > 1 ? 's' : ''} révisée{totalNormal > 1 ? 's' : ''}</p>
           <div className="grid grid-cols-3 gap-3 mb-4">
             {[
               { label: 'Non', value: stats.non, bg: '#2D1515', text: '#FCA5A5', border: '#991B1B' },
@@ -171,7 +171,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
           )}
           <div className="flex gap-4">
             <button onClick={() => router.push(`/themes/${themeId}`)}
-              className="flex-1 border border-[var(--border-default)] hover:border-[var(--accent)] rounded-xl py-3 text-gray-400 hover:text-white transition-colors">
+              className="flex-1 border border-[var(--border-default)] hover:border-[var(--accent)] rounded-xl py-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
               Voir le thème
             </button>
             <button onClick={() => router.push('/dashboard')}
@@ -185,11 +185,11 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
   }
 
   if (!currentCard) return (
-    <div className="min-h-screen bg-[var(--bg-base)] text-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] flex items-center justify-center p-6">
       <div className="text-center">
         <div className="text-4xl mb-4">✅</div>
         <h1 className="text-2xl font-bold mb-2">Rien à réviser !</h1>
-        <p className="text-gray-400 mb-6">Toutes les cartes du thème sont à jour.</p>
+        <p className="text-[var(--text-muted)] mb-6">Toutes les cartes du thème sont à jour.</p>
         <button onClick={() => router.push(`/themes/${themeId}`)}
           className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl px-6 py-3 transition-colors">
           Retour au thème
@@ -202,13 +202,13 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
   const progress = Math.round((currentIndex / totalCards) * 100)
 
   return (
-    <div className="fixed inset-0 bg-[var(--bg-base)] text-white flex flex-col select-none overflow-hidden"
+    <div className="fixed inset-0 bg-[var(--bg-base)] text-[var(--text-primary)] flex flex-col select-none overflow-hidden"
       onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
 
       {/* Header */}
       <div className="px-6 py-4 border-b border-[var(--border-default)]">
         <div className="max-w-lg mx-auto flex items-center justify-between">
-          <button onClick={() => router.push(`/themes/${themeId}`)} className="text-gray-400 hover:text-white transition-colors">✕</button>
+          <button onClick={() => router.push(`/themes/${themeId}`)} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">✕</button>
           <div className="text-center">
             {isFreeMode && (
               <span className="text-xs px-2 py-0.5 rounded-full font-medium mb-1 inline-block"
@@ -222,7 +222,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
                 Passage {passNumber} — {totalCards} carte{totalCards > 1 ? 's' : ''} à retravailler
               </div>
             )}
-            <span className="text-gray-400 text-sm">{currentIndex + 1} / {totalCards}</span>
+            <span className="text-[var(--text-muted)] text-sm">{currentIndex + 1} / {totalCards}</span>
           </div>
           <div className="w-8" />
         </div>
@@ -267,7 +267,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
               )}
               {card.theme && <span className="text-xs text-[var(--accent-light)] font-medium uppercase tracking-widest opacity-70">{card.theme}</span>}
               <p className="text-xl font-semibold text-center leading-relaxed">{card.question}</p>
-              {!flipped && <p className="text-gray-600 text-sm mt-2">Appuyer pour révéler</p>}
+              {!flipped && <p className="text-[var(--text-muted)] text-sm mt-2">Appuyer pour révéler</p>}
             </div>
             {!questionAtBottom && (
               <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1E293B] to-transparent pointer-events-none" />
@@ -283,7 +283,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
             >
               <div className="min-h-full p-8 flex flex-col items-center justify-center gap-3 text-center">
                 <p className="text-lg text-center leading-relaxed whitespace-pre-wrap">{card.answer}</p>
-                {card.explanation && <p className="text-sm text-gray-500 text-center mt-2 italic">{card.explanation}</p>}
+                {card.explanation && <p className="text-sm text-[var(--text-muted)] text-center mt-2 italic">{card.explanation}</p>}
               </div>
               {!answerAtBottom && (
                 <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#0F0F1F] to-transparent pointer-events-none" />
@@ -324,13 +324,13 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
             ) : (
               <div className="bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl p-3 flex items-center gap-2">
                 <span className="text-[var(--text-secondary)] flex-1 text-xs leading-snug">Cette carte disparaîtra des révisions. Récupérable 30 jours.</span>
-                <button onClick={handleArchiveCancel} className="text-[var(--text-muted)] hover:text-white text-xs px-2 py-1 rounded flex-shrink-0">Annuler</button>
-                <button onClick={handleArchiveConfirm} className="bg-[var(--bg-elevated)] hover:bg-[#475569] text-white text-xs px-3 py-1 rounded flex-shrink-0">Archiver</button>
+                <button onClick={handleArchiveCancel} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs px-2 py-1 rounded flex-shrink-0">Annuler</button>
+                <button onClick={handleArchiveConfirm} className="bg-[var(--bg-elevated)] hover:bg-[#475569] text-[var(--text-primary)] text-xs px-3 py-1 rounded flex-shrink-0">Archiver</button>
               </div>
             )}
           </div>
 
-          <p className="text-center text-gray-700 text-xs mt-2">← Non · Hésitation · Oui →</p>
+          <p className="text-center text-[var(--text-secondary)] text-xs mt-2">← Non · Hésitation · Oui →</p>
         </div>
       ) : (
         <div className="px-6 py-4 border-t border-[var(--border-default)]">
@@ -339,7 +339,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
               className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-2xl py-4 font-semibold transition-colors">
               Révéler la réponse
             </button>
-            <p className="text-center text-gray-600 text-xs mt-2">Espace · Entrée · Appuyer</p>
+            <p className="text-center text-[var(--text-muted)] text-xs mt-2">Espace · Entrée · Appuyer</p>
           </div>
         </div>
       )}

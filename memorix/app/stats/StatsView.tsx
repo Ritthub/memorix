@@ -275,19 +275,19 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
   ]
 
   return (
-    <div className="min-h-screen bg-[#0F172A] text-white pb-24">
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] pb-24">
       {/* Header */}
-      <header className="sticky top-0 z-30 bg-[#0F172A]/95 backdrop-blur-md border-b border-[#334155] px-4 py-3">
+      <header className="sticky top-0 z-30 bg-[var(--bg-base)]/95 backdrop-blur-md border-b border-[var(--border-default)] px-4 py-3">
         <div className="max-w-2xl mx-auto flex items-center justify-between gap-3">
           <h1 className="text-xl font-bold text-[#F1F5F9]">Statistiques</h1>
-          <div className="flex items-center gap-0.5 bg-[#1E293B] rounded-xl p-1">
+          <div className="flex items-center gap-0.5 bg-[var(--bg-surface)] rounded-xl p-1">
             {PERIODS.map(p => (
               <button
                 key={p.key}
                 onClick={() => setPeriod(p.key)}
                 className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
                   period === p.key
-                    ? 'bg-[#4338CA] text-white shadow-sm'
+                    ? 'bg-[var(--accent)] text-[var(--text-primary)] shadow-sm'
                     : 'text-[#64748B] hover:text-[#94A3B8]'
                 }`}
               >
@@ -302,25 +302,25 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
 
         {/* ── 4 KPIs ──────────────────────────────────────────────────────── */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-[#1E293B] rounded-2xl p-4 border border-[#334155]">
-            <div className="text-2xl font-bold text-[#818CF8] tabular-nums">{totalReviewed.toLocaleString('fr')}</div>
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
+            <div className="text-2xl font-bold text-[var(--accent-light)] tabular-nums">{totalReviewed.toLocaleString('fr')}</div>
             <div className="text-[10px] text-[#64748B] mt-0.5">révisions</div>
             <div className="text-xs text-[#94A3B8] mt-1">Révisées</div>
           </div>
-          <div className="bg-[#1E293B] rounded-2xl p-4 border border-[#334155]">
-            <div className={`text-2xl font-bold tabular-nums ${retentionRate >= retentionTarget ? 'text-emerald-400' : 'text-[#818CF8]'}`}>
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
+            <div className={`text-2xl font-bold tabular-nums ${retentionRate >= retentionTarget ? 'text-emerald-400' : 'text-[var(--accent-light)]'}`}>
               {retentionRate}%
             </div>
             <div className="text-[10px] text-[#64748B] mt-0.5">objectif {retentionTarget}%</div>
             <div className="text-xs text-[#94A3B8] mt-1">Rétention</div>
           </div>
-          <div className="bg-[#1E293B] rounded-2xl p-4 border border-[#334155]">
-            <div className="text-2xl font-bold text-[#818CF8] tabular-nums">{streak}</div>
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
+            <div className="text-2xl font-bold text-[var(--accent-light)] tabular-nums">{streak}</div>
             <div className="text-[10px] text-[#64748B] mt-0.5">{streak === 1 ? 'jour consécutif' : 'jours consécutifs'}</div>
             <div className="text-xs text-[#94A3B8] mt-1">Streak {streak > 0 ? '🔥' : ''}</div>
           </div>
-          <div className="bg-[#1E293B] rounded-2xl p-4 border border-[#334155]">
-            <div className="text-2xl font-bold text-[#818CF8] tabular-nums">{yearRate}%</div>
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
+            <div className="text-2xl font-bold text-[var(--accent-light)] tabular-nums">{yearRate}%</div>
             <div className="text-[10px] text-[#64748B] mt-0.5">sur 1 an</div>
             <div className="text-xs text-[#94A3B8] mt-1">Succès global</div>
           </div>
@@ -329,7 +329,7 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
         {/* ── Heatmap 52 semaines ──────────────────────────────────────────── */}
         <section>
           <h2 className="text-xs font-semibold text-[#64748B] uppercase tracking-widest mb-3">Activité — 52 semaines</h2>
-          <div className="bg-[#1E293B] rounded-2xl p-4 border border-[#334155] overflow-x-auto">
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)] overflow-x-auto">
             <div className="min-w-[560px]">
               {/* Month labels */}
               <div className="flex mb-1" style={{ paddingLeft: 20 }}>
@@ -391,7 +391,7 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
         {/* ── Line + Donut ─────────────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Line chart — taux de succès */}
-          <section className="bg-[#1E293B] rounded-2xl p-4 border border-[#334155]">
+          <section className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <h2 className="text-xs font-semibold text-[#64748B] uppercase tracking-widest mb-3">Taux de succès</h2>
             {successData.every(p => p.rate === null) ? (
               <p className="text-[#475569] text-sm text-center py-10">Pas encore de données pour cette période.</p>
@@ -404,7 +404,7 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
           </section>
 
           {/* Donut — répartition Non/Hésitation/Oui */}
-          <section className="bg-[#1E293B] rounded-2xl p-4 border border-[#334155]">
+          <section className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <h2 className="text-xs font-semibold text-[#64748B] uppercase tracking-widest mb-3">Répartition des réponses</h2>
             {ratingDist.total === 0 ? (
               <p className="text-[#475569] text-sm text-center py-10">Pas encore de données pour cette période.</p>
@@ -440,7 +440,7 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
         {/* ── Hard cards + Forecast ────────────────────────────────────────── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {/* Hard cards */}
-          <section className="bg-[#1E293B] rounded-2xl p-4 border border-[#334155]">
+          <section className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <h2 className="text-xs font-semibold text-[#64748B] uppercase tracking-widest mb-3">Cartes difficiles</h2>
             {hardCards.length === 0 ? (
               <p className="text-[#475569] text-sm text-center py-6">Excellent — aucune carte difficile 🏆</p>
@@ -457,7 +457,7 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
                         {hc.deck_id && (
                           <Link
                             href={`/decks/${hc.deck_id}`}
-                            className="text-[10px] text-[#4338CA] hover:text-[#818CF8] flex-shrink-0 transition-colors"
+                            className="text-[10px] text-[var(--accent)] hover:text-[var(--accent-light)] flex-shrink-0 transition-colors"
                             title={hc.deck_name || undefined}
                           >
                             →
@@ -465,7 +465,7 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
                         )}
                       </div>
                       <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1 bg-[#0F172A] rounded-full overflow-hidden">
+                        <div className="flex-1 h-1 bg-[var(--bg-base)] rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full"
                             style={{ width: `${hc.failRate}%`, background: '#993C1D' }}
@@ -483,13 +483,13 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
           </section>
 
           {/* Forecast */}
-          <section className="bg-[#1E293B] rounded-2xl p-4 border border-[#334155]">
+          <section className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <h2 className="text-xs font-semibold text-[#64748B] uppercase tracking-widest mb-3">Prévisions — 7 jours</h2>
             <div className="space-y-2.5">
               {forecast.map(day => (
                 <div key={day.day} className="flex items-center gap-2">
                   <span className="text-xs text-[#94A3B8] w-28 flex-shrink-0 truncate">{day.label}</span>
-                  <div className="flex-1 h-2 bg-[#0F172A] rounded-full overflow-hidden">
+                  <div className="flex-1 h-2 bg-[var(--bg-base)] rounded-full overflow-hidden">
                     {day.count > 0 && (
                       <div
                         className="h-full rounded-full transition-all"

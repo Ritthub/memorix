@@ -80,7 +80,7 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
   if (dueCount === 0) {
     return (
       <div className="bg-[#1E293B] rounded-2xl p-5 text-center mb-8 border border-[#1E293B]">
-        <p className="text-gray-400 text-sm">✅ Toutes les révisions du jour sont terminées</p>
+        <p className="text-[var(--text-muted)] text-sm">✅ Toutes les révisions du jour sont terminées</p>
       </div>
     )
   }
@@ -131,7 +131,7 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
             {/* Header */}
             <div className="px-6 pt-5 pb-4 border-b border-[#1E293B] flex-shrink-0">
               <h2 className="text-lg font-bold">Choisir les thèmes</h2>
-              <p className="text-gray-500 text-xs mt-0.5">Sélectionne ce que tu veux réviser</p>
+              <p className="text-[var(--text-muted)] text-xs mt-0.5">Sélectionne ce que tu veux réviser</p>
             </div>
 
             {/* List */}
@@ -147,7 +147,7 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
                   {allSelected && <svg width="12" height="12" viewBox="0 0 12 12" fill="white"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>}
                 </span>
                 <span className="font-semibold flex-1 text-sm text-left">Toutes les cartes</span>
-                <span className="text-xs text-gray-500 bg-[#312E81]/30 rounded-full px-2 py-0.5">{dueCount}</span>
+                <span className="text-xs text-[var(--text-muted)] bg-[#312E81]/30 rounded-full px-2 py-0.5">{dueCount}</span>
               </button>
 
               <div className="border-t border-[#1E293B] my-1" />
@@ -176,7 +176,7 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
                         </span>
                         <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: theme.color }} />
                         <span className="text-sm flex-1 text-left">{theme.name}</span>
-                        {due > 0 && <span className="text-xs text-gray-500">{due}</span>}
+                        {due > 0 && <span className="text-xs text-[var(--text-muted)]">{due}</span>}
                       </button>
                       {subs.length > 0 && (
                         <button
@@ -185,7 +185,7 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
                             next.has(theme.id) ? next.delete(theme.id) : next.add(theme.id)
                             return next
                           })}
-                          className="pr-3 text-gray-600 hover:text-gray-400"
+                          className="pr-3 text-[var(--text-muted)] hover:text-[var(--text-muted)]"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}
                             className={`transition-transform ${isExpanded ? 'rotate-180' : ''}`}>
@@ -208,9 +208,9 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
                           }`}>
                             {selected.has(sub.id) && <svg width="10" height="10" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                           </span>
-                          <span className="text-gray-500 text-xs">└</span>
-                          <span className="text-sm flex-1 text-left text-gray-300">{sub.name}</span>
-                          {subDue > 0 && <span className="text-xs text-gray-500">{subDue}</span>}
+                          <span className="text-[var(--text-muted)] text-xs">└</span>
+                          <span className="text-sm flex-1 text-left text-[var(--text-secondary)]">{sub.name}</span>
+                          {subDue > 0 && <span className="text-xs text-[var(--text-muted)]">{subDue}</span>}
                         </button>
                       )
                     })}
@@ -230,8 +230,8 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
                     {selected.has('none') && <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6l3 3 5-5" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>}
                   </span>
                   <span className="w-2.5 h-2.5 rounded-full bg-gray-600 flex-shrink-0" />
-                  <span className="text-sm flex-1 text-left text-gray-400">Sans thème</span>
-                  <span className="text-xs text-gray-500">{noThemeDue}</span>
+                  <span className="text-sm flex-1 text-left text-[var(--text-muted)]">Sans thème</span>
+                  <span className="text-xs text-[var(--text-muted)]">{noThemeDue}</span>
                 </button>
               )}
             </div>

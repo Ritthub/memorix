@@ -334,25 +334,25 @@ function CreatePageInner() {
   }
 
   if (step === 'deck') return (
-    <div className="min-h-screen bg-[var(--bg-base)] text-white px-6 py-10">
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] px-6 py-10">
       <div className="max-w-lg mx-auto">
-        <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white mb-8 block transition-colors">← Retour</button>
+        <button onClick={() => router.push('/dashboard')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] mb-8 block transition-colors">← Retour</button>
         <h1 className="text-3xl font-bold mb-8">Nouveau deck</h1>
         <div className="space-y-6">
           <div>
-            <label className="text-gray-400 text-sm mb-2 block">Nom du deck</label>
+            <label className="text-[var(--text-muted)] text-sm mb-2 block">Nom du deck</label>
             <input value={deck.name} onChange={e => setDeck({ ...deck, name: e.target.value })}
               placeholder="Ex: Term-sheet ISAI, Espagnol B2..."
-              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
+              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
           </div>
           <div>
-            <label className="text-gray-400 text-sm mb-2 block">Description (optionnel)</label>
+            <label className="text-[var(--text-muted)] text-sm mb-2 block">Description (optionnel)</label>
             <textarea value={deck.description} onChange={e => setDeck({ ...deck, description: e.target.value })}
               placeholder="Décrivez le contenu de ce deck..." rows={3}
-              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
+              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
           </div>
           <div>
-            <label className="text-gray-400 text-sm mb-2 block">Icône</label>
+            <label className="text-[var(--text-muted)] text-sm mb-2 block">Icône</label>
             <div className="flex gap-3 flex-wrap">
               {icons.map(icon => (
                 <button key={icon} onClick={() => setDeck({ ...deck, icon })}
@@ -369,12 +369,12 @@ function CreatePageInner() {
 
           <div className="flex items-center gap-3">
             <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
-            <span className="text-gray-600 text-xs">ou</span>
+            <span className="text-[var(--text-muted)] text-xs">ou</span>
             <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
           </div>
 
           <button onClick={enterWikiMode}
-            className="w-full border border-[var(--border-default)] hover:border-[var(--border-focus)]/50 rounded-xl py-3 text-gray-400 hover:text-white transition-colors text-sm">
+            className="w-full border border-[var(--border-default)] hover:border-[var(--border-focus)]/50 rounded-xl py-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-sm">
             🌐 Importer depuis Wikipedia →
           </button>
 
@@ -382,16 +382,16 @@ function CreatePageInner() {
             <>
               <div className="flex items-center gap-3">
                 <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
-                <span className="text-gray-600 text-xs">ou</span>
+                <span className="text-[var(--text-muted)] text-xs">ou</span>
                 <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
               </div>
 
               <div>
-                <label className="text-gray-400 text-sm mb-2 block">Attacher directement à un thème</label>
+                <label className="text-[var(--text-muted)] text-sm mb-2 block">Attacher directement à un thème</label>
                 <select
                   value={selectedLeafTheme}
                   onChange={e => setSelectedLeafTheme(e.target.value)}
-                  className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[var(--border-focus)] transition-colors mb-3"
+                  className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[var(--border-focus)] transition-colors mb-3"
                 >
                   {leafThemes.map(t => (
                     <option key={t.id} value={t.id}>{t.name}</option>
@@ -419,13 +419,13 @@ function CreatePageInner() {
   )
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] text-white px-6 py-10">
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] px-6 py-10">
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <button onClick={() => {
             if (existingDeckId) router.push(`/decks/${deckId}`)
             else { setDirectThemeId(''); setStep('deck') }
-          }} className="text-gray-400 hover:text-white transition-colors">← Retour</button>
+          }} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">← Retour</button>
           <h1 className="text-lg font-bold">{deckName ? `"${deckName}"` : 'Ajouter des cartes'}</h1>
           <div className="w-16" />
         </div>
@@ -433,15 +433,15 @@ function CreatePageInner() {
         {/* Mode tabs */}
         <div className="flex gap-1 mb-8 bg-[var(--bg-surface)] p-1 rounded-xl">
           <button onClick={() => setMode('manual')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-[var(--accent)] text-white' : 'text-gray-400 hover:text-white'}`}>
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
             Saisie manuelle
           </button>
           <button onClick={() => setMode('ai')}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'ai' ? 'bg-[var(--accent)] text-white' : 'text-gray-400 hover:text-white'}`}>
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'ai' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
             Générer avec Claude
           </button>
           <button onClick={() => { setMode('wikipedia'); setWikiStep('search') }}
-            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'wikipedia' ? 'bg-[var(--accent)] text-white' : 'text-gray-400 hover:text-white'}`}>
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'wikipedia' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
             Wikipedia
           </button>
         </div>
@@ -453,24 +453,24 @@ function CreatePageInner() {
               {cards.map((card, idx) => (
                 <div key={idx} className="bg-[var(--bg-surface)] rounded-2xl p-6 border border-[var(--border-default)]">
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-gray-400 text-sm font-medium">Carte {idx + 1}</span>
+                    <span className="text-[var(--text-muted)] text-sm font-medium">Carte {idx + 1}</span>
                     {cards.length > 1 && (
                       <button onClick={() => removeCard(idx)} className="text-red-400 hover:text-red-300 text-sm transition-colors">Supprimer</button>
                     )}
                   </div>
                   <div className="space-y-3">
                     <input value={card.question} onChange={e => updateCard(idx, 'question', e.target.value)}
-                      placeholder="Question..." className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
+                      placeholder="Question..." className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
                     <input value={card.answer} onChange={e => updateCard(idx, 'answer', e.target.value)}
-                      placeholder="Réponse..." className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
+                      placeholder="Réponse..." className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
                     <input value={card.explanation} onChange={e => updateCard(idx, 'explanation', e.target.value)}
-                      placeholder="Explication (optionnel)..." className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
+                      placeholder="Explication (optionnel)..." className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
                   </div>
                 </div>
               ))}
             </div>
             <div className="flex gap-4">
-              <button onClick={addCard} className="flex-1 border border-[var(--border-default)] hover:border-[var(--accent)] rounded-xl py-3 text-gray-400 hover:text-white transition-colors">
+              <button onClick={addCard} className="flex-1 border border-[var(--border-default)] hover:border-[var(--accent)] rounded-xl py-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
                 + Ajouter une carte
               </button>
               <button onClick={() => saveCards(cards)} disabled={!cards.some(c => c.question && c.answer) || loading}
@@ -487,7 +487,7 @@ function CreatePageInner() {
             {aiCards.length === 0 ? (
               <div className="space-y-4">
                 <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Option 1 — Uploadez un PDF</label>
+                  <label className="text-[var(--text-muted)] text-sm mb-2 block">Option 1 — Uploadez un PDF</label>
                   <label
                     className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
                       dragOver ? 'border-[var(--accent)] bg-[var(--accent-subtle)]/20' : 'border-[var(--border-default)] hover:border-[var(--border-focus)]/50'
@@ -500,20 +500,20 @@ function CreatePageInner() {
                     {extracting ? (
                       <div className="text-center">
                         <div className="text-2xl mb-2">⏳</div>
-                        <p className="text-gray-400 text-sm">Extraction du texte en cours...</p>
+                        <p className="text-[var(--text-muted)] text-sm">Extraction du texte en cours...</p>
                       </div>
                     ) : pdfName ? (
                       <div className="text-center">
                         <div className="text-2xl mb-2">{generating ? '🧠' : '📄'}</div>
-                        <p className="text-white text-sm font-medium">{pdfName}</p>
-                        <p className="text-gray-500 text-xs mt-1">
+                        <p className="text-[var(--text-primary)] text-sm font-medium">{pdfName}</p>
+                        <p className="text-[var(--text-muted)] text-xs mt-1">
                           {generating ? 'Claude génère les cartes...' : `Texte extrait (${aiText.length} caractères)`}
                         </p>
                       </div>
                     ) : (
                       <div className="text-center">
                         <div className="text-2xl mb-2">📎</div>
-                        <p className="text-gray-400 text-sm">Glissez un PDF ici ou cliquez pour choisir</p>
+                        <p className="text-[var(--text-muted)] text-sm">Glissez un PDF ici ou cliquez pour choisir</p>
                       </div>
                     )}
                   </label>
@@ -521,16 +521,16 @@ function CreatePageInner() {
 
                 <div className="flex items-center gap-3">
                   <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
-                  <span className="text-gray-600 text-xs">ou</span>
+                  <span className="text-[var(--text-muted)] text-xs">ou</span>
                   <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
                 </div>
 
                 <div>
-                  <label className="text-gray-400 text-sm mb-2 block">Option 2 — Collez votre texte</label>
+                  <label className="text-[var(--text-muted)] text-sm mb-2 block">Option 2 — Collez votre texte</label>
                   <textarea value={aiText} onChange={e => { setAiText(e.target.value); setPdfName('') }}
                     placeholder="Collez ici votre texte, vos notes, un résumé, un term-sheet..." rows={8}
-                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
-                  <p className="text-gray-600 text-xs mt-1">{aiText.length} caractères</p>
+                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
+                  <p className="text-[var(--text-muted)] text-xs mt-1">{aiText.length} caractères</p>
                 </div>
 
                 {aiError && <p className="text-red-400 text-sm">{aiError}</p>}
@@ -559,16 +559,16 @@ function CreatePageInner() {
             {wikiStep === 'search' && (
               <div>
                 <div className="relative mb-4">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 text-lg select-none">🔍</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-lg select-none">🔍</span>
                   <input
                     value={wikiQuery}
                     onChange={e => setWikiQuery(e.target.value)}
                     placeholder="Rechercher un article Wikipedia..."
-                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl pl-11 pr-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
+                    className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl pl-11 pr-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
                     autoFocus
                   />
                   {wikiSearchLoading && (
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 text-xs animate-pulse">Recherche...</span>
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs animate-pulse">Recherche...</span>
                   )}
                 </div>
 
@@ -577,7 +577,7 @@ function CreatePageInner() {
                 {wikiArticleLoading && (
                   <div className="text-center py-12">
                     <div className="text-3xl mb-3 animate-pulse">🌐</div>
-                    <p className="text-gray-400">Chargement de l'article...</p>
+                    <p className="text-[var(--text-muted)]">Chargement de l'article...</p>
                   </div>
                 )}
 
@@ -592,8 +592,8 @@ function CreatePageInner() {
                         <div className="flex items-start gap-3">
                           <span className="shrink-0 w-6 h-6 mt-0.5 flex items-center justify-center rounded bg-black text-white text-xs font-bold font-serif">W</span>
                           <div className="min-w-0">
-                            <p className="text-white font-medium text-sm group-hover:text-[var(--accent-light)] transition-colors truncate">{title}</p>
-                            {desc && <p className="text-gray-500 text-xs mt-0.5 line-clamp-2">{desc}</p>}
+                            <p className="text-[var(--text-primary)] font-medium text-sm group-hover:text-[var(--accent-light)] transition-colors truncate">{title}</p>
+                            {desc && <p className="text-[var(--text-muted)] text-xs mt-0.5 line-clamp-2">{desc}</p>}
                           </div>
                         </div>
                       </button>
@@ -602,13 +602,13 @@ function CreatePageInner() {
                 )}
 
                 {!wikiArticleLoading && wikiQuery.length >= 2 && !wikiSearchLoading && wikiResults.length === 0 && (
-                  <p className="text-gray-500 text-sm text-center py-8">Aucun résultat pour « {wikiQuery} »</p>
+                  <p className="text-[var(--text-muted)] text-sm text-center py-8">Aucun résultat pour « {wikiQuery} »</p>
                 )}
 
                 {wikiQuery.length === 0 && (
                   <div className="text-center py-12">
                     <div className="text-4xl mb-3">🌐</div>
-                    <p className="text-gray-500 text-sm">Recherchez n'importe quel sujet sur Wikipedia<br />pour générer des flashcards automatiquement.</p>
+                    <p className="text-[var(--text-muted)] text-sm">Recherchez n'importe quel sujet sur Wikipedia<br />pour générer des flashcards automatiquement.</p>
                   </div>
                 )}
               </div>
@@ -618,19 +618,19 @@ function CreatePageInner() {
             {wikiStep === 'article' && (
               <div className="flex flex-col" style={{ height: 'calc(100vh - 210px)' }}>
                 <div className="flex items-center gap-3 mb-4 shrink-0">
-                  <button onClick={() => setWikiStep('search')} className="text-gray-400 hover:text-white transition-colors text-sm shrink-0">← Retour</button>
+                  <button onClick={() => setWikiStep('search')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-sm shrink-0">← Retour</button>
                   <h2 className="text-base font-bold truncate flex-1">{wikiTitle}</h2>
                 </div>
 
                 <div className="flex-1 overflow-y-auto bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-6 mb-3">
-                  <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-wrap">{wikiSummary}</p>
+                  <p className="text-[var(--text-secondary)] text-sm leading-relaxed whitespace-pre-wrap">{wikiSummary}</p>
                 </div>
 
                 <a
                   href={`https://fr.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block text-center text-[var(--accent-light)] hover:text-white text-xs mb-3 transition-colors"
+                  className="block text-center text-[var(--accent-light)] hover:text-[var(--text-primary)] text-xs mb-3 transition-colors"
                 >
                   Voir l'article complet sur Wikipedia →
                 </a>
@@ -648,23 +648,23 @@ function CreatePageInner() {
             {wikiStep === 'params' && (
               <div className="space-y-5">
                 <div className="flex items-center gap-4">
-                  <button onClick={() => setWikiStep('article')} className="text-gray-400 hover:text-white transition-colors text-sm shrink-0">← Retour</button>
+                  <button onClick={() => setWikiStep('article')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-sm shrink-0">← Retour</button>
                   <h2 className="text-base font-bold">Paramètres de génération</h2>
                 </div>
 
                 <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5">
-                  <label className="text-gray-400 text-sm mb-2 block">Nom du deck</label>
+                  <label className="text-[var(--text-muted)] text-sm mb-2 block">Nom du deck</label>
                   <input
                     value={wikiDeckName}
                     onChange={e => setWikiDeckName(e.target.value)}
                     placeholder="Nom du deck..."
-                    className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-white placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
+                    className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
                   />
                 </div>
 
                 <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5">
-                  <label className="text-gray-400 text-sm mb-4 block">
-                    Nombre maximum de cartes : <span className="text-white font-bold">{wikiMaxCards}</span>
+                  <label className="text-[var(--text-muted)] text-sm mb-4 block">
+                    Nombre maximum de cartes : <span className="text-[var(--text-primary)] font-bold">{wikiMaxCards}</span>
                   </label>
                   <input
                     type="range"
@@ -674,15 +674,15 @@ function CreatePageInner() {
                     onChange={e => setWikiMaxCards(Number(e.target.value))}
                     className="w-full accent-[#4338CA]"
                   />
-                  <div className="flex justify-between text-xs text-gray-600 mt-1">
+                  <div className="flex justify-between text-xs text-[var(--text-muted)] mt-1">
                     <span>5</span>
                     <span>50</span>
                   </div>
                 </div>
 
                 <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5">
-                  <label className="text-gray-400 text-sm mb-3 block">
-                    Priorités <span className="text-gray-600">(optionnel)</span>
+                  <label className="text-[var(--text-muted)] text-sm mb-3 block">
+                    Priorités <span className="text-[var(--text-muted)]">(optionnel)</span>
                   </label>
                   <div className="grid grid-cols-2 gap-2">
                     {WIKI_PRIORITIES.map(p => (
@@ -692,7 +692,7 @@ function CreatePageInner() {
                         className={`text-left px-3 py-2 rounded-xl text-sm border transition-colors ${
                           wikiPriorities.has(p)
                             ? 'bg-[var(--accent)]/30 border-[var(--accent)] text-[var(--accent-light)]'
-                            : 'border-[var(--border-default)] text-gray-400 hover:border-[var(--border-focus)]/40 hover:text-white'
+                            : 'border-[var(--border-default)] text-[var(--text-muted)] hover:border-[var(--border-focus)]/40 hover:text-[var(--text-primary)]'
                         }`}
                       >
                         {p}
@@ -717,9 +717,9 @@ function CreatePageInner() {
             {wikiStep === 'cards' && (
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <button onClick={() => setWikiStep('params')} className="text-gray-400 hover:text-white transition-colors text-sm">← Retour</button>
-                  <p className="text-gray-400 text-sm">{aiCards.length} cartes générées</p>
-                  <button onClick={() => { setAiCards([]); setWikiStep('search') }} className="text-gray-500 hover:text-white text-sm transition-colors">Recommencer</button>
+                  <button onClick={() => setWikiStep('params')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-sm">← Retour</button>
+                  <p className="text-[var(--text-muted)] text-sm">{aiCards.length} cartes générées</p>
+                  <button onClick={() => { setAiCards([]); setWikiStep('search') }} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm transition-colors">Recommencer</button>
                 </div>
 
                 <div className="space-y-4 mb-6">
@@ -728,25 +728,25 @@ function CreatePageInner() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="flex items-center gap-2">
                           {card.theme && <span className="text-xs px-2 py-1 bg-[var(--accent-subtle)]/30 text-[var(--accent-light)] rounded-full">{card.theme}</span>}
-                          <span className="text-xs text-gray-500">Difficulté {card.difficulty}/5</span>
+                          <span className="text-xs text-[var(--text-muted)]">Difficulté {card.difficulty}/5</span>
                         </div>
                         <button onClick={() => removeAiCard(idx)} className="text-red-400 hover:text-red-300 text-sm transition-colors">Supprimer</button>
                       </div>
                       <div className="space-y-2">
                         <div>
-                          <label className="text-gray-500 text-xs mb-1 block">Question</label>
+                          <label className="text-[var(--text-muted)] text-xs mb-1 block">Question</label>
                           <textarea value={card.q || ''} onChange={e => updateAiCard(idx, 'q', e.target.value)} rows={2}
-                            className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
+                            className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
                         </div>
                         <div>
-                          <label className="text-gray-500 text-xs mb-1 block">Réponse</label>
+                          <label className="text-[var(--text-muted)] text-xs mb-1 block">Réponse</label>
                           <textarea value={card.a || ''} onChange={e => updateAiCard(idx, 'a', e.target.value)} rows={2}
                             className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-[var(--accent-light)] text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
                         </div>
                         <div>
-                          <label className="text-gray-500 text-xs mb-1 block">Explication (optionnel)</label>
+                          <label className="text-[var(--text-muted)] text-xs mb-1 block">Explication (optionnel)</label>
                           <textarea value={card.expl || ''} onChange={e => updateAiCard(idx, 'expl', e.target.value)} rows={1}
-                            className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-gray-500 text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
+                            className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-[var(--text-muted)] text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
                         </div>
                       </div>
                     </div>
@@ -784,8 +784,8 @@ function AiCardsReview({
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-gray-400 text-sm">{aiCards.length} cartes générées — modifiez avant d'importer</p>
-        <button onClick={onReset} className="text-gray-500 hover:text-white text-sm transition-colors">Recommencer</button>
+        <p className="text-[var(--text-muted)] text-sm">{aiCards.length} cartes générées — modifiez avant d'importer</p>
+        <button onClick={onReset} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm transition-colors">Recommencer</button>
       </div>
       <div className="space-y-4 mb-6">
         {aiCards.map((card, idx) => (
@@ -793,25 +793,25 @@ function AiCardsReview({
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
                 {card.theme && <span className="text-xs px-2 py-1 bg-[var(--accent-subtle)]/30 text-[var(--accent-light)] rounded-full">{card.theme}</span>}
-                <span className="text-xs text-gray-500">Difficulté {card.difficulty}/5</span>
+                <span className="text-xs text-[var(--text-muted)]">Difficulté {card.difficulty}/5</span>
               </div>
               <button onClick={() => onRemove(idx)} className="text-red-400 hover:text-red-300 text-sm transition-colors">Supprimer</button>
             </div>
             <div className="space-y-2">
               <div>
-                <label className="text-gray-500 text-xs mb-1 block">Question</label>
+                <label className="text-[var(--text-muted)] text-xs mb-1 block">Question</label>
                 <textarea value={card.q || ''} onChange={e => onUpdate(idx, 'q', e.target.value)} rows={2}
-                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-[var(--text-primary)] text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
               </div>
               <div>
-                <label className="text-gray-500 text-xs mb-1 block">Réponse</label>
+                <label className="text-[var(--text-muted)] text-xs mb-1 block">Réponse</label>
                 <textarea value={card.a || ''} onChange={e => onUpdate(idx, 'a', e.target.value)} rows={2}
                   className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-[var(--accent-light)] text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
               </div>
               <div>
-                <label className="text-gray-500 text-xs mb-1 block">Explication (optionnel)</label>
+                <label className="text-[var(--text-muted)] text-xs mb-1 block">Explication (optionnel)</label>
                 <textarea value={card.expl || ''} onChange={e => onUpdate(idx, 'expl', e.target.value)} rows={1}
-                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-gray-500 text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-2 text-[var(--text-muted)] text-sm focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
               </div>
             </div>
           </div>

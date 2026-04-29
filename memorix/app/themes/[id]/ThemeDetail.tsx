@@ -59,11 +59,11 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
   }
 
   return (
-    <div className="min-h-screen bg-[var(--bg-base)] text-white pb-20">
+    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] pb-20">
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[var(--bg-base)]/95 backdrop-blur-md border-b border-[var(--border-default)] px-4 py-4">
         <div className="flex items-center gap-3">
-          <Link href="/decks" className="text-gray-400 hover:text-white flex-shrink-0">
+          <Link href="/decks" className="text-[var(--text-muted)] hover:text-[var(--text-primary)] flex-shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m7-7l-7 7 7 7" />
             </svg>
@@ -98,7 +98,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
           ) : (
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="text-gray-500 hover:text-red-400 transition-colors"
+              className="text-[var(--text-muted)] hover:text-red-400 transition-colors"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -126,15 +126,15 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
         <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <div className="text-2xl font-bold" style={{ color }}>{decks.length}</div>
-            <div className="text-gray-400 text-xs mt-0.5">Decks</div>
+            <div className="text-[var(--text-muted)] text-xs mt-0.5">Decks</div>
           </div>
           <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <div className="text-2xl font-bold" style={{ color }}>{totalCards}</div>
-            <div className="text-gray-400 text-xs mt-0.5">Cartes</div>
+            <div className="text-[var(--text-muted)] text-xs mt-0.5">Cartes</div>
           </div>
           <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <div className="text-2xl font-bold" style={{ color }}>{totalDue}</div>
-            <div className="text-gray-400 text-xs mt-0.5">À réviser</div>
+            <div className="text-[var(--text-muted)] text-xs mt-0.5">À réviser</div>
           </div>
         </div>
 
@@ -152,7 +152,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
               </Link>
               <Link
                 href={`/review/theme/${theme.id}?mode=free`}
-                className="flex items-center justify-center gap-3 w-full border border-[var(--border-default)] hover:border-[var(--accent)] rounded-2xl p-3 text-gray-400 hover:text-white text-sm font-medium transition-colors"
+                className="flex items-center justify-center gap-3 w-full border border-[var(--border-default)] hover:border-[var(--accent)] rounded-2xl p-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm font-medium transition-colors"
               >
                 Tout réviser ({totalCards} {pluralCard(totalCards)})
               </Link>
@@ -174,10 +174,10 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
 
         {/* Decks list */}
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Decks ({decks.length})</h2>
+          <h2 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider">Decks ({decks.length})</h2>
           {decks.length === 0 ? (
             <div className="bg-[var(--bg-surface)] rounded-2xl p-8 text-center border border-[var(--border-default)]">
-              <p className="text-gray-500 text-sm mb-3">Aucun deck dans ce thème</p>
+              <p className="text-[var(--text-muted)] text-sm mb-3">Aucun deck dans ce thème</p>
               <Link href={`/create?themeId=${theme.id}`} className="text-[var(--accent)] hover:text-[var(--accent-light)] text-sm">+ Créer un deck</Link>
             </div>
           ) : (
@@ -194,7 +194,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
                   <span className="text-2xl">{deck.icon || '📚'}</span>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">{deck.name}</p>
-                    <p className="text-xs text-gray-500">{deck.card_count} {pluralCard(deck.card_count)} · {retention}% rétention</p>
+                    <p className="text-xs text-[var(--text-muted)]">{deck.card_count} {pluralCard(deck.card_count)} · {retention}% rétention</p>
                   </div>
                   {deck.due_count > 0 && (
                     <span className="bg-[var(--accent)] text-white text-xs font-bold rounded-full px-2 py-0.5">{deck.due_count}</span>
@@ -211,7 +211,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
           <div className="bg-[var(--bg-surface)] rounded-t-3xl sm:rounded-2xl p-6 w-full max-w-sm border border-red-500/30">
             <h2 className="text-lg font-bold mb-2">Supprimer &quot;{name}&quot; ?</h2>
-            <p className="text-gray-400 text-sm mb-4">Ce thème contient {decks.length} deck{decks.length !== 1 ? 's' : ''}.</p>
+            <p className="text-[var(--text-muted)] text-sm mb-4">Ce thème contient {decks.length} deck{decks.length !== 1 ? 's' : ''}.</p>
             <div className="space-y-2 mb-5">
               <label className="flex items-center gap-3 p-3 rounded-xl border border-[var(--border-default)] cursor-pointer hover:border-[#475569]">
                 <input

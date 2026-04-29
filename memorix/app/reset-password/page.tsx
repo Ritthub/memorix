@@ -44,30 +44,30 @@ export default function ResetPasswordPage() {
 
   if (!ready) {
     return (
-      <div className="min-h-screen bg-[#0F172A] flex items-center justify-center">
-        <div className="text-gray-400">…</div>
+      <div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center">
+        <div className="text-[var(--text-muted)]">…</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0F172A] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-[var(--bg-base)] flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        <div className="bg-[#1E293B] border border-[#334155] rounded-2xl p-8">
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-2xl p-8">
           <h1 className="text-xl font-bold mb-1">Nouveau mot de passe</h1>
-          <p className="text-gray-400 text-sm mb-6">
+          <p className="text-[var(--text-muted)] text-sm mb-6">
             Choisis un nouveau mot de passe pour ton compte.
           </p>
 
           {done ? (
             <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-5 text-center">
               <p className="text-green-400 font-medium mb-1">Mot de passe mis à jour</p>
-              <p className="text-gray-400 text-sm">Tu vas être redirigé…</p>
+              <p className="text-[var(--text-muted)] text-sm">Tu vas être redirigé…</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="text-gray-400 text-sm mb-1.5 block">Nouveau mot de passe</label>
+                <label className="text-[var(--text-muted)] text-sm mb-1.5 block">Nouveau mot de passe</label>
                 <input
                   type="password"
                   value={password}
@@ -76,11 +76,11 @@ export default function ResetPasswordPage() {
                   required
                   autoFocus
                   autoComplete="new-password"
-                  className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors"
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
                 />
               </div>
               <div>
-                <label className="text-gray-400 text-sm mb-1.5 block">Confirmer le mot de passe</label>
+                <label className="text-[var(--text-muted)] text-sm mb-1.5 block">Confirmer le mot de passe</label>
                 <input
                   type="password"
                   value={confirm}
@@ -88,7 +88,7 @@ export default function ResetPasswordPage() {
                   placeholder="••••••••"
                   required
                   autoComplete="new-password"
-                  className="w-full bg-[#0F172A] border border-[#334155] rounded-xl px-4 py-3 text-white placeholder-gray-600 focus:outline-none focus:border-[#818CF8] transition-colors"
+                  className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
                 />
               </div>
               {error && (
@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#4338CA] hover:bg-[#3730A3] disabled:opacity-40 text-white rounded-xl py-3 font-medium transition-colors"
+                className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-[var(--text-primary)] rounded-xl py-3 font-medium transition-colors"
               >
                 {loading ? '…' : 'Enregistrer le mot de passe'}
               </button>
