@@ -66,7 +66,7 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
   // IC-8: use router.push instead of <a href> for soft navigation
   const handleStart = () => {
     if (allSelected || selected.size === 0) {
-      router.push('/review')
+      router.push('/review/all')
       return
     }
     const themeIds = [...selected].filter(id => id !== 'none')
@@ -89,7 +89,7 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
   if (themes.length === 0) {
     return (
       <button
-        onClick={() => router.push('/review')}
+        onClick={() => router.push('/review/all')}
         className="flex items-center justify-center gap-3 w-full bg-gradient-to-r from-[#4338CA] to-[#7C6FCD] hover:from-[#3730A3] hover:to-[#4338CA] rounded-2xl p-5 font-bold mb-8 transition-all shadow-lg shadow-[#4338CA]/25 text-lg"
       >
         <span className="text-2xl">⚡</span>
@@ -104,7 +104,7 @@ export default function ReviewSelector({ dueCount, themes, themeDueCounts, noThe
       <div className="flex gap-3 mb-8">
         {/* IC-8: was <a href="/review">, now button+router */}
         <button
-          onClick={() => router.push('/review')}
+          onClick={() => router.push('/review/all')}
           className="flex-1 flex items-center justify-center gap-2 bg-gradient-to-r from-[#4338CA] to-[#7C6FCD] hover:from-[#3730A3] hover:to-[#4338CA] rounded-2xl p-4 font-bold transition-all shadow-lg shadow-[#4338CA]/25"
         >
           <span>⚡</span>
