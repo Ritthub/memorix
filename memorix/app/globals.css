@@ -70,6 +70,62 @@ body {
   background: #E0DED8;
 }
 
+/* Review cards v2 */
+.review-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255,255,255,0.08);
+  border: 0.5px solid rgba(255,255,255,0.15);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  margin-bottom: 20px;
+}
+
+.review-answer {
+  background: linear-gradient(135deg, #818CF8 0%, #06B6D4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  text-align: center;
+  white-space: pre-wrap;
+}
+
+.review-archive {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin: 0 0 8px;
+  transition: opacity 0.15s;
+}
+
+[data-theme="linen"] .review-badge {
+  background: rgba(0,0,0,0.04);
+  border-color: rgba(0,0,0,0.08);
+}
+
+[data-theme="linen"] .review-answer {
+  background: linear-gradient(135deg, #3D5A9A 0%, #0D9488 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+[data-theme="linen"] .review-archive {
+  background: rgba(0,0,0,0.03);
+  border-color: rgba(0,0,0,0.06);
+}
+
 @keyframes confetti-fall {
   0% {
     transform: translateY(-10px) translateX(0) rotate(0deg);

@@ -265,9 +265,20 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
                   </span>
                 </div>
               )}
-              {card.theme && <span className="text-xs text-[var(--accent-light)] font-medium uppercase tracking-widest opacity-70">{card.theme}</span>}
-              <p className="text-xl font-semibold text-center leading-relaxed">{card.question}</p>
-              {!flipped && <p className="text-[var(--text-muted)] text-sm mt-2">Appuyer pour révéler</p>}
+              <div className="review-badge" style={{ color: 'var(--accent-light)' }}>
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                  <rect x="1" y="1" width="10" height="10" rx="2" stroke="currentColor" strokeWidth="1.2"/>
+                  <path d="M4.5 4.5c0-1 1.5-1.5 1.5 0s-1.5 1-1.5 1.5M6 8v.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                </svg>
+                QUESTION
+              </div>
+              <p className="text-[28px] sm:text-[32px]" style={{ fontWeight: 700, color: '#FFFFFF', lineHeight: 1.25, letterSpacing: '-0.02em', textAlign: 'center' }}>{card.question}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
+                <div style={{ flex: 1, height: '0.5px', background: 'rgba(255,255,255,0.1)' }} />
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="var(--accent-light)"><path d="M6 0l1.5 4.5L12 6l-4.5 1.5L6 12l-1.5-4.5L0 6l4.5-1.5z"/></svg>
+                <div style={{ flex: 1, height: '0.5px', background: 'rgba(255,255,255,0.1)' }} />
+              </div>
+              {!flipped && <p style={{ fontSize: 15, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>Touchez pour révéler</p>}
             </div>
             {!questionAtBottom && (
               <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#1E293B] to-transparent pointer-events-none" />
@@ -282,7 +293,10 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
               className="flex-1 min-h-0 relative overflow-y-auto bg-[#0F0F1F] rounded-3xl border border-[var(--border-default)]"
             >
               <div className="min-h-full p-8 flex flex-col items-center justify-center gap-3 text-center">
-                <p className="text-lg text-center leading-relaxed whitespace-pre-wrap">{card.answer}</p>
+                <div className="review-badge" style={{ color: '#5DCAA5' }}>
+                  RÉPONSE
+                </div>
+                <p className="review-answer text-[28px] sm:text-[32px]">{card.answer}</p>
                 {card.explanation && <p className="text-sm text-[var(--text-muted)] text-center mt-2 italic">{card.explanation}</p>}
               </div>
               {!answerAtBottom && (
@@ -296,33 +310,51 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
 
       {/* Rating or reveal */}
       {flipped ? (
-        <div className="px-6 py-4 border-t border-[var(--border-default)]">
+        <div className="px-6 pb-2 pt-3 border-t border-[var(--border-default)]">
           <div className="max-w-lg mx-auto grid grid-cols-3 gap-3">
-            {([
-              { label: 'Non',        rating: 1, color: 'bg-[var(--btn-non-bg)] hover:brightness-110 border-[var(--btn-non-border)] text-[var(--btn-non-text)]' },
-              { label: 'Hésitation', rating: 2, color: 'bg-[var(--btn-hes-bg)] hover:brightness-110 border-[var(--accent)] text-[var(--accent-light)]' },
-              { label: 'Oui',        rating: 3, color: 'bg-[var(--btn-oui-bg)] hover:brightness-110 border-[var(--btn-oui-border)] text-[var(--btn-oui-text)]' },
-            ] as const).map(b => (
-              <button key={b.label} onClick={() => handleRating(b.rating)} disabled={isSaving}
-                className={`${b.color} border rounded-2xl py-4 font-semibold text-sm transition-all active:scale-95 disabled:opacity-50 min-h-[64px]`}>
-                {b.label}
-              </button>
-            ))}
+            <button onClick={() => handleRating(1)} disabled={isSaving}
+              style={{ background: 'var(--btn-non-bg)', borderRadius: 16, padding: '14px 8px', textAlign: 'center', border: '0.5px solid rgba(153,60,29,0.4)', minHeight: 80 }}
+              className="transition-all active:scale-95 disabled:opacity-50 hover:brightness-110">
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(153,60,29,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 2l10 10M12 2L2 12" stroke="#FCA5A5" strokeWidth="1.8" strokeLinecap="round"/></svg>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--btn-non-text)' }}>Non</div>
+              <div style={{ fontSize: 11, color: 'rgba(252,165,165,0.6)', marginTop: 2 }}>Je ne savais pas</div>
+              <div style={{ marginTop: 6, display: 'inline-block', background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: '2px 8px', fontSize: 11, color: 'rgba(252,165,165,0.5)' }}>1</div>
+            </button>
+            <button onClick={() => handleRating(2)} disabled={isSaving}
+              style={{ background: 'var(--btn-hes-bg)', borderRadius: 16, padding: '14px 8px', textAlign: 'center', border: '0.5px solid rgba(67,56,202,0.4)', minHeight: 80 }}
+              className="transition-all active:scale-95 disabled:opacity-50 hover:brightness-110">
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(67,56,202,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5.5" stroke="#818CF8" strokeWidth="1.2"/><path d="M7 4.5c0-.8 1.2-1.2 1.2 0s-1.2.8-1.2 1.2M7 9v.5" stroke="#818CF8" strokeWidth="1.2" strokeLinecap="round"/></svg>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--btn-hes-text)' }}>Hésitation</div>
+              <div style={{ fontSize: 11, color: 'rgba(129,140,248,0.6)', marginTop: 2 }}>Avec effort</div>
+              <div style={{ marginTop: 6, display: 'inline-block', background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: '2px 8px', fontSize: 11, color: 'rgba(129,140,248,0.5)' }}>2</div>
+            </button>
+            <button onClick={() => handleRating(3)} disabled={isSaving}
+              style={{ background: 'var(--btn-oui-bg)', borderRadius: 16, padding: '14px 8px', textAlign: 'center', border: '0.5px solid rgba(15,110,86,0.4)', minHeight: 80 }}
+              className="transition-all active:scale-95 disabled:opacity-50 hover:brightness-110">
+              <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'rgba(15,110,86,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 8px' }}>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 7l3 3 5-5" stroke="#6EE7B7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </div>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--btn-oui-text)' }}>Oui</div>
+              <div style={{ fontSize: 11, color: 'rgba(110,231,183,0.6)', marginTop: 2 }}>Je savais</div>
+              <div style={{ marginTop: 6, display: 'inline-block', background: 'rgba(0,0,0,0.2)', borderRadius: 6, padding: '2px 8px', fontSize: 11, color: 'rgba(110,231,183,0.5)' }}>3</div>
+            </button>
           </div>
 
-          <div className="max-w-lg mx-auto mt-3 border-t border-[var(--border-default)] pt-3">
+          <div className="max-w-lg mx-auto mt-3">
             {!showArchiveConfirm ? (
-              <button onClick={handleArchiveRequest}
-                className="w-full h-10 flex items-center justify-center gap-2 text-[var(--text-muted)] border border-[var(--border-default)]/50 rounded-xl text-sm hover:border-[var(--border-focus)] hover:text-[var(--text-secondary)] transition-colors">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                  <path d="M21 8v13H3V8" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M1 3h22v5H1z" strokeLinecap="round" strokeLinejoin="round"/>
-                  <path d="M10 12h4" strokeLinecap="round"/>
-                </svg>
-                Archiver cette carte
+              <button onClick={handleArchiveRequest} className="review-archive w-full">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="4" width="12" height="9" rx="1.5" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2"/><path d="M5 4V2.5a2 2 0 014 0V4" stroke="rgba(255,255,255,0.3)" strokeWidth="1.2"/></svg>
+                  <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>Archiver cette carte</span>
+                </div>
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M5 3l4 4-4 4" stroke="rgba(255,255,255,0.2)" strokeWidth="1.2" strokeLinecap="round"/></svg>
               </button>
             ) : (
-              <div className="bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl p-3 flex items-center gap-2">
+              <div className="bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl p-3 flex items-center gap-2 mb-2">
                 <span className="text-[var(--text-secondary)] flex-1 text-xs leading-snug">Cette carte disparaîtra des révisions. Récupérable 30 jours.</span>
                 <button onClick={handleArchiveCancel} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs px-2 py-1 rounded flex-shrink-0">Annuler</button>
                 <button onClick={handleArchiveConfirm} className="bg-[var(--bg-elevated)] hover:bg-[#475569] text-[var(--text-primary)] text-xs px-3 py-1 rounded flex-shrink-0">Archiver</button>
@@ -330,7 +362,9 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
             )}
           </div>
 
-          <p className="text-center text-[var(--text-secondary)] text-xs mt-2">← Non · Hésitation · Oui →</p>
+          <p className="text-center" style={{ fontSize: 12, color: 'rgba(255,255,255,0.2)', paddingBottom: 8 }}>
+            Espace = retourner · 1 Non · 2 Hésitation · 3 Oui
+          </p>
         </div>
       ) : (
         <div className="px-6 py-4 border-t border-[var(--border-default)]">
