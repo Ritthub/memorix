@@ -4,9 +4,9 @@ export function buildSession(dueCards: Card[]): Card[] {
   const shuffled = shuffle(dueCards)
   if (shuffled.length <= 5) return shuffled
 
-  // deck_id > theme_id > theme tag — évite de confondre decks différents partageant un tag texte
+  // theme_id > deck_id — priorité au thème direct, fallback deck pour les cartes non migrées
   function getGroupKey(c: Card): string {
-    return c.deck_id || c.theme_id || c.theme || 'unknown'
+    return c.theme_id || c.deck_id || 'unknown'
   }
 
   const result: Card[] = []

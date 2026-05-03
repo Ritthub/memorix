@@ -99,20 +99,14 @@ export function useReviewSession({
       const ids = await loadDeckIds(user.id)
       if (ids.length === 0) { setIsLoading(false); return }
 
-      function deduplicateById<T extends { id: string }>(rows: T[]): T[] {
-        const seen = new Set<string>()
-        return rows.filter(r => { if (seen.has(r.id)) return false; seen.add(r.id); return true })
-      }
-
       if (isFreeMode) {
-        // Load non-archived cards by deck_id OR theme_id (for direct theme cards)
-        const [{ data: byDeck }, { data: byTheme }] = await Promise.all([
-          supabase.from('cards').select('*, decks(name, theme_id, themes(name, color)), themes(name, color)').in('deck_id', ids).or('archived.is.null,archived.eq.false'),
-          supabase.from('cards').select('*, decks(name, theme_id, themes(name, color)), themes(name, color)').in('theme_id', ids).is('deck_id', null).or('archived.is.null,archived.eq.false'),
-        ])
-        const allCards = deduplicateById([...(byDeck || []), ...(byTheme || [])])
+        const { data: allCards } = await supabase
+          .from('cards')
+          .select('*, decks(name, theme_id, themes(name, color)), themes(name, color)')
+          .or(`deck_id.in.(${ids.join(',')}),theme_id.in.(${ids.join(',')})`)
+          .or('archived.is.null,archived.eq.false')
 
-        if (!allCards.length) { setIsLoading(false); return }
+        if (!allCards?.length) { setIsLoading(false); return }
 
         const cardIds = allCards.map((c: { id: string }) => c.id)
         const { data: existingReviews } = await supabase
@@ -148,28 +142,25 @@ export function useReviewSession({
           .map(c => ({ ...c, review: reviewMap.get(c.id)! }))
         setCards([...readyCards].sort(() => Math.random() - 0.5))
       } else {
-        // Normal mode: only due cards — query by deck_id AND theme_id, dedup
+        // Normal mode: fetch all due reviews for user, filter client-side by deck/theme
         const now = new Date().toISOString()
         type DueRow = { cards: (Card & { deck_id: string | null; theme_id: string | null }) | null } & CardReview
-        const [{ data: byDeck }, { data: byTheme }] = await Promise.all([
-          supabase.from('card_reviews')
-            .select('*, cards!inner(*, decks(name, theme_id, themes(name, color)), themes(name, color))')
-            .eq('user_id', user.id)
-            .lte('scheduled_at', now)
-            .in('cards.deck_id', ids),
-          supabase.from('card_reviews')
-            .select('*, cards!inner(*, decks(name, theme_id, themes(name, color)), themes(name, color))')
-            .eq('user_id', user.id)
-            .lte('scheduled_at', now)
-            .in('cards.theme_id', ids),
-        ])
-        const dueReviews = deduplicateById([...(byDeck || []), ...(byTheme || [])])
+        const { data: allDue } = await supabase
+          .from('card_reviews')
+          .select('*, cards!inner(*, decks(name, theme_id, themes(name, color)), themes(name, color))')
+          .eq('user_id', user.id)
+          .lte('scheduled_at', now)
+
+        const dueReviews = ((allDue || []) as DueRow[]).filter(r => {
+          const card = r.cards
+          if (!card || card.archived) return false
+          return (card.deck_id != null && ids.includes(card.deck_id)) ||
+                 (card.theme_id != null && ids.includes(card.theme_id))
+        })
 
         if (!dueReviews.length) { setIsLoading(false); return }
 
-        const rows = dueReviews as DueRow[]
-        const cardsWithReviews = rows
-          .filter(r => r.cards && !r.cards.archived)
+        const cardsWithReviews = dueReviews
           .map(r => ({ ...r.cards!, review: r as CardReview }))
 
         setCards(buildSession(cardsWithReviews as Card[]))

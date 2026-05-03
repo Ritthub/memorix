@@ -36,7 +36,7 @@ export type Deck = {
 
 export type Card = {
   id: string
-  deck_id: string
+  deck_id?: string | null
   theme_id?: string | null
   question: string
   answer: string
