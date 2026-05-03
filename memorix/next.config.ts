@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
       },
       {
         source: '/decks',
-        destination: '/',
+        destination: '/library',
         permanent: false,
       },
     ]

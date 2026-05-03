@@ -115,7 +115,7 @@ export default function AllReviewPage() {
             </div>
           )}
           <div className="flex gap-4">
-            <button onClick={() => router.push('/decks')}
+            <button onClick={() => router.push('/library')}
               className="flex-1 border rounded-xl py-3 transition-all duration-150"
               style={{ borderColor: 'var(--border-default)', color: 'var(--text-secondary)' }}>
               Bibliothèque

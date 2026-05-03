@@ -13,6 +13,15 @@ const TABS = [
     ),
   },
   {
+    href: '/library',
+    label: 'Biblio',
+    icon: (active: boolean) => (
+      <svg width="22" height="22" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8 3H5a2 2 0 00-2 2v14a2 2 0 002 2h3M16 3h3a2 2 0 012 2v14a2 2 0 01-2 2h-3M8 3v18M16 3v18" />
+      </svg>
+    ),
+  },
+  {
     href: '/review',
     label: 'Réviser',
     icon: (active: boolean) => (
@@ -56,8 +65,8 @@ export default function MobileNav() {
         {TABS.map(tab => {
           const active =
           pathname === tab.href ||
-          (tab.href === '/dashboard' && (pathname.startsWith('/decks') || pathname.startsWith('/themes'))) ||
-          (tab.href !== '/dashboard' && pathname.startsWith(tab.href))
+          (tab.href === '/library' && pathname.startsWith('/themes')) ||
+          (tab.href !== '/dashboard' && tab.href !== '/library' && pathname.startsWith(tab.href))
           return (
             <Link
               key={tab.href}

@@ -115,7 +115,7 @@ function CustomReviewInner() {
               className="flex-1 border border-[var(--border-default)] hover:border-[var(--accent)] rounded-xl py-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
               Dashboard
             </button>
-            <button onClick={() => router.push('/decks')}
+            <button onClick={() => router.push('/library')}
               className="flex-1 bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl py-3 font-medium transition-colors">
               Bibliothèque
             </button>

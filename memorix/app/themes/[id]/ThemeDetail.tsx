@@ -55,7 +55,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
       await supabase.from('decks').update({ theme_id: null }).eq('theme_id', theme.id)
     }
     await supabase.from('themes').delete().eq('id', theme.id)
-    router.push('/decks')
+    router.push('/library')
   }
 
   return (
@@ -63,7 +63,7 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
       {/* Header */}
       <header className="sticky top-0 z-30 bg-[var(--bg-base)]/95 backdrop-blur-md border-b border-[var(--border-default)] px-4 py-4">
         <div className="flex items-center gap-3">
-          <Link href="/decks" className="text-[var(--text-muted)] hover:text-[var(--text-primary)] flex-shrink-0">
+          <Link href="/library" className="text-[var(--text-muted)] hover:text-[var(--text-primary)] flex-shrink-0">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 12H5m7-7l-7 7 7 7" />
             </svg>

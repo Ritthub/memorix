@@ -22,7 +22,7 @@ export default async function ThemePage({ params }: { params: Promise<{ id: stri
     supabase.from('card_reviews').select('cards(deck_id)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
   ])
 
-  if (!theme) redirect('/decks')
+  if (!theme) redirect('/library')
 
   const deckDueMap = new Map<string, number>()
   for (const r of deckDueCards || []) {

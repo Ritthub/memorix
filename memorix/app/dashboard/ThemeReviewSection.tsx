@@ -121,7 +121,7 @@ export default function ThemeReviewSection({ themes }: { themes: ThemeItem[] }) 
     <div className="mb-8">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-[#94A3B8] uppercase tracking-wide">Réviser par thème</h3>
-        <Link href="/decks" className="text-xs text-[var(--accent)] hover:text-[var(--accent-light)] transition-colors">
+        <Link href="/library" className="text-xs text-[var(--accent)] hover:text-[var(--accent-light)] transition-colors">
           Voir tout →
         </Link>
       </div>
