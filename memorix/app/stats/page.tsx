@@ -36,7 +36,7 @@ export default async function StatsPage() {
       .order('reviewed_at', { ascending: false }),
 
     supabase.from('card_reviews')
-      .select('card_id, rating, cards!inner(question, deck_id, decks(name))')
+      .select('card_id, rating, cards!inner(question, theme_id, themes(name, color))')
       .eq('user_id', user.id)
       .not('reviewed_at', 'is', null)
       .or('archived.is.null,archived.eq.false', { foreignTable: 'cards' }),
@@ -73,8 +73,8 @@ export default async function StatsPage() {
       card_id: id,
       failRate: Math.round(v.fails / v.total * 100),
       question: (v.card?.question as string) || '—',
-      deck_id: (v.card?.deck_id as string | null) || null,
-      deck_name: (v.card?.decks?.name as string | null) || null,
+      theme_id: (v.card?.theme_id as string | null) || null,
+      theme_name: (v.card?.themes?.name as string | null) || null,
       total: v.total,
     }))
     .sort((a, b) => b.failRate - a.failRate)

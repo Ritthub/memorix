@@ -20,8 +20,8 @@ type HardCard = {
   card_id: string
   failRate: number
   question: string
-  deck_id: string | null
-  deck_name: string | null
+  theme_id: string | null
+  theme_name: string | null
   total: number
 }
 
@@ -454,11 +454,11 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
                         <span className="text-xs text-[#94A3B8] truncate flex-1 leading-tight">
                           {hc.question.length > 42 ? hc.question.slice(0, 42) + '…' : hc.question}
                         </span>
-                        {hc.deck_id && (
+                        {hc.theme_id && (
                           <Link
-                            href={`/decks/${hc.deck_id}`}
+                            href={`/themes/${hc.theme_id}`}
                             className="text-[10px] text-[var(--accent)] hover:text-[var(--accent-light)] flex-shrink-0 transition-colors"
-                            title={hc.deck_name || undefined}
+                            title={hc.theme_name || undefined}
                           >
                             →
                           </Link>

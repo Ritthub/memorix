@@ -4,6 +4,25 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  async redirects() {
+    return [
+      {
+        source: '/review/:deckId',
+        destination: '/review/all',
+        permanent: false,
+      },
+      {
+        source: '/decks/:id',
+        destination: '/themes/:id',
+        permanent: false,
+      },
+      {
+        source: '/decks',
+        destination: '/',
+        permanent: false,
+      },
+    ]
+  },
 }
 
 export default nextConfig

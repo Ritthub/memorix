@@ -4,7 +4,7 @@ import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import Toast from './Toast'
 
-const LAST_DEST_KEY = 'memorix_last_deck'
+const LAST_DEST_KEY = 'memorix_last_theme'
 const HIDDEN_PREFIXES = ['/login', '/onboarding', '/auth', '/review/']
 
 type DestOption = { value: string; label: string; name: string }

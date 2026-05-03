@@ -15,23 +15,19 @@ const WIKI_PRIORITIES = [
 function CreatePageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const existingDeckId = searchParams.get('deckId')
-  const themeId = searchParams.get('themeId')
+  const themeIdParam = searchParams.get('themeId')
   const supabase = createClient()
 
-  const [step, setStep] = useState<'deck' | 'cards'>(existingDeckId ? 'cards' : 'deck')
   const [mode, setMode] = useState<'manual' | 'ai' | 'wikipedia'>('manual')
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [extracting, setExtracting] = useState(false)
   const [dragOver, setDragOver] = useState(false)
   const [pdfName, setPdfName] = useState('')
-  const [deckId, setDeckId] = useState(existingDeckId || '')
-  const [deckName, setDeckName] = useState('')
-  const [deck, setDeck] = useState({ name: '', description: '', icon: '📚', color: '#4338CA' })
-  const [directThemeId, setDirectThemeId] = useState('')
-  const [selectedLeafTheme, setSelectedLeafTheme] = useState('')
-  const [leafThemes, setLeafThemes] = useState<Array<{ id: string; name: string; color: string }>>([])
+  const [selectedThemeId, setSelectedThemeId] = useState(themeIdParam || '')
+  const [themes, setThemes] = useState<Array<{ id: string; name: string; color: string; parent_id?: string | null }>>([])
+  // kept for deckName display in header
+  const [deckName] = useState('')
 
   const [cards, setCards] = useState([{ question: '', answer: '', explanation: '' }])
   const [aiText, setAiText] = useState('')
@@ -54,29 +50,14 @@ function CreatePageInner() {
   const icons = ['📚', '💼', '🧠', '🌍', '⚖️', '💊', '🏛️', '🔬', '💰', '🎯']
 
   useEffect(() => {
-    async function fetchDeck() {
-      if (!existingDeckId) return
-      const { data } = await supabase.from('decks').select('name').eq('id', existingDeckId).single()
-      if (data) setDeckName(data.name)
-    }
-    fetchDeck()
-  }, [existingDeckId])
-
-  useEffect(() => {
-    async function loadLeafThemes() {
+    async function loadThemes() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const [{ data: themesData }, { data: decksData }] = await Promise.all([
-        supabase.from('themes').select('id, name, color, parent_id').eq('user_id', user.id),
-        supabase.from('decks').select('id, theme_id').eq('user_id', user.id),
-      ])
-      const parentIds = new Set((themesData || []).filter((t: any) => t.parent_id).map((t: any) => t.parent_id))
-      const themesWithDecks = new Set((decksData || []).map((d: any) => d.theme_id).filter(Boolean))
-      const leaves = (themesData || []).filter((t: any) => !parentIds.has(t.id) && !themesWithDecks.has(t.id))
-      setLeafThemes(leaves)
-      if (leaves.length > 0) setSelectedLeafTheme(leaves[0].id)
+      const { data } = await supabase.from('themes').select('id, name, color, parent_id').eq('user_id', user.id).order('name')
+      setThemes(data || [])
+      if (!themeIdParam && data && data.length > 0) setSelectedThemeId(data[0].id)
     }
-    loadLeafThemes()
+    loadThemes()
   }, [])
 
   // Wikipedia search debounce
@@ -173,23 +154,14 @@ function CreatePageInner() {
   }
 
   async function saveWikiCards() {
-    if (loading) return
+    if (loading || !selectedThemeId) return
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
 
-    const { data: newDeck, error: deckError } = await supabase
-      .from('decks')
-      .insert({ name: wikiDeckName || wikiTitle, description: 'Importé depuis Wikipedia', icon: '🌍', color: '#4338CA', user_id: user.id, ...(themeId ? { theme_id: themeId } : {}) })
-      .select()
-      .single()
-    if (deckError || !newDeck) { setLoading(false); return }
-
-    const targetDeckId = newDeck.id
-
     const { data: insertedCards, error } = await supabase.from('cards').insert(
       aiCards.map(c => ({
-        deck_id: targetDeckId,
+        theme_id: selectedThemeId,
         question: c.q,
         answer: c.a,
         explanation: c.expl || null,
@@ -209,7 +181,7 @@ function CreatePageInner() {
           scheduled_at: new Date().toISOString(),
         }))
       )
-      router.push(`/decks/${targetDeckId}`)
+      router.push(`/themes/${selectedThemeId}`)
     }
     setLoading(false)
   }
@@ -244,15 +216,6 @@ function CreatePageInner() {
     await handleFile(e.dataTransfer.files[0])
   }
 
-  async function createDeck() {
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setLoading(false); return }
-    const { data, error } = await supabase.from('decks').insert({ ...deck, user_id: user.id, ...(themeId ? { theme_id: themeId } : {}) }).select().single()
-    if (!error && data) { setDeckId(data.id); setStep('cards') }
-    setLoading(false)
-  }
-
   async function generateCardsFromText(text: string) {
     if (!text || text.length < 50) return
     setGenerating(true)
@@ -282,17 +245,14 @@ function CreatePageInner() {
   }
 
   async function saveCards(cardsToSave: any[]) {
-    if (loading) return
+    if (loading || !selectedThemeId) return
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setLoading(false); return }
 
-    const targetThemeId = directThemeId
-    const targetDeckId = deckId
-
     const { data: insertedCards, error } = await supabase.from('cards').insert(
       cardsToSave.map(c => ({
-        ...(targetThemeId ? { theme_id: targetThemeId } : { deck_id: targetDeckId }),
+        theme_id: selectedThemeId,
         question: c.question || c.q,
         answer: c.answer || c.a,
         explanation: c.explanation || c.expl || null,
@@ -312,7 +272,7 @@ function CreatePageInner() {
           scheduled_at: new Date().toISOString(),
         }))
       )
-      router.push(targetThemeId ? `/themes/${targetThemeId}` : `/decks/${targetDeckId}`)
+      router.push(`/themes/${selectedThemeId}`)
     }
     setLoading(false)
   }
@@ -330,105 +290,29 @@ function CreatePageInner() {
   function enterWikiMode() {
     setMode('wikipedia')
     setWikiStep('search')
-    setStep('cards')
   }
-
-  if (step === 'deck') return (
-    <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] px-6 py-10">
-      <div className="max-w-lg mx-auto">
-        <button onClick={() => router.push('/dashboard')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] mb-8 block transition-colors">← Retour</button>
-        <h1 className="text-3xl font-bold mb-8">Nouveau deck</h1>
-        <div className="space-y-6">
-          <div>
-            <label className="text-[var(--text-muted)] text-sm mb-2 block">Nom du deck</label>
-            <input value={deck.name} onChange={e => setDeck({ ...deck, name: e.target.value })}
-              placeholder="Ex: Term-sheet ISAI, Espagnol B2..."
-              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
-          </div>
-          <div>
-            <label className="text-[var(--text-muted)] text-sm mb-2 block">Description (optionnel)</label>
-            <textarea value={deck.description} onChange={e => setDeck({ ...deck, description: e.target.value })}
-              placeholder="Décrivez le contenu de ce deck..." rows={3}
-              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none" />
-          </div>
-          <div>
-            <label className="text-[var(--text-muted)] text-sm mb-2 block">Icône</label>
-            <div className="flex gap-3 flex-wrap">
-              {icons.map(icon => (
-                <button key={icon} onClick={() => setDeck({ ...deck, icon })}
-                  className={`text-2xl p-2 rounded-xl transition-colors ${deck.icon === icon ? 'bg-[var(--accent)]' : 'bg-[var(--bg-surface)] hover:bg-[var(--accent)]/30'}`}>
-                  {icon}
-                </button>
-              ))}
-            </div>
-          </div>
-          <button onClick={createDeck} disabled={!deck.name || loading}
-            className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 rounded-xl py-3 font-medium transition-colors">
-            {loading ? 'Création...' : 'Créer le deck →'}
-          </button>
-
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
-            <span className="text-[var(--text-muted)] text-xs">ou</span>
-            <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
-          </div>
-
-          <button onClick={enterWikiMode}
-            className="w-full border border-[var(--border-default)] hover:border-[var(--border-focus)]/50 rounded-xl py-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors text-sm">
-            🌐 Importer depuis Wikipedia →
-          </button>
-
-          {leafThemes.length > 0 && (
-            <>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
-                <span className="text-[var(--text-muted)] text-xs">ou</span>
-                <div className="flex-1 h-px bg-[var(--accent-subtle)]/30" />
-              </div>
-
-              <div>
-                <label className="text-[var(--text-muted)] text-sm mb-2 block">Attacher directement à un thème</label>
-                <select
-                  value={selectedLeafTheme}
-                  onChange={e => setSelectedLeafTheme(e.target.value)}
-                  className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[var(--border-focus)] transition-colors mb-3"
-                >
-                  {leafThemes.map(t => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => {
-                    const theme = leafThemes.find(t => t.id === selectedLeafTheme)
-                    if (!theme) return
-                    setDirectThemeId(selectedLeafTheme)
-                    setDeckName(theme.name)
-                    setStep('cards')
-                  }}
-                  disabled={!selectedLeafTheme}
-                  className="w-full border border-[var(--accent)]/50 hover:border-[var(--border-focus)] hover:bg-[var(--accent-subtle)]/20 disabled:opacity-40 rounded-xl py-3 text-[var(--accent-light)] transition-colors text-sm"
-                >
-                  📝 Ajouter des cartes directement →
-                </button>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
-  )
 
   return (
     <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] px-6 py-10">
       <div className="max-w-2xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <button onClick={() => {
-            if (existingDeckId) router.push(`/decks/${deckId}`)
-            else { setDirectThemeId(''); setStep('deck') }
-          }} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">← Retour</button>
-          <h1 className="text-lg font-bold">{deckName ? `"${deckName}"` : 'Ajouter des cartes'}</h1>
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={() => router.push('/dashboard')} className="text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">← Retour</button>
+          <h1 className="text-lg font-bold">{deckName || 'Ajouter des cartes'}</h1>
           <div className="w-16" />
         </div>
+
+        {/* Theme selector */}
+        {themes.length > 0 && (
+          <select
+            value={selectedThemeId}
+            onChange={e => setSelectedThemeId(e.target.value)}
+            className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[var(--border-focus)] transition-colors mb-6"
+          >
+            {themes.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        )}
 
         {/* Mode tabs */}
         <div className="flex gap-1 mb-8 bg-[var(--bg-surface)] p-1 rounded-xl">
@@ -440,7 +324,7 @@ function CreatePageInner() {
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'ai' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
             Générer avec Claude
           </button>
-          <button onClick={() => { setMode('wikipedia'); setWikiStep('search') }}
+          <button onClick={enterWikiMode}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'wikipedia' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
             Wikipedia
           </button>
@@ -653,16 +537,6 @@ function CreatePageInner() {
                 </div>
 
                 <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5">
-                  <label className="text-[var(--text-muted)] text-sm mb-2 block">Nom du deck</label>
-                  <input
-                    value={wikiDeckName}
-                    onChange={e => setWikiDeckName(e.target.value)}
-                    placeholder="Nom du deck..."
-                    className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
-                  />
-                </div>
-
-                <div className="bg-[var(--bg-surface)] rounded-2xl border border-[var(--border-default)] p-5">
                   <label className="text-[var(--text-muted)] text-sm mb-4 block">
                     Nombre maximum de cartes : <span className="text-[var(--text-primary)] font-bold">{wikiMaxCards}</span>
                   </label>
@@ -705,7 +579,7 @@ function CreatePageInner() {
 
                 <button
                   onClick={generateFromWiki}
-                  disabled={generating || !wikiDeckName.trim()}
+                  disabled={generating}
                   className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 rounded-xl py-3 font-medium transition-colors"
                 >
                   {generating ? 'Claude génère vos flashcards...' : 'Générer avec Claude →'}
@@ -760,7 +634,7 @@ function CreatePageInner() {
                 >
                   {loading
                     ? '⏳ Import en cours...'
-                    : `Importer ${aiCards.length} carte${aiCards.length > 1 ? 's' : ''} et créer le deck « ${wikiDeckName} »`}
+                    : `Importer ${aiCards.length} carte${aiCards.length > 1 ? 's' : ''} dans le thème sélectionné`}
                 </button>
               </div>
             )}
