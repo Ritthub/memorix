@@ -21,7 +21,7 @@ import { CSS } from '@dnd-kit/utilities'
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type TreeNode = Theme & { children: TreeNode[]; depth: number }
-type CardItem = { id: string; question: string; answer: string }
+type CardItem = { id: string; question: string; answer: string; explanation?: string | null }
 
 export interface TreeLibraryProps {
   initialThemes: Theme[]
@@ -50,8 +50,8 @@ interface Ctx {
   loadingThemes: Set<string>
   expandedThemes: Set<string>
   onToggleTheme: (id: string) => void
-  onAddThemeCard: (themeId: string, q: string, a: string) => Promise<void>
-  onEditThemeCard: (cardId: string, themeId: string, q: string, a: string) => Promise<void>
+  onAddThemeCard: (themeId: string, q: string, a: string, expl?: string) => Promise<void>
+  onEditThemeCard: (cardId: string, themeId: string, q: string, a: string, expl?: string) => Promise<void>
   onDeleteThemeCard: (cardId: string, themeId: string) => Promise<void>
   onMoveCard: (cardId: string, fromThemeId: string, toThemeId: string) => Promise<void>
   themesById: Map<string, Theme>
@@ -130,8 +130,10 @@ function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: stri
   const [isEditing, setIsEditing] = useState(false)
   const [editQ, setEditQ] = useState('')
   const [editA, setEditA] = useState('')
+  const [editExpl, setEditExpl] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
   const editARef = useRef<HTMLInputElement>(null)
+  const editExplRef = useRef<HTMLInputElement>(null)
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
@@ -144,16 +146,18 @@ function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: stri
     setIsEditing(true)
     setEditQ(card.question)
     setEditA(card.answer)
+    setEditExpl(card.explanation || '')
   }
 
-  function cancelEdit() { setIsEditing(false); setEditQ(''); setEditA('') }
+  function cancelEdit() { setIsEditing(false); setEditQ(''); setEditA(''); setEditExpl('') }
 
   async function commitEdit() {
     if (!editQ.trim() && !editA.trim()) { cancelEdit(); return }
     const q = editQ.trim() || '…'
     const a = editA.trim() || '…'
+    const expl = editExpl.trim() || undefined
     cancelEdit()
-    await onEditThemeCard(card.id, themeId, q, a)
+    await onEditThemeCard(card.id, themeId, q, a, expl)
   }
 
   function startDelete() {
@@ -172,26 +176,38 @@ function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: stri
   return (
     <div ref={setNodeRef} style={{ opacity: isDragging ? 0.25 : 1 }}>
       {isEditing ? (
-        <div className="flex items-center gap-1.5 py-0.5 pr-2" style={{ paddingLeft: pl }}>
+        <div className="flex flex-col gap-0.5 py-0.5 pr-2" style={{ paddingLeft: pl }}>
+          <div className="flex items-center gap-1.5">
+            <input
+              autoFocus value={editQ} onChange={e => setEditQ(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Tab') { e.preventDefault(); editARef.current?.focus() }
+                if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
+              }}
+              className="flex-1 bg-transparent text-xs text-[var(--text-secondary)] outline-none border-b border-[var(--border-focus)] py-0.5 min-w-0"
+              style={{ maxWidth: '50%' }}
+            />
+            <span className="text-xs text-[var(--text-hint)] flex-shrink-0">·</span>
+            <input
+              ref={editARef} value={editA} onChange={e => setEditA(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Tab') { e.preventDefault(); editExplRef.current?.focus() }
+                if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
+                if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
+              }}
+              className="flex-1 bg-transparent text-xs text-[var(--text-muted)] outline-none border-b border-[var(--border-focus)] py-0.5 min-w-0"
+              style={{ maxWidth: '35%' }}
+            />
+          </div>
           <input
-            autoFocus value={editQ} onChange={e => setEditQ(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Tab') { e.preventDefault(); editARef.current?.focus() }
-              if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
-            }}
-            className="flex-1 bg-transparent text-xs text-[var(--text-secondary)] outline-none border-b border-[var(--border-focus)] py-0.5 min-w-0"
-            style={{ maxWidth: '50%' }}
-          />
-          <span className="text-xs text-[var(--text-hint)] flex-shrink-0">·</span>
-          <input
-            ref={editARef} value={editA} onChange={e => setEditA(e.target.value)}
+            ref={editExplRef} value={editExpl} onChange={e => setEditExpl(e.target.value)}
             onKeyDown={e => {
               if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
               if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
             }}
             onBlur={commitEdit}
-            className="flex-1 bg-transparent text-xs text-[var(--text-muted)] outline-none border-b border-[var(--border-focus)] py-0.5 min-w-0"
-            style={{ maxWidth: '35%' }}
+            placeholder="Explication (optionnel)…"
+            className="w-full bg-transparent text-xs text-[var(--text-hint)] italic outline-none border-b border-[var(--border-focus)]/50 py-0.5 placeholder-[var(--border-default)]"
           />
         </div>
       ) : (
@@ -199,39 +215,46 @@ function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: stri
            accidental drags on button clicks */
         <div
           {...listeners}
-          className="flex items-center gap-1.5 py-0.5 pr-2 group/card rounded hover:bg-[var(--bg-elevated)]/20 transition-colors cursor-grab active:cursor-grabbing select-none"
+          className="flex flex-col py-0.5 pr-2 group/card rounded hover:bg-[var(--bg-elevated)]/20 transition-colors cursor-grab active:cursor-grabbing select-none"
           style={{ paddingLeft: pl }}
         >
-          {/* 6-dot grip — always subtly visible, brighter on hover */}
-          <svg
-            width="6" height="10" viewBox="0 0 6 10" fill="currentColor"
-            className="flex-shrink-0 text-[var(--text-hint)] opacity-25 group-hover/card:opacity-70 transition-opacity pointer-events-none"
-          >
-            <circle cx="1.5" cy="1.5" r="1"/><circle cx="4.5" cy="1.5" r="1"/>
-            <circle cx="1.5" cy="5" r="1"/>  <circle cx="4.5" cy="5" r="1"/>
-            <circle cx="1.5" cy="8.5" r="1"/><circle cx="4.5" cy="8.5" r="1"/>
-          </svg>
-          <span className="text-xs text-[var(--text-secondary)] truncate" style={{ maxWidth: '50%' }} title={card.question}>
-            {card.question}
-          </span>
-          <span className="text-xs text-[var(--text-hint)] flex-shrink-0">·</span>
-          <span className="text-xs text-[var(--text-muted)] truncate" style={{ maxWidth: '35%' }} title={card.answer}>
-            {card.answer}
-          </span>
-          <div className="ml-auto flex items-center gap-0 opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0">
-            <button
-              onClick={startEdit}
-              onPointerDown={e => e.stopPropagation()}
-              className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-[var(--accent-light)] rounded text-xs transition-colors cursor-pointer" title="Modifier">
-              ✏
-            </button>
-            <button
-              onClick={startDelete}
-              onPointerDown={e => e.stopPropagation()}
-              className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-red-400 rounded text-xs transition-colors cursor-pointer" title="Supprimer">
-              ✕
-            </button>
+          <div className="flex items-center gap-1.5">
+            {/* 6-dot grip — always subtly visible, brighter on hover */}
+            <svg
+              width="6" height="10" viewBox="0 0 6 10" fill="currentColor"
+              className="flex-shrink-0 text-[var(--text-hint)] opacity-25 group-hover/card:opacity-70 transition-opacity pointer-events-none"
+            >
+              <circle cx="1.5" cy="1.5" r="1"/><circle cx="4.5" cy="1.5" r="1"/>
+              <circle cx="1.5" cy="5" r="1"/>  <circle cx="4.5" cy="5" r="1"/>
+              <circle cx="1.5" cy="8.5" r="1"/><circle cx="4.5" cy="8.5" r="1"/>
+            </svg>
+            <span className="text-xs text-[var(--text-secondary)] truncate" style={{ maxWidth: '50%' }} title={card.question}>
+              {card.question}
+            </span>
+            <span className="text-xs text-[var(--text-hint)] flex-shrink-0">·</span>
+            <span className="text-xs text-[var(--text-muted)] truncate" style={{ maxWidth: '35%' }} title={card.answer}>
+              {card.answer}
+            </span>
+            <div className="ml-auto flex items-center gap-0 opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0">
+              <button
+                onClick={startEdit}
+                onPointerDown={e => e.stopPropagation()}
+                className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-[var(--accent-light)] rounded text-xs transition-colors cursor-pointer" title="Modifier">
+                ✏
+              </button>
+              <button
+                onClick={startDelete}
+                onPointerDown={e => e.stopPropagation()}
+                className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-red-400 rounded text-xs transition-colors cursor-pointer" title="Supprimer">
+                ✕
+              </button>
+            </div>
           </div>
+          {card.explanation && (
+            <p className="text-[10px] text-[var(--text-hint)] italic truncate pl-3.5 -mt-0.5" title={card.explanation}>
+              {card.explanation}
+            </p>
+          )}
         </div>
       )}
 
@@ -259,12 +282,14 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
 
   const [newQ, setNewQ] = useState('')
   const [newA, setNewA] = useState('')
+  const [newExpl, setNewExpl] = useState('')
   const [savedFlash, setSavedFlash] = useState(false)
   const [addSaving, setAddSaving] = useState(false)
   const [addError, setAddError] = useState('')
 
   const qRef = useRef<HTMLInputElement>(null)
   const aRef = useRef<HTMLInputElement>(null)
+  const explRef = useRef<HTMLInputElement>(null)
 
   const isLoading = loadingThemes.has(themeId)
   const cards = themeCards.get(themeId)
@@ -275,9 +300,10 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
     setAddSaving(true)
     setAddError('')
     try {
-      await onAddThemeCard(themeId, newQ.trim(), newA.trim())
+      await onAddThemeCard(themeId, newQ.trim(), newA.trim(), newExpl.trim() || undefined)
       setNewQ('')
       setNewA('')
+      setNewExpl('')
       setSavedFlash(true)
       setTimeout(() => setSavedFlash(false), 1000)
       qRef.current?.focus()
@@ -310,26 +336,36 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
       ))}
 
       {/* Inline add form */}
-      <div className="flex items-center gap-1.5 py-1 pr-2 border-b border-[var(--border-subtle)]" style={{ paddingLeft: pl }}>
-        <input ref={qRef} value={newQ} onChange={e => { setNewQ(e.target.value); setAddError('') }}
-          onKeyDown={e => { if (e.key === 'Tab') { e.preventDefault(); aRef.current?.focus() } }}
-          placeholder="Question…"
-          className="flex-1 bg-transparent text-xs text-[var(--text-secondary)] placeholder-[var(--border-default)] outline-none border-b border-transparent focus:border-[var(--border-focus)] py-0.5 min-w-0 transition-colors"
-          style={{ maxWidth: '45%' }}
-        />
-        <input ref={aRef} value={newA} onChange={e => { setNewA(e.target.value); setAddError('') }}
+      <div className="py-1 pr-2 border-b border-[var(--border-subtle)]" style={{ paddingLeft: pl }}>
+        <div className="flex items-center gap-1.5">
+          <input ref={qRef} value={newQ} onChange={e => { setNewQ(e.target.value); setAddError('') }}
+            onKeyDown={e => { if (e.key === 'Tab') { e.preventDefault(); aRef.current?.focus() } }}
+            placeholder="Question…"
+            className="flex-1 bg-transparent text-xs text-[var(--text-secondary)] placeholder-[var(--border-default)] outline-none border-b border-transparent focus:border-[var(--border-focus)] py-0.5 min-w-0 transition-colors"
+            style={{ maxWidth: '45%' }}
+          />
+          <input ref={aRef} value={newA} onChange={e => { setNewA(e.target.value); setAddError('') }}
+            onKeyDown={e => {
+              if (e.key === 'Tab') { e.preventDefault(); explRef.current?.focus() }
+              if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAdd() }
+            }}
+            placeholder="Réponse…"
+            className="flex-1 bg-transparent text-xs text-[var(--text-muted)] placeholder-[var(--border-default)] outline-none border-b border-transparent focus:border-[var(--border-focus)] py-0.5 min-w-0 transition-colors"
+            style={{ maxWidth: '45%' }}
+          />
+          {savedFlash && <span className="text-green-400 text-xs flex-shrink-0">✓</span>}
+          {addSaving && <span className="text-[var(--text-muted)] text-xs flex-shrink-0 animate-pulse">…</span>}
+          <button onClick={handleAdd} disabled={!newQ.trim() || !newA.trim() || addSaving}
+            className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-white text-xs leading-none transition-colors"
+            title="Ajouter">
+            +
+          </button>
+        </div>
+        <input ref={explRef} value={newExpl} onChange={e => setNewExpl(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleAdd() } }}
-          placeholder="Réponse…"
-          className="flex-1 bg-transparent text-xs text-[var(--text-muted)] placeholder-[var(--border-default)] outline-none border-b border-transparent focus:border-[var(--border-focus)] py-0.5 min-w-0 transition-colors"
-          style={{ maxWidth: '45%' }}
+          placeholder="Explication (optionnel)…"
+          className="w-full bg-transparent text-xs text-[var(--text-hint)] italic placeholder-[var(--border-default)] outline-none border-b border-transparent focus:border-[var(--border-focus)]/50 py-0.5 transition-colors mt-0.5"
         />
-        {savedFlash && <span className="text-green-400 text-xs flex-shrink-0">✓</span>}
-        {addSaving && <span className="text-[var(--text-muted)] text-xs flex-shrink-0 animate-pulse">…</span>}
-        <button onClick={handleAdd} disabled={!newQ.trim() || !newA.trim() || addSaving}
-          className="w-5 h-5 flex-shrink-0 flex items-center justify-center rounded-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 text-white text-xs leading-none transition-colors"
-          title="Ajouter">
-          +
-        </button>
       </div>
       {addError && (
         <p className="text-red-400 text-xs py-1 pr-2" style={{ paddingLeft: pl }}>
@@ -672,12 +708,12 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
     setLoadingThemes(prev => { const next = new Set(prev); next.add(themeId); return next })
     const { data } = await supabase
       .from('cards')
-      .select('id, question, answer')
+      .select('id, question, answer, explanation')
       .eq('theme_id', themeId)
       .or('archived.is.null,archived.eq.false')
       .order('created_at', { ascending: false })
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const items: CardItem[] = (data || []).map((c: any) => ({ id: c.id, question: c.question, answer: c.answer }))
+    const items: CardItem[] = (data || []).map((c: any) => ({ id: c.id, question: c.question, answer: c.answer, explanation: c.explanation ?? null }))
     setThemeCards(prev => new Map(prev).set(themeId, items))
     setLoadingThemes(prev => { const next = new Set(prev); next.delete(themeId); return next })
   }, [supabase])
@@ -695,10 +731,10 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
     }
   }, [expandedThemes, themeCards, loadThemeCards])
 
-  const onAddThemeCard = useCallback(async (themeId: string, q: string, a: string) => {
+  const onAddThemeCard = useCallback(async (themeId: string, q: string, a: string, expl?: string) => {
     const { data: card, error } = await supabase
       .from('cards')
-      .insert({ theme_id: themeId, deck_id: null, question: q, answer: a, difficulty: 1, created_by_ai: false, user_edited: false })
+      .insert({ theme_id: themeId, deck_id: null, question: q, answer: a, explanation: expl || null, difficulty: 1, created_by_ai: false, user_edited: false })
       .select('id')
       .single()
     if (error) {
@@ -713,16 +749,17 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
     if (reviewError) console.error('card_reviews insert error:', reviewError)
     setThemeCards(prev => {
       const existing = prev.get(themeId) || []
-      return new Map(prev).set(themeId, [{ id: card.id, question: q, answer: a }, ...existing])
+      return new Map(prev).set(themeId, [{ id: card.id, question: q, answer: a, explanation: expl || null }, ...existing])
     })
   }, [supabase, userId])
 
-  const onEditThemeCard = useCallback(async (cardId: string, themeId: string, q: string, a: string) => {
+  const onEditThemeCard = useCallback(async (cardId: string, themeId: string, q: string, a: string, expl?: string) => {
+    const explanation = expl !== undefined ? (expl || null) : undefined
     setThemeCards(prev => {
       const cards = prev.get(themeId) || []
-      return new Map(prev).set(themeId, cards.map(c => c.id === cardId ? { ...c, question: q, answer: a } : c))
+      return new Map(prev).set(themeId, cards.map(c => c.id === cardId ? { ...c, question: q, answer: a, explanation: explanation ?? c.explanation } : c))
     })
-    await supabase.from('cards').update({ question: q, answer: a, user_edited: true }).eq('id', cardId)
+    await supabase.from('cards').update({ question: q, answer: a, explanation: expl || null, user_edited: true }).eq('id', cardId)
   }, [supabase])
 
   const onDeleteThemeCard = useCallback(async (cardId: string, themeId: string) => {
