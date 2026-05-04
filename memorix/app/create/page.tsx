@@ -30,6 +30,8 @@ function CreatePageInner() {
   const [showCreateTheme, setShowCreateTheme] = useState(false)
   const [newThemeName, setNewThemeName] = useState('')
   const [creatingTheme, setCreatingTheme] = useState(false)
+  const [createThemeError, setCreateThemeError] = useState('')
+  const [saveError, setSaveError] = useState('')
   // kept for deckName display in header
   const [deckName] = useState('')
 
@@ -159,10 +161,19 @@ function CreatePageInner() {
   }
 
   async function saveWikiCards() {
-    if (loading || !selectedThemeId) return
+    if (loading) return
+    if (!selectedThemeId) {
+      setSaveError('Sélectionnez ou créez un thème avant d\'importer.')
+      return
+    }
+    setSaveError('')
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setLoading(false); return }
+    if (!user) {
+      setSaveError('Session expirée — rechargez la page.')
+      setLoading(false)
+      return
+    }
 
     const { data: insertedCards, error } = await supabase.from('cards').insert(
       aiCards.map(c => ({
@@ -177,7 +188,14 @@ function CreatePageInner() {
       }))
     ).select('id')
 
-    if (!error && insertedCards && insertedCards.length > 0) {
+    if (error) {
+      console.error('saveWikiCards error:', error)
+      setSaveError(error.message || 'Erreur lors de l\'import')
+      setLoading(false)
+      return
+    }
+
+    if (insertedCards && insertedCards.length > 0) {
       await supabase.from('card_reviews').insert(
         insertedCards.map((card: { id: string }) => ({
           card_id: card.id,
@@ -250,10 +268,19 @@ function CreatePageInner() {
   }
 
   async function saveCards(cardsToSave: any[]) {
-    if (loading || !selectedThemeId) return
+    if (loading) return
+    if (!selectedThemeId) {
+      setSaveError('Sélectionnez ou créez un thème avant de sauvegarder.')
+      return
+    }
+    setSaveError('')
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setLoading(false); return }
+    if (!user) {
+      setSaveError('Session expirée — rechargez la page.')
+      setLoading(false)
+      return
+    }
 
     const { data: insertedCards, error } = await supabase.from('cards').insert(
       cardsToSave.map(c => ({
@@ -268,7 +295,14 @@ function CreatePageInner() {
       }))
     ).select('id')
 
-    if (!error && insertedCards && insertedCards.length > 0) {
+    if (error) {
+      console.error('saveCards error:', error)
+      setSaveError(error.message || 'Erreur lors de la sauvegarde')
+      setLoading(false)
+      return
+    }
+
+    if (insertedCards && insertedCards.length > 0) {
       await supabase.from('card_reviews').insert(
         insertedCards.map((card: { id: string }) => ({
           card_id: card.id,
@@ -309,7 +343,12 @@ function CreatePageInner() {
   }
 
   async function createTheme() {
-    if (!newThemeName.trim() || !userId || creatingTheme) return
+    if (!newThemeName.trim() || creatingTheme) return
+    if (!userId) {
+      setCreateThemeError('Session expirée — rechargez la page.')
+      return
+    }
+    setCreateThemeError('')
     setCreatingTheme(true)
     const { data, error } = await supabase.from('themes').insert({
       user_id: userId,
@@ -317,7 +356,13 @@ function CreatePageInner() {
       color: '#4338CA',
       position: 0,
     }).select().single()
-    if (!error && data) {
+    if (error) {
+      console.error('createTheme error:', error)
+      setCreateThemeError(error.message || 'Erreur lors de la création du thème')
+      setCreatingTheme(false)
+      return
+    }
+    if (data) {
       setThemes(prev => [...prev, data as typeof themes[0]])
       setSelectedThemeId((data as { id: string }).id)
       setShowCreateTheme(false)
@@ -359,31 +404,36 @@ function CreatePageInner() {
               + Créer un nouveau thème
             </button>
           ) : (
-            <div className="mt-2 flex gap-2">
-              <input
-                autoFocus
-                value={newThemeName}
-                onChange={e => setNewThemeName(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') createTheme()
-                  if (e.key === 'Escape') { setShowCreateTheme(false); setNewThemeName('') }
-                }}
-                placeholder="Nom du thème..."
-                className="flex-1 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
-              />
-              <button
-                onClick={createTheme}
-                disabled={!newThemeName.trim() || creatingTheme}
-                className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 rounded-xl px-4 py-2 text-sm font-medium transition-colors"
-              >
-                {creatingTheme ? '…' : 'Créer'}
-              </button>
-              <button
-                onClick={() => { setShowCreateTheme(false); setNewThemeName('') }}
-                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-xl px-3 py-2 text-sm transition-colors"
-              >
-                ✕
-              </button>
+            <div className="mt-2">
+              <div className="flex gap-2">
+                <input
+                  autoFocus
+                  value={newThemeName}
+                  onChange={e => { setNewThemeName(e.target.value); setCreateThemeError('') }}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') createTheme()
+                    if (e.key === 'Escape') { setShowCreateTheme(false); setNewThemeName(''); setCreateThemeError('') }
+                  }}
+                  placeholder="Nom du thème..."
+                  className="flex-1 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
+                />
+                <button
+                  onClick={createTheme}
+                  disabled={!newThemeName.trim() || creatingTheme}
+                  className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 rounded-xl px-4 py-2 text-sm font-medium transition-colors"
+                >
+                  {creatingTheme ? '…' : 'Créer'}
+                </button>
+                <button
+                  onClick={() => { setShowCreateTheme(false); setNewThemeName(''); setCreateThemeError('') }}
+                  className="text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-xl px-3 py-2 text-sm transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+              {createThemeError && (
+                <p className="text-red-400 text-xs mt-1.5">⚠ {createThemeError}</p>
+              )}
             </div>
           )}
         </div>
@@ -427,6 +477,9 @@ function CreatePageInner() {
                 </div>
               ))}
             </div>
+            {saveError && (
+              <p className="text-red-400 text-sm mb-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">⚠ {saveError}</p>
+            )}
             <div className="flex gap-4">
               <button onClick={addCard} className="flex-1 border border-[var(--border-default)] hover:border-[var(--accent)] rounded-xl py-3 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors">
                 + Ajouter une carte
@@ -701,6 +754,9 @@ function CreatePageInner() {
                   ))}
                 </div>
 
+                {saveError && (
+                  <p className="text-red-400 text-sm mb-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">⚠ {saveError}</p>
+                )}
                 <button
                   onClick={saveWikiCards}
                   disabled={aiCards.length === 0 || loading}
