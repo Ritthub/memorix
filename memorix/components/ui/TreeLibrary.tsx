@@ -5,6 +5,7 @@ import {
   createContext, useContext, useMemo,
 } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
 import { Theme } from '@/types'
 import {
@@ -120,49 +121,23 @@ function getThemeDepth(themeId: string | null, themesMap: Map<string, Theme>): n
 // ── DraggableCardRow ──────────────────────────────────────────────────────────
 
 function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: string; pl: number }) {
-  const { onEditThemeCard, onDeleteThemeCard } = useLib()
+  const { onDeleteThemeCard } = useLib()
+  const router = useRouter()
 
   const { listeners, setNodeRef, isDragging } = useDraggable({
     id: `card:${card.id}`,
     data: { cardId: card.id, fromThemeId: themeId },
   })
 
-  const [isEditing, setIsEditing] = useState(false)
-  const [editQ, setEditQ] = useState('')
-  const [editA, setEditA] = useState('')
-  const [editExpl, setEditExpl] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
-  const editARef = useRef<HTMLInputElement>(null)
-  const editExplRef = useRef<HTMLInputElement>(null)
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     return () => { if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current) }
   }, [])
 
-  function startEdit() {
-    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
-    setIsDeleting(false)
-    setIsEditing(true)
-    setEditQ(card.question)
-    setEditA(card.answer)
-    setEditExpl(card.explanation || '')
-  }
-
-  function cancelEdit() { setIsEditing(false); setEditQ(''); setEditA(''); setEditExpl('') }
-
-  async function commitEdit() {
-    if (!editQ.trim() && !editA.trim()) { cancelEdit(); return }
-    const q = editQ.trim() || '…'
-    const a = editA.trim() || '…'
-    const expl = editExpl.trim() || undefined
-    cancelEdit()
-    await onEditThemeCard(card.id, themeId, q, a, expl)
-  }
-
   function startDelete() {
     setIsDeleting(true)
-    setIsEditing(false)
     if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
     deleteTimerRef.current = setTimeout(() => setIsDeleting(false), 4000)
   }
@@ -175,88 +150,51 @@ function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: stri
 
   return (
     <div ref={setNodeRef} style={{ opacity: isDragging ? 0.25 : 1 }}>
-      {isEditing ? (
-        <div className="flex flex-col gap-0.5 py-0.5 pr-2" style={{ paddingLeft: pl }}>
-          <div className="flex items-center gap-1.5">
-            <input
-              autoFocus value={editQ} onChange={e => setEditQ(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Tab') { e.preventDefault(); editARef.current?.focus() }
-                if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
-              }}
-              className="flex-1 bg-transparent text-xs text-[var(--text-secondary)] outline-none border-b border-[var(--border-focus)] py-0.5 min-w-0"
-              style={{ maxWidth: '50%' }}
-            />
-            <span className="text-xs text-[var(--text-hint)] flex-shrink-0">·</span>
-            <input
-              ref={editARef} value={editA} onChange={e => setEditA(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Tab') { e.preventDefault(); editExplRef.current?.focus() }
-                if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
-                if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
-              }}
-              className="flex-1 bg-transparent text-xs text-[var(--text-muted)] outline-none border-b border-[var(--border-focus)] py-0.5 min-w-0"
-              style={{ maxWidth: '35%' }}
-            />
+      {/* Listeners on the row itself → drag from anywhere; distance:8 prevents accidental drags */}
+      <div
+        {...listeners}
+        onClick={() => router.push(`/cards/${card.id}`)}
+        className="flex flex-col py-0.5 pr-2 group/card rounded hover:bg-[var(--bg-elevated)]/20 transition-colors cursor-pointer select-none"
+        style={{ paddingLeft: pl }}
+      >
+        <div className="flex items-center gap-1.5">
+          {/* 6-dot grip */}
+          <svg
+            width="6" height="10" viewBox="0 0 6 10" fill="currentColor"
+            className="flex-shrink-0 text-[var(--text-hint)] opacity-25 group-hover/card:opacity-70 transition-opacity pointer-events-none"
+          >
+            <circle cx="1.5" cy="1.5" r="1"/><circle cx="4.5" cy="1.5" r="1"/>
+            <circle cx="1.5" cy="5" r="1"/>  <circle cx="4.5" cy="5" r="1"/>
+            <circle cx="1.5" cy="8.5" r="1"/><circle cx="4.5" cy="8.5" r="1"/>
+          </svg>
+          <span className="text-xs text-[var(--text-secondary)] truncate" style={{ maxWidth: '50%' }} title={card.question}>
+            {card.question}
+          </span>
+          <span className="text-xs text-[var(--text-hint)] flex-shrink-0">·</span>
+          <span className="text-xs text-[var(--text-muted)] truncate" style={{ maxWidth: '35%' }} title={card.answer}>
+            {card.answer}
+          </span>
+          <div className="ml-auto flex items-center gap-0 opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0">
+            <button
+              onClick={e => { e.stopPropagation(); router.push(`/cards/${card.id}`) }}
+              onPointerDown={e => e.stopPropagation()}
+              className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-[var(--accent-light)] rounded text-xs transition-colors cursor-pointer" title="Voir le détail">
+              ✏
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); startDelete() }}
+              onPointerDown={e => e.stopPropagation()}
+              className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-red-400 rounded text-xs transition-colors cursor-pointer" title="Supprimer">
+              ✕
+            </button>
           </div>
-          <input
-            ref={editExplRef} value={editExpl} onChange={e => setEditExpl(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') { e.preventDefault(); commitEdit() }
-              if (e.key === 'Escape') { e.preventDefault(); cancelEdit() }
-            }}
-            onBlur={commitEdit}
-            placeholder="Explication (optionnel)…"
-            className="w-full bg-transparent text-xs text-[var(--text-hint)] italic outline-none border-b border-[var(--border-focus)]/50 py-0.5 placeholder-[var(--border-default)]"
-          />
         </div>
-      ) : (
-        /* Listeners on the row itself → drag from anywhere; distance:8 prevents
-           accidental drags on button clicks */
-        <div
-          {...listeners}
-          className="flex flex-col py-0.5 pr-2 group/card rounded hover:bg-[var(--bg-elevated)]/20 transition-colors cursor-grab active:cursor-grabbing select-none"
-          style={{ paddingLeft: pl }}
-        >
-          <div className="flex items-center gap-1.5">
-            {/* 6-dot grip — always subtly visible, brighter on hover */}
-            <svg
-              width="6" height="10" viewBox="0 0 6 10" fill="currentColor"
-              className="flex-shrink-0 text-[var(--text-hint)] opacity-25 group-hover/card:opacity-70 transition-opacity pointer-events-none"
-            >
-              <circle cx="1.5" cy="1.5" r="1"/><circle cx="4.5" cy="1.5" r="1"/>
-              <circle cx="1.5" cy="5" r="1"/>  <circle cx="4.5" cy="5" r="1"/>
-              <circle cx="1.5" cy="8.5" r="1"/><circle cx="4.5" cy="8.5" r="1"/>
-            </svg>
-            <span className="text-xs text-[var(--text-secondary)] truncate" style={{ maxWidth: '50%' }} title={card.question}>
-              {card.question}
-            </span>
-            <span className="text-xs text-[var(--text-hint)] flex-shrink-0">·</span>
-            <span className="text-xs text-[var(--text-muted)] truncate" style={{ maxWidth: '35%' }} title={card.answer}>
-              {card.answer}
-            </span>
-            <div className="ml-auto flex items-center gap-0 opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0">
-              <button
-                onClick={startEdit}
-                onPointerDown={e => e.stopPropagation()}
-                className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-[var(--accent-light)] rounded text-xs transition-colors cursor-pointer" title="Modifier">
-                ✏
-              </button>
-              <button
-                onClick={startDelete}
-                onPointerDown={e => e.stopPropagation()}
-                className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-red-400 rounded text-xs transition-colors cursor-pointer" title="Supprimer">
-                ✕
-              </button>
-            </div>
-          </div>
-          {card.explanation && (
-            <p className="text-[10px] text-[var(--text-hint)] italic truncate pl-3.5 -mt-0.5" title={card.explanation}>
-              {card.explanation}
-            </p>
-          )}
-        </div>
-      )}
+        {card.explanation && (
+          <p className="text-[10px] text-[var(--text-hint)] italic truncate pl-3.5 -mt-0.5" title={card.explanation}>
+            {card.explanation}
+          </p>
+        )}
+      </div>
 
       {isDeleting && (
         <div className="flex items-center gap-2 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded text-xs mt-0.5 mr-2" style={{ marginLeft: pl }}>
