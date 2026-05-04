@@ -638,7 +638,7 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
   const onAddThemeCard = useCallback(async (themeId: string, q: string, a: string) => {
     const { data: card } = await supabase
       .from('cards')
-      .insert({ theme_id: themeId, question: q, answer: a, difficulty: 3, created_by_ai: false, user_edited: false })
+      .insert({ theme_id: themeId, deck_id: null, question: q, answer: a, difficulty: 1, created_by_ai: false, user_edited: false })
       .select('id')
       .single()
     if (!card) return

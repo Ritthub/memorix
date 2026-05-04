@@ -26,6 +26,10 @@ function CreatePageInner() {
   const [pdfName, setPdfName] = useState('')
   const [selectedThemeId, setSelectedThemeId] = useState(themeIdParam || '')
   const [themes, setThemes] = useState<Array<{ id: string; name: string; color: string; parent_id?: string | null }>>([])
+  const [userId, setUserId] = useState('')
+  const [showCreateTheme, setShowCreateTheme] = useState(false)
+  const [newThemeName, setNewThemeName] = useState('')
+  const [creatingTheme, setCreatingTheme] = useState(false)
   // kept for deckName display in header
   const [deckName] = useState('')
 
@@ -53,6 +57,7 @@ function CreatePageInner() {
     async function loadThemes() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+      setUserId(user.id)
       const { data } = await supabase.from('themes').select('id, name, color, parent_id').eq('user_id', user.id).order('name')
       setThemes(data || [])
       if (!themeIdParam && data && data.length > 0) setSelectedThemeId(data[0].id)
@@ -292,6 +297,35 @@ function CreatePageInner() {
     setWikiStep('search')
   }
 
+  function buildFlatThemes(list: typeof themes) {
+    type FlatTheme = { id: string; name: string; color: string; depth: number }
+    const result: FlatTheme[] = []
+    function add(t: typeof list[0], depth: number) {
+      result.push({ id: t.id, name: t.name, color: t.color, depth })
+      list.filter(c => c.parent_id === t.id).forEach(c => add(c, depth + 1))
+    }
+    list.filter(t => !t.parent_id).forEach(r => add(r, 0))
+    return result
+  }
+
+  async function createTheme() {
+    if (!newThemeName.trim() || !userId || creatingTheme) return
+    setCreatingTheme(true)
+    const { data, error } = await supabase.from('themes').insert({
+      user_id: userId,
+      name: newThemeName.trim(),
+      color: '#4338CA',
+      position: 0,
+    }).select().single()
+    if (!error && data) {
+      setThemes(prev => [...prev, data as typeof themes[0]])
+      setSelectedThemeId((data as { id: string }).id)
+      setShowCreateTheme(false)
+      setNewThemeName('')
+    }
+    setCreatingTheme(false)
+  }
+
   return (
     <div className="min-h-screen bg-[var(--bg-base)] text-[var(--text-primary)] px-6 py-10">
       <div className="max-w-2xl mx-auto">
@@ -302,17 +336,57 @@ function CreatePageInner() {
         </div>
 
         {/* Theme selector */}
-        {themes.length > 0 && (
-          <select
-            value={selectedThemeId}
-            onChange={e => setSelectedThemeId(e.target.value)}
-            className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[var(--border-focus)] transition-colors mb-6"
-          >
-            {themes.map(t => (
-              <option key={t.id} value={t.id}>{t.name}</option>
-            ))}
-          </select>
-        )}
+        <div className="mb-6">
+          {themes.length > 0 && (
+            <select
+              value={selectedThemeId}
+              onChange={e => setSelectedThemeId(e.target.value)}
+              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
+            >
+              {buildFlatThemes(themes).map(t => (
+                <option key={t.id} value={t.id}>
+                  {' '.repeat(t.depth * 3)}{t.depth > 0 ? '└ ' : ''}{t.name}
+                </option>
+              ))}
+            </select>
+          )}
+
+          {!showCreateTheme ? (
+            <button
+              onClick={() => setShowCreateTheme(true)}
+              className="mt-2 text-sm text-[var(--accent-light)] hover:text-[var(--text-primary)] transition-colors"
+            >
+              + Créer un nouveau thème
+            </button>
+          ) : (
+            <div className="mt-2 flex gap-2">
+              <input
+                autoFocus
+                value={newThemeName}
+                onChange={e => setNewThemeName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') createTheme()
+                  if (e.key === 'Escape') { setShowCreateTheme(false); setNewThemeName('') }
+                }}
+                placeholder="Nom du thème..."
+                className="flex-1 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-3 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
+              />
+              <button
+                onClick={createTheme}
+                disabled={!newThemeName.trim() || creatingTheme}
+                className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 rounded-xl px-4 py-2 text-sm font-medium transition-colors"
+              >
+                {creatingTheme ? '…' : 'Créer'}
+              </button>
+              <button
+                onClick={() => { setShowCreateTheme(false); setNewThemeName('') }}
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-xl px-3 py-2 text-sm transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Mode tabs */}
         <div className="flex gap-1 mb-8 bg-[var(--bg-surface)] p-1 rounded-xl">
