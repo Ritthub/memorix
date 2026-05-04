@@ -70,6 +70,7 @@ export type CardReview = {
   scheduled_days: number
   reps: number
   lapses: number
+  learning_steps: number
 }
 
 export type Rating = 1 | 2 | 3 | 4     // rating FSRS interne

@@ -42,6 +42,7 @@ export function scheduleCard(
     scheduled_days: review.scheduled_days || 0,
     reps: review.reps || 0,
     lapses: review.lapses || 0,
+    learning_steps: review.learning_steps || 0,
     state: stateFromString(review.state || 'new'),
     last_review: review.reviewed_at ? new Date(review.reviewed_at) : undefined,
   }
@@ -80,6 +81,7 @@ export function scheduleCard(
     scheduled_days: finalScheduledDays,
     reps: scheduled.reps,
     lapses: scheduled.lapses,
+    learning_steps: scheduled.learning_steps,
   }
 }
 
