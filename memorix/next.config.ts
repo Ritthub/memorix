@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
-        source: '/review/:deckId',
+        source: '/review/:deckId((?!all|custom|theme)[^/]+)',
         destination: '/review/all',
         permanent: false,
       },
