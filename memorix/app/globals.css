@@ -95,6 +95,7 @@ body {
   letter-spacing: -0.02em;
   text-align: center;
   white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .review-archive {

@@ -199,6 +199,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
   )
 
   const card = currentCard as Card
+  const qFontSize = card.question.length > 80 ? 24 : 32
   const progress = Math.round((currentIndex / totalCards) * 100)
 
   return (
@@ -272,7 +273,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
                 </svg>
                 QUESTION
               </div>
-              <p className="text-[28px] sm:text-[32px]" style={{ fontWeight: 700, color: '#FFFFFF', lineHeight: 1.25, letterSpacing: '-0.02em', textAlign: 'center' }}>{card.question}</p>
+              <p style={{ fontSize: qFontSize, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.25, letterSpacing: '-0.02em', textAlign: 'center' }} className={card.question.length <= 80 ? 'sm:text-[40px]' : ''}>{card.question}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, margin: '4px 0' }}>
                 <div style={{ flex: 1, height: '0.5px', background: 'rgba(255,255,255,0.1)' }} />
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="var(--accent-light)"><path d="M6 0l1.5 4.5L12 6l-4.5 1.5L6 12l-1.5-4.5L0 6l4.5-1.5z"/></svg>
@@ -297,7 +298,7 @@ export default function ThemeReviewPage({ params }: { params: Promise<{ themeId:
                   RÉPONSE
                 </div>
                 <p className="review-answer text-[28px] sm:text-[32px]">{card.answer}</p>
-                {card.explanation && <p className="text-sm text-[var(--text-muted)] text-center mt-2 italic">{card.explanation}</p>}
+                {card.explanation && <p className="text-sm text-[var(--text-muted)] text-center mt-2 italic" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{card.explanation}</p>}
               </div>
               {!answerAtBottom && (
                 <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#0F0F1F] to-transparent pointer-events-none" />

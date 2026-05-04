@@ -140,6 +140,7 @@ function CustomReviewInner() {
   )
 
   const card = currentCard as Card
+  const qFontSize = card.question.length > 80 ? 24 : 32
   const progress = Math.round((currentIndex / totalCards) * 100)
 
   return (
@@ -188,7 +189,7 @@ function CustomReviewInner() {
                 </svg>
                 QUESTION
               </div>
-              <p className="text-[28px] sm:text-[32px]" style={{ fontWeight: 700, color: '#FFFFFF', lineHeight: 1.25, letterSpacing: '-0.02em', textAlign: 'center' }}>{card.question}</p>
+              <p style={{ fontSize: qFontSize, fontWeight: 700, color: '#FFFFFF', lineHeight: 1.25, letterSpacing: '-0.02em', textAlign: 'center' }} className={card.question.length <= 80 ? 'sm:text-[40px]' : ''}>{card.question}</p>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%' }}>
                 <div style={{ flex: 1, height: '0.5px', background: 'rgba(255,255,255,0.1)' }} />
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="var(--accent-light)"><path d="M6 0l1.5 4.5L12 6l-4.5 1.5L6 12l-1.5-4.5L0 6l4.5-1.5z"/></svg>
@@ -203,7 +204,7 @@ function CustomReviewInner() {
                 RÉPONSE
               </div>
               <p className="review-answer text-[28px] sm:text-[32px]">{card.answer}</p>
-              {card.explanation && <p className="text-sm text-[var(--text-muted)] text-center italic">{card.explanation}</p>}
+              {card.explanation && <p className="text-sm text-[var(--text-muted)] text-center italic" style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{card.explanation}</p>}
             </div>
           )}
         </div>

@@ -147,6 +147,7 @@ export default function AllReviewPage() {
   )
 
   const card = currentCard as Card
+  const qFontSize = card.question.length > 80 ? 24 : 32
   const progress = Math.round((currentIndex / totalCards) * 100)
 
   return (
@@ -214,7 +215,7 @@ export default function AllReviewPage() {
                       </div>
                     )}
                     <div className="text-[10px] uppercase tracking-[0.04em] font-medium mb-6" style={{ color: 'var(--text-hint)' }}>Question</div>
-                    <p className="text-[15px] font-medium leading-relaxed" style={{ color: 'var(--text-primary)' }}>{card.question}</p>
+                    <p style={{ fontSize: qFontSize, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.25, letterSpacing: '-0.02em' }} className={card.question.length <= 80 ? 'sm:text-[40px]' : ''}>{card.question}</p>
                     {!flipped && <p className="text-sm mt-8" style={{ color: 'var(--text-hint)' }}>Appuyez · Espace · Glissez pour révéler</p>}
                   </div>
                 </div>
@@ -231,8 +232,8 @@ export default function AllReviewPage() {
                   className="h-full overflow-y-auto">
                   <div className="min-h-full p-8 flex flex-col items-center justify-center text-center">
                     <div className="text-[10px] uppercase tracking-[0.04em] font-medium mb-6" style={{ color: 'var(--text-hint)' }}>Réponse</div>
-                    <p className="text-2xl font-bold leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--accent-light)' }}>{card.answer}</p>
-                    {card.explanation && <p className="text-sm mt-4" style={{ color: 'var(--text-secondary)' }}>{card.explanation}</p>}
+                    <p className="text-2xl font-bold leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--accent-light)', wordBreak: 'break-word' }}>{card.answer}</p>
+                    {card.explanation && <p className="text-sm mt-4" style={{ color: 'var(--text-secondary)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{card.explanation}</p>}
                   </div>
                 </div>
                 {!answerAtBottom && (
