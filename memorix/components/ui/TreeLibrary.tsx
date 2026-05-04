@@ -55,6 +55,7 @@ interface Ctx {
   onEditThemeCard: (cardId: string, themeId: string, q: string, a: string, expl?: string) => Promise<void>
   onDeleteThemeCard: (cardId: string, themeId: string) => Promise<void>
   onMoveCard: (cardId: string, fromThemeId: string, toThemeId: string) => Promise<void>
+  loadThemeCards: (themeId: string) => Promise<void>
   themesById: Map<string, Theme>
   draggingCard: (CardItem & { fromThemeId: string }) | null
   hoveredDropThemeId: string | null
@@ -215,8 +216,8 @@ function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: stri
 
 // ── ThemeCardsList ────────────────────────────────────────────────────────────
 
-function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) {
-  const { themeCards, loadingThemes, onAddThemeCard } = useLib()
+function ThemeCardsList({ themeId, depth, isLeaf = true }: { themeId: string; depth: number; isLeaf?: boolean }) {
+  const { themeCards, loadingThemes, onAddThemeCard, loadThemeCards, expandedThemes } = useLib()
 
   const [newQ, setNewQ] = useState('')
   const [newA, setNewA] = useState('')
@@ -228,6 +229,22 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
   const qRef = useRef<HTMLInputElement>(null)
   const aRef = useRef<HTMLInputElement>(null)
   const explRef = useRef<HTMLInputElement>(null)
+
+  // Pour les thèmes non-feuilles, auto-charger les cartes directes à l'affichage
+  const didAutoLoad = useRef(false)
+  useEffect(() => {
+    if (!isLeaf && !didAutoLoad.current) {
+      didAutoLoad.current = true
+      if (!themeCards.has(themeId) && !loadingThemes.has(themeId)) {
+        loadThemeCards(themeId)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Pour les thèmes non-feuilles : le formulaire d'ajout n'apparaît qu'après clic 📝
+  const isExpanded = expandedThemes.has(themeId)
+  const showAddForm = isLeaf || isExpanded
 
   const isLoading = loadingThemes.has(themeId)
   const cards = themeCards.get(themeId)
@@ -261,9 +278,12 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
     )
   }
 
+  // Pour les thèmes non-feuilles sans cartes directes et sans formulaire : ne rien afficher
+  if (!isLoading && !cards?.length && !showAddForm) return null
+
   return (
     <div className="pb-1">
-      {cards?.length === 0 && (
+      {isLeaf && cards?.length === 0 && (
         <p className="text-xs text-[var(--text-hint)] italic py-0.5" style={{ paddingLeft: pl }}>
           Aucune carte — ajoutez-en une ci-dessous
         </p>
@@ -273,8 +293,8 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
         <DraggableCardRow key={card.id} card={card} themeId={themeId} pl={pl} />
       ))}
 
-      {/* Inline add form */}
-      <div className="py-1 pr-2 border-b border-[var(--border-subtle)]" style={{ paddingLeft: pl }}>
+      {/* Formulaire d'ajout : toujours pour les feuilles, sinon seulement si 📝 actif */}
+      {showAddForm && <div className="py-1 pr-2 border-b border-[var(--border-subtle)]" style={{ paddingLeft: pl }}>
         <div className="flex items-center gap-1.5">
           <input ref={qRef} value={newQ} onChange={e => { setNewQ(e.target.value); setAddError('') }}
             onKeyDown={e => { if (e.key === 'Tab') { e.preventDefault(); aRef.current?.focus() } }}
@@ -304,7 +324,7 @@ function ThemeCardsList({ themeId, depth }: { themeId: string; depth: number }) 
           placeholder="Explication (optionnel)…"
           className="w-full bg-transparent text-xs text-[var(--text-hint)] italic placeholder-[var(--border-default)] outline-none border-b border-transparent focus:border-[var(--border-focus)]/50 py-0.5 transition-colors mt-0.5"
         />
-      </div>
+      </div>}
       {addError && (
         <p className="text-red-400 text-xs py-1 pr-2" style={{ paddingLeft: pl }}>
           ⚠ {addError}
@@ -507,9 +527,9 @@ function ThemeNode({ node }: { node: TreeNode }) {
         )}
       </div>
 
-      {/* Cards for this theme */}
-      {isExpanded && (
-        <ThemeCardsList themeId={node.id} depth={node.depth} />
+      {/* Cartes directes : feuilles → quand expanded ; non-feuilles → quand non réduit */}
+      {(isLeaf ? isExpanded : !isCollapsed) && (
+        <ThemeCardsList themeId={node.id} depth={node.depth} isLeaf={isLeaf} />
       )}
 
       {/* Children (when not collapsed) */}
@@ -732,7 +752,7 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
     setCollapsed(new Set())
     const allIds = new Set(themes.map(t => t.id))
     setExpandedThemes(allIds)
-    themes.filter(t => !themeCards.has(t.id)).forEach(t => loadThemeCards(t.id))
+    themes.filter(t => !themeCards.has(t.id) && !loadingThemes.has(t.id)).forEach(t => loadThemeCards(t.id))
   }, [themes, themeCards, loadThemeCards])
 
   const handleCollapseAll = useCallback(() => {
@@ -850,6 +870,7 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
     onColorToggle, onColorChange,
     userId, themeCards, loadingThemes, expandedThemes,
     onToggleTheme, onAddThemeCard, onEditThemeCard, onDeleteThemeCard, onMoveCard,
+    loadThemeCards,
     themesById,
     draggingCard: activeCard,
     hoveredDropThemeId,
