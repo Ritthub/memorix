@@ -96,7 +96,7 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
     setError(null)
   }
 
-  async function saveField(opts?: { refresh?: boolean }): Promise<boolean> {
+  async function saveField(): Promise<boolean> {
     if (!editingField) return true
     setSaving(true)
     setError(null)
@@ -114,14 +114,14 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
     }
     setEditingField(null)
     setSaving(false)
-    if (opts?.refresh !== false) router.refresh()
+    router.refresh()
     return true
   }
 
   async function startEdit(field: 'question' | 'answer' | 'explanation') {
     if (editingField === field) return
     if (editingField !== null) {
-      const ok = await saveField({ refresh: false })
+      const ok = await saveField()
       if (!ok) return
     }
     setEditingField(field)
@@ -218,7 +218,7 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
             </button>
             <div className="flex-1" />
             <button
-              onClick={() => saveField()}
+              onClick={saveField}
               disabled={saving}
               className="text-[var(--accent-light)] hover:text-[var(--accent-muted)] text-sm font-medium transition-colors disabled:opacity-50"
             >
