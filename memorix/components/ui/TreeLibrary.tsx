@@ -12,6 +12,7 @@ import {
   DndContext, DragEndEvent, DragOverEvent, DragOverlay, DragStartEvent,
   PointerSensor, TouchSensor, KeyboardSensor,
   useSensor, useSensors, closestCenter, useDraggable,
+  CollisionDetection,
 } from '@dnd-kit/core'
 import {
   SortableContext, useSortable, verticalListSortingStrategy,
@@ -59,12 +60,28 @@ interface Ctx {
   themesById: Map<string, Theme>
   draggingCard: (CardItem & { fromThemeId: string }) | null
   hoveredDropThemeId: string | null
+  onPromoteTheme: (id: string) => Promise<void>
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const COLORS = ['#4338CA', '#0D9488', '#E85D4A', '#F59E0B', '#3B82F6', '#22C55E', '#EC4899']
 const INDENT = 20
+const NO_THEME_ID = '__no_theme__'
+
+// Custom collision: for theme drags, only match themes at same depth level (same parentId)
+const sameLevelCollision: CollisionDetection = (args) => {
+  const activeId = args.active.id as string
+  if (!activeId.startsWith('theme:')) return closestCenter(args)
+  const activeParentId = (args.active.data.current?.parentId ?? null) as string | null
+  const filtered = args.droppableContainers.filter(c => {
+    const cId = c.id as string
+    if (!cId.startsWith('theme:')) return false
+    return (c.data.current?.parentId ?? null) === activeParentId
+  })
+  if (filtered.length === 0) return []
+  return closestCenter({ ...args, droppableContainers: filtered })
+}
 
 const LibCtx = createContext<Ctx | null>(null)
 const useLib = () => useContext(LibCtx)!
@@ -153,21 +170,26 @@ function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: stri
     <div ref={setNodeRef} style={{ opacity: isDragging ? 0.25 : 1 }}>
       {/* Listeners on the row itself → drag from anywhere; distance:8 prevents accidental drags */}
       <div
-        {...listeners}
         onClick={() => router.push(`/cards/${card.id}`)}
         className="flex flex-col py-0.5 pr-2 group/card rounded hover:bg-[var(--bg-elevated)]/20 transition-colors cursor-pointer select-none"
         style={{ paddingLeft: pl }}
       >
         <div className="flex items-center gap-1.5">
-          {/* 6-dot grip */}
+          {/* 6-dot grip — drag handle only */}
+          <span
+            {...listeners}
+            onClick={e => e.stopPropagation()}
+            className="flex-shrink-0 touch-none cursor-grab active:cursor-grabbing"
+          >
           <svg
             width="6" height="10" viewBox="0 0 6 10" fill="currentColor"
-            className="flex-shrink-0 text-[var(--text-hint)] opacity-25 group-hover/card:opacity-70 transition-opacity pointer-events-none"
+            className="text-[var(--text-hint)] opacity-25 group-hover/card:opacity-70 transition-opacity pointer-events-none"
           >
             <circle cx="1.5" cy="1.5" r="1"/><circle cx="4.5" cy="1.5" r="1"/>
             <circle cx="1.5" cy="5" r="1"/>  <circle cx="4.5" cy="5" r="1"/>
             <circle cx="1.5" cy="8.5" r="1"/><circle cx="4.5" cy="8.5" r="1"/>
           </svg>
+          </span>
           <span className="text-xs text-[var(--text-secondary)] truncate" style={{ maxWidth: '50%' }} title={card.question}>
             {card.question}
           </span>
@@ -342,7 +364,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
     onToggle, onEditStart, onEditChange, onEditCommit, onEditCancel,
     onCreateChild, onDeleteThemeStart, onDeleteThemeCancel, onDeleteThemeConfirm,
     onColorToggle, onColorChange, expandedThemes, onToggleTheme,
-    draggingCard, hoveredDropThemeId,
+    draggingCard, hoveredDropThemeId, onPromoteTheme,
   } = useLib()
 
   const {
@@ -490,6 +512,15 @@ function ThemeNode({ node }: { node: TreeNode }) {
             >
               ∞
             </Link>
+            {node.depth > 0 && (
+              <button
+                onClick={() => onPromoteTheme(node.id)}
+                className="w-6 h-6 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded text-xs leading-none"
+                title="Remonter d'un niveau"
+              >
+                ↑
+              </button>
+            )}
             <button
               onClick={() => onCreateChild(node.id)}
               className="w-6 h-6 flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded text-base leading-none"
@@ -541,6 +572,179 @@ function ThemeNode({ node }: { node: TreeNode }) {
         </SortableContext>
       )}
     </>
+  )
+}
+
+// ── NoThemeSection ────────────────────────────────────────────────────────────
+
+function NoThemeSection() {
+  const { themeCards, loadingThemes, expandedThemes, onToggleTheme, onDeleteThemeCard, draggingCard } = useLib()
+  const router = useRouter()
+
+  const isExpanded = expandedThemes.has(NO_THEME_ID)
+  const isLoading = loadingThemes.has(NO_THEME_ID)
+  const cards = themeCards.get(NO_THEME_ID)
+  const pl = 4
+  const cardPl = INDENT + 8
+
+  const isCardDropTarget = draggingCard !== null && draggingCard.fromThemeId !== NO_THEME_ID
+
+  return (
+    <div className="mt-3 border-t border-[var(--border-subtle)] pt-3">
+      <div
+        className={`flex items-center gap-1 py-0.5 pr-2 rounded-lg transition-colors ${
+          isCardDropTarget ? 'hover:bg-[var(--accent)]/10 ring-1 ring-[var(--accent)]/20 ring-dashed' : 'hover:bg-[var(--bg-elevated)]/20'
+        }`}
+        style={{ paddingLeft: pl }}
+      >
+        {/* No drag handle: section not sortable */}
+        <div className="w-4 flex-shrink-0" />
+
+        <button
+          onClick={() => onToggleTheme(NO_THEME_ID)}
+          className="w-5 h-5 flex items-center justify-center text-[var(--text-muted)] flex-shrink-0 transition-transform duration-200"
+          style={{ transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+          title={isExpanded ? 'Masquer' : 'Voir les cartes sans thème'}
+        >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+
+        <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: '#6B7280' }} />
+
+        <span className="flex-1 text-sm font-medium text-[var(--text-secondary)] truncate min-w-0 italic">
+          Sans thème
+        </span>
+
+        {cards !== undefined && (
+          <span className="text-xs text-[var(--text-hint)] flex-shrink-0">
+            {cards.length}
+          </span>
+        )}
+      </div>
+
+      {isExpanded && (
+        <div className="pb-1">
+          {isLoading && (
+            <div className="py-1.5 space-y-1.5" style={{ paddingLeft: cardPl }}>
+              <div className="h-3 bg-[var(--bg-surface)] rounded animate-pulse" style={{ width: '65%' }} />
+              <div className="h-3 bg-[var(--bg-surface)] rounded animate-pulse" style={{ width: '45%' }} />
+            </div>
+          )}
+
+          {!isLoading && cards?.length === 0 && (
+            <p className="text-xs text-[var(--text-hint)] italic py-0.5" style={{ paddingLeft: cardPl }}>
+              Aucune carte sans thème
+            </p>
+          )}
+
+          {!isLoading && cards?.map(card => (
+            <NoThemeCardRow
+              key={card.id}
+              card={card}
+              pl={cardPl}
+              onDelete={() => onDeleteThemeCard(card.id, NO_THEME_ID)}
+              onNavigate={() => router.push(`/cards/${card.id}`)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function NoThemeCardRow({ card, pl, onDelete, onNavigate }: {
+  card: CardItem; pl: number; onDelete: () => void; onNavigate: () => void
+}) {
+  const [isDeleting, setIsDeleting] = useState(false)
+  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const { listeners, setNodeRef, isDragging } = useDraggable({
+    id: `card:${card.id}`,
+    data: { cardId: card.id, fromThemeId: NO_THEME_ID },
+  })
+
+  useEffect(() => {
+    return () => { if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current) }
+  }, [])
+
+  function startDelete() {
+    setIsDeleting(true)
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    deleteTimerRef.current = setTimeout(() => setIsDeleting(false), 4000)
+  }
+
+  function confirmDelete() {
+    if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current)
+    setIsDeleting(false)
+    onDelete()
+  }
+
+  return (
+    <div ref={setNodeRef} style={{ opacity: isDragging ? 0.25 : 1 }}>
+      <div
+        onClick={onNavigate}
+        className="flex flex-col py-0.5 pr-2 group/card rounded hover:bg-[var(--bg-elevated)]/20 transition-colors cursor-pointer select-none"
+        style={{ paddingLeft: pl }}
+      >
+        <div className="flex items-center gap-1.5">
+          <span
+            {...listeners}
+            onClick={e => e.stopPropagation()}
+            className="flex-shrink-0 touch-none cursor-grab active:cursor-grabbing"
+          >
+          <svg
+            width="6" height="10" viewBox="0 0 6 10" fill="currentColor"
+            className="text-[var(--text-hint)] opacity-25 group-hover/card:opacity-70 transition-opacity pointer-events-none"
+          >
+            <circle cx="1.5" cy="1.5" r="1"/><circle cx="4.5" cy="1.5" r="1"/>
+            <circle cx="1.5" cy="5" r="1"/>  <circle cx="4.5" cy="5" r="1"/>
+            <circle cx="1.5" cy="8.5" r="1"/><circle cx="4.5" cy="8.5" r="1"/>
+          </svg>
+          </span>
+          <span className="text-xs text-[var(--text-secondary)] truncate" style={{ maxWidth: '50%' }} title={card.question}>
+            {card.question}
+          </span>
+          <span className="text-xs text-[var(--text-hint)] flex-shrink-0">·</span>
+          <span className="text-xs text-[var(--text-muted)] truncate" style={{ maxWidth: '35%' }} title={card.answer}>
+            {card.answer}
+          </span>
+          <div className="ml-auto flex items-center gap-0 opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0">
+            <button
+              onClick={e => { e.stopPropagation(); onNavigate() }}
+              onPointerDown={e => e.stopPropagation()}
+              className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-[var(--accent-light)] rounded text-xs transition-colors cursor-pointer" title="Voir le détail">
+              ✏
+            </button>
+            <button
+              onClick={e => { e.stopPropagation(); startDelete() }}
+              onPointerDown={e => e.stopPropagation()}
+              className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-red-400 rounded text-xs transition-colors cursor-pointer" title="Supprimer">
+              ✕
+            </button>
+          </div>
+        </div>
+        {card.explanation && (
+          <p className="text-[10px] text-[var(--text-hint)] italic truncate pl-3.5 -mt-0.5" title={card.explanation}>
+            {card.explanation}
+          </p>
+        )}
+      </div>
+
+      {isDeleting && (
+        <div className="flex items-center gap-2 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded text-xs mt-0.5 mr-2" style={{ marginLeft: pl }}>
+          <span className="text-red-300 flex-1 truncate">Supprimer cette carte ?</span>
+          <button onClick={() => { if (deleteTimerRef.current) clearTimeout(deleteTimerRef.current); setIsDeleting(false) }}
+            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] px-1.5 py-0.5 rounded hover:bg-[var(--bg-elevated)]/20 flex-shrink-0">
+            Annuler
+          </button>
+          <button onClick={confirmDelete}
+            className="text-white bg-red-600 hover:bg-red-700 px-2 py-0.5 rounded flex-shrink-0">
+            Confirmer
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -664,6 +868,29 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
 
   const loadThemeCards = useCallback(async (themeId: string) => {
     setLoadingThemes(prev => { const next = new Set(prev); next.add(themeId); return next })
+
+    if (themeId === NO_THEME_ID) {
+      // Two-step: find user's deck IDs, then cards with no theme in those decks
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: decksData } = await supabase.from('decks').select('id').eq('user_id', userId) as any
+      const deckIds: string[] = (decksData || []).map((d: { id: string }) => d.id)
+      let items: CardItem[] = []
+      if (deckIds.length > 0) {
+        const { data } = await supabase
+          .from('cards')
+          .select('id, question, answer, explanation')
+          .is('theme_id', null)
+          .in('deck_id', deckIds)
+          .or('archived.is.null,archived.eq.false')
+          .order('created_at', { ascending: false })
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        items = (data || []).map((c: any) => ({ id: c.id, question: c.question, answer: c.answer, explanation: c.explanation ?? null }))
+      }
+      setThemeCards(prev => new Map(prev).set(NO_THEME_ID, items))
+      setLoadingThemes(prev => { const next = new Set(prev); next.delete(NO_THEME_ID); return next })
+      return
+    }
+
     const { data } = await supabase
       .from('cards')
       .select('id, question, answer, explanation')
@@ -674,7 +901,7 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
     const items: CardItem[] = (data || []).map((c: any) => ({ id: c.id, question: c.question, answer: c.answer, explanation: c.explanation ?? null }))
     setThemeCards(prev => new Map(prev).set(themeId, items))
     setLoadingThemes(prev => { const next = new Set(prev); next.delete(themeId); return next })
-  }, [supabase])
+  }, [supabase, userId])
 
   const onToggleTheme = useCallback((themeId: string) => {
     const isExpanded = expandedThemes.has(themeId)
@@ -861,6 +1088,21 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
     }
   }, [themes, supabase, themesById])
 
+  const onPromoteTheme = useCallback(async (themeId: string) => {
+    const theme = themes.find(t => t.id === themeId)
+    if (!theme?.parent_id) return
+    const parent = themes.find(t => t.id === theme.parent_id)
+    const newParentId = parent?.parent_id || null
+    const siblings = themes
+      .filter(t => (t.parent_id || null) === newParentId && t.id !== themeId)
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+    const newPosition = siblings.length
+    setThemes(prev => prev.map(t =>
+      t.id === themeId ? { ...t, parent_id: newParentId, position: newPosition } : t
+    ))
+    await supabase.from('themes').update({ parent_id: newParentId, position: newPosition }).eq('id', themeId)
+  }, [themes, supabase])
+
   // ── Context value ──────────────────────────────────────────────────────────
 
   const ctxValue: Ctx = {
@@ -874,6 +1116,7 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
     themesById,
     draggingCard: activeCard,
     hoveredDropThemeId,
+    onPromoteTheme,
   }
 
   const rootThemeIds = tree.map(n => `theme:${n.id}`)
@@ -943,7 +1186,7 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
         <main className="max-w-2xl mx-auto px-2 py-3">
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCenter}
+            collisionDetection={sameLevelCollision}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
@@ -966,6 +1209,8 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
                 </button>
               </div>
             )}
+
+            {!search && <NoThemeSection />}
 
             <DragOverlay dropAnimation={{ duration: 180, easing: 'ease' }}>
               {activeTheme && (
