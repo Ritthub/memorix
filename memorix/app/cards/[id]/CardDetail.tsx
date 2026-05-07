@@ -96,8 +96,8 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
     setError(null)
   }
 
-  async function saveField() {
-    if (!editingField) return
+  async function saveField(opts?: { refresh?: boolean }): Promise<boolean> {
+    if (!editingField) return true
     setSaving(true)
     setError(null)
     const { error: err } = await supabase
@@ -110,11 +110,21 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
     if (err) {
       setError(err.message)
       setSaving(false)
-      return
+      return false
     }
     setEditingField(null)
     setSaving(false)
-    router.refresh()
+    if (opts?.refresh !== false) router.refresh()
+    return true
+  }
+
+  async function startEdit(field: 'question' | 'answer' | 'explanation') {
+    if (editingField === field) return
+    if (editingField !== null) {
+      const ok = await saveField({ refresh: false })
+      if (!ok) return
+    }
+    setEditingField(field)
   }
 
   async function handleArchive() {
@@ -143,7 +153,7 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
 
   function dimmedStyle(field: 'question' | 'answer' | 'explanation') {
     if (editingField !== null && editingField !== field) {
-      return { opacity: 0.45, pointerEvents: 'none' as const }
+      return { opacity: 0.45 }
     }
     return {}
   }
@@ -208,7 +218,7 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
             </button>
             <div className="flex-1" />
             <button
-              onClick={saveField}
+              onClick={() => saveField()}
               disabled={saving}
               className="text-[var(--accent-light)] hover:text-[var(--accent-muted)] text-sm font-medium transition-colors disabled:opacity-50"
             >
@@ -304,7 +314,7 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
         {/* Question */}
         <div
           style={{ ...FIELD_STYLE, border: `0.5px solid ${fieldBorder('question')}`, ...dimmedStyle('question') }}
-          onClick={() => !editingField && setEditingField('question')}
+          onClick={() => startEdit('question')}
         >
           <p style={LABEL_STYLE}>Question</p>
           {editingField === 'question' ? (
@@ -323,7 +333,7 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
         {/* Answer */}
         <div
           style={{ ...FIELD_STYLE, border: `0.5px solid ${fieldBorder('answer')}`, ...dimmedStyle('answer') }}
-          onClick={() => !editingField && setEditingField('answer')}
+          onClick={() => startEdit('answer')}
         >
           <p style={LABEL_STYLE}>Réponse</p>
           {editingField === 'answer' ? (
@@ -342,7 +352,7 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
         {/* Explanation */}
         <div
           style={{ ...FIELD_STYLE, border: `0.5px solid ${fieldBorder('explanation')}`, ...dimmedStyle('explanation') }}
-          onClick={() => !editingField && setEditingField('explanation')}
+          onClick={() => startEdit('explanation')}
         >
           <p style={LABEL_STYLE}>Explication</p>
           {editingField === 'explanation' ? (
