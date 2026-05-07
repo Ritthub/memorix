@@ -171,7 +171,9 @@ function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: stri
       {/* Listeners on the row itself → drag from anywhere; distance:8 prevents accidental drags */}
       <div
         onClick={() => router.push(`/cards/${card.id}`)}
-        className="flex flex-col py-0.5 pr-2 group/card rounded hover:bg-[var(--bg-elevated)]/20 transition-colors cursor-pointer select-none"
+        onDoubleClick={() => router.push(`/cards/${card.id}`)}
+        tabIndex={0}
+        className="flex flex-col py-0.5 pr-2 group/card rounded hover:bg-[var(--bg-elevated)]/20 transition-colors cursor-pointer"
         style={{ paddingLeft: pl }}
       >
         <div className="flex items-center gap-1.5">
@@ -179,7 +181,7 @@ function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: stri
           <span
             {...listeners}
             onClick={e => e.stopPropagation()}
-            className="flex-shrink-0 touch-none cursor-grab active:cursor-grabbing"
+            className="flex-shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
           >
           <svg
             width="6" height="10" viewBox="0 0 6 10" fill="currentColor"
@@ -685,14 +687,16 @@ function NoThemeCardRow({ card, pl, onDelete, onNavigate }: {
     <div ref={setNodeRef} style={{ opacity: isDragging ? 0.25 : 1 }}>
       <div
         onClick={onNavigate}
-        className="flex flex-col py-0.5 pr-2 group/card rounded hover:bg-[var(--bg-elevated)]/20 transition-colors cursor-pointer select-none"
+        onDoubleClick={onNavigate}
+        tabIndex={0}
+        className="flex flex-col py-0.5 pr-2 group/card rounded hover:bg-[var(--bg-elevated)]/20 transition-colors cursor-pointer"
         style={{ paddingLeft: pl }}
       >
         <div className="flex items-center gap-1.5">
           <span
             {...listeners}
             onClick={e => e.stopPropagation()}
-            className="flex-shrink-0 touch-none cursor-grab active:cursor-grabbing"
+            className="flex-shrink-0 touch-none select-none cursor-grab active:cursor-grabbing"
           >
           <svg
             width="6" height="10" viewBox="0 0 6 10" fill="currentColor"
