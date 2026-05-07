@@ -390,6 +390,7 @@ function ThemeNode({ node }: { node: TreeNode }) {
     if (isEditing) {
       inputRef.current?.focus()
       inputRef.current?.select()
+      inputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }
   }, [isEditing])
 
