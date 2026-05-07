@@ -753,6 +753,7 @@ function NoThemeCardRow({ card, pl, onDelete, onNavigate }: {
 
 export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps) {
   const supabase = createClient()
+  const router = useRouter()
 
   const [themes, setThemes] = useState(initialThemes)
   const [search, setSearch] = useState('')
@@ -764,10 +765,22 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
   const [activeTheme, setActiveTheme] = useState<Theme | null>(null)
   const [activeCard, setActiveCard] = useState<(CardItem & { fromThemeId: string }) | null>(null)
   const [hoveredDropThemeId, setHoveredDropThemeId] = useState<string | null>(null)
+  const [showCreateDropdown, setShowCreateDropdown] = useState(false)
 
   const [expandedThemes, setExpandedThemes] = useState<Set<string>>(new Set())
   const [themeCards, setThemeCards] = useState<Map<string, CardItem[]>>(new Map())
   const [loadingThemes, setLoadingThemes] = useState<Set<string>>(new Set())
+
+  function buildFlatThemes() {
+    type FlatTheme = { id: string; name: string; color: string; depth: number }
+    const result: FlatTheme[] = []
+    function add(t: Theme, depth: number) {
+      result.push({ id: t.id, name: t.name, color: t.color, depth })
+      themes.filter(c => c.parent_id === t.id).sort((a, b) => (a.position ?? 0) - (b.position ?? 0)).forEach(c => add(c, depth + 1))
+    }
+    themes.filter(t => !t.parent_id).sort((a, b) => (a.position ?? 0) - (b.position ?? 0)).forEach(r => add(r, 0))
+    return result
+  }
 
   const filteredThemes = search
     ? themes.filter(t => t.name.toLowerCase().includes(search.toLowerCase()))
@@ -1161,13 +1174,36 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
               >
                 + Thème
               </button>
-              <Link
-                href="/create"
-                className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl w-9 h-9 flex items-center justify-center font-bold text-xl transition-colors"
-                title="Nouvelle carte"
-              >
-                +
-              </Link>
+              <div className="relative">
+                <button
+                  onClick={() => setShowCreateDropdown(v => !v)}
+                  className="bg-[var(--accent)] hover:bg-[var(--accent-hover)] rounded-xl w-9 h-9 flex items-center justify-center font-bold text-xl transition-colors"
+                  title="Nouvelle carte"
+                >
+                  +
+                </button>
+                {showCreateDropdown && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setShowCreateDropdown(false)} />
+                    <div className="absolute right-0 top-11 z-50 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl shadow-xl w-56 max-h-72 overflow-y-auto">
+                      {buildFlatThemes().map(t => (
+                        <button
+                          key={t.id}
+                          onClick={() => { setShowCreateDropdown(false); router.push(`/create?themeId=${t.id}`) }}
+                          className="w-full text-left px-3 py-2 text-sm text-[var(--text-secondary)] hover:bg-[var(--bg-elevated)]/30 transition-colors flex items-center gap-2 first:rounded-t-xl last:rounded-b-xl"
+                          style={{ paddingLeft: 12 + t.depth * 16 }}
+                        >
+                          <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: t.color }} />
+                          <span className="truncate">{t.name}</span>
+                        </button>
+                      ))}
+                      {themes.length === 0 && (
+                        <p className="px-4 py-3 text-sm text-[var(--text-muted)] italic">Créez d'abord un thème</p>
+                      )}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           </div>
           <div className="relative">
