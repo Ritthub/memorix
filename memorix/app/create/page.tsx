@@ -25,7 +25,8 @@ function CreatePageInner() {
   const [dragOver, setDragOver] = useState(false)
   const [pdfName, setPdfName] = useState('')
   const [selectedThemeId, setSelectedThemeId] = useState(themeIdParam || '')
-  const [themes, setThemes] = useState<Array<{ id: string; name: string; color: string; parent_id?: string | null }>>([])
+  const [themes, setThemes] = useState<Array<{ id: string; name: string; color: string; parent_id?: string | null; position?: number | null }>>([])
+  const [themeDropdownOpen, setThemeDropdownOpen] = useState(false)
   const [userId, setUserId] = useState('')
   const [showCreateTheme, setShowCreateTheme] = useState(false)
   const [newThemeName, setNewThemeName] = useState('')
@@ -60,7 +61,7 @@ function CreatePageInner() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
       setUserId(user.id)
-      const { data } = await supabase.from('themes').select('id, name, color, parent_id').eq('user_id', user.id).order('name')
+      const { data } = await supabase.from('themes').select('id, name, color, parent_id, position').eq('user_id', user.id).order('position')
       setThemes(data || [])
       if (!themeIdParam && data && data.length > 0) setSelectedThemeId(data[0].id)
     }
@@ -336,9 +337,15 @@ function CreatePageInner() {
     const result: FlatTheme[] = []
     function add(t: typeof list[0], depth: number) {
       result.push({ id: t.id, name: t.name, color: t.color, depth })
-      list.filter(c => c.parent_id === t.id).forEach(c => add(c, depth + 1))
+      list
+        .filter(c => c.parent_id === t.id)
+        .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+        .forEach(c => add(c, depth + 1))
     }
-    list.filter(t => !t.parent_id).forEach(r => add(r, 0))
+    list
+      .filter(t => !t.parent_id)
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+      .forEach(r => add(r, 0))
     return result
   }
 
@@ -382,19 +389,49 @@ function CreatePageInner() {
 
         {/* Theme selector */}
         <div className="mb-6">
-          {themes.length > 0 && (
-            <select
-              value={selectedThemeId}
-              onChange={e => setSelectedThemeId(e.target.value)}
-              className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] focus:outline-none focus:border-[var(--border-focus)] transition-colors"
-            >
-              {buildFlatThemes(themes).map(t => (
-                <option key={t.id} value={t.id}>
-                  {' '.repeat(t.depth * 3)}{t.depth > 0 ? '└ ' : ''}{t.name}
-                </option>
-              ))}
-            </select>
-          )}
+          {themes.length > 0 && (() => {
+            const flat = buildFlatThemes(themes)
+            const selected = flat.find(t => t.id === selectedThemeId)
+            return (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setThemeDropdownOpen(v => !v)}
+                  className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-left flex items-center gap-3 focus:outline-none focus:border-[var(--border-focus)] transition-colors"
+                >
+                  {selected
+                    ? <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: selected.color }} />
+                    : <span className="w-3 h-3 rounded-full flex-shrink-0 bg-[var(--border-default)]" />}
+                  <span className="flex-1 text-[var(--text-primary)] truncate">
+                    {selected ? selected.name : 'Sélectionner un thème…'}
+                  </span>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="flex-shrink-0 text-[var(--text-muted)]" style={{ transform: themeDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
+                {themeDropdownOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setThemeDropdownOpen(false)} />
+                    <div className="absolute left-0 right-0 top-[calc(100%+4px)] z-50 bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl shadow-xl max-h-64 overflow-y-auto">
+                      {flat.map(t => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => { setSelectedThemeId(t.id); setThemeDropdownOpen(false) }}
+                          className={`w-full text-left py-2.5 text-sm flex items-center gap-2.5 transition-colors hover:bg-[var(--bg-elevated)]/30 ${selectedThemeId === t.id ? 'text-[var(--accent-light)]' : 'text-[var(--text-secondary)]'}`}
+                          style={{ paddingLeft: 16 + t.depth * 16, paddingRight: 16 }}
+                        >
+                          <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: t.color }} />
+                          <span className="truncate">{t.name}</span>
+                          {selectedThemeId === t.id && <span className="ml-auto text-xs">✓</span>}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          })()}
 
           {!showCreateTheme ? (
             <button
