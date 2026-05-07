@@ -488,7 +488,7 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
                       <RatingIcon rating={entry.rating} />
                     </span>
                     <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto' }}>
-                      J+{entry.scheduled_days}
+                      {entry.scheduled_days > 3650 ? 'libre' : `J+${entry.scheduled_days}`}
                     </span>
                   </div>
                 ))}

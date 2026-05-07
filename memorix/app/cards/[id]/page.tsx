@@ -62,7 +62,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
     .eq('user_id', user.id)
     .not('reviewed_at', 'is', null)
     .order('reviewed_at', { ascending: false })
-    .limit(5)
+    .limit(100)
 
   return (
     <CardDetail
