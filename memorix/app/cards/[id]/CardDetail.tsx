@@ -40,11 +40,12 @@ interface Props {
   review: ReviewData
   history: HistoryEntry[]
   daysUntilNext: number | null
+  isFreeModeCard: boolean
   parentThemeName: string | null
 }
 
-function formatNextReview(days: number | null): string {
-  if (days === null) return 'Jamais révisée'
+function formatNextReview(days: number | null, freeModeCard?: boolean): string {
+  if (days === null) return freeModeCard ? 'Révisée en mode libre' : 'Jamais révisée en mode FSRS'
   if (days < 0) return 'En retard'
   if (days === 0) return "Aujourd'hui"
   if (days === 1) return 'Demain'
@@ -74,7 +75,7 @@ function RatingIcon({ rating }: { rating: number }) {
   return <span style={{ color: '#34D399' }}>✓✓</span>
 }
 
-export default function CardDetail({ card, review, history, daysUntilNext, parentThemeName }: Props) {
+export default function CardDetail({ card, review, history, daysUntilNext, isFreeModeCard, parentThemeName }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -408,9 +409,11 @@ export default function CardDetail({ card, review, history, daysUntilNext, paren
           <p style={LABEL_STYLE}>Révisions</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Prochaine révision</p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>
+                {isFreeModeCard ? 'Mode' : 'Prochaine révision'}
+              </p>
               <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>
-                {formatNextReview(daysUntilNext)}
+                {formatNextReview(daysUntilNext, isFreeModeCard)}
               </p>
             </div>
             <div>

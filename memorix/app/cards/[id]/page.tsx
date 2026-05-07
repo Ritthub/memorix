@@ -36,9 +36,14 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
     .limit(1)
     .maybeSingle()
 
-  const daysUntilNext = review?.scheduled_at
-    ? Math.ceil((new Date(review.scheduled_at).getTime() - Date.now()) / 86400000)
+  const scheduledAt = review?.scheduled_at ? new Date(review.scheduled_at) : null
+  const daysUntilNext = scheduledAt
+    ? (() => {
+        const days = Math.ceil((scheduledAt.getTime() - Date.now()) / 86400000)
+        return days > 3650 ? null : days
+      })()
     : null
+  const isFreeModeCard = scheduledAt !== null && daysUntilNext === null
 
   let parentThemeName: string | null = null
   if (card.themes?.parent_id) {
@@ -65,6 +70,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
       review={review}
       history={history || []}
       daysUntilNext={daysUntilNext}
+      isFreeModeCard={isFreeModeCard}
       parentThemeName={parentThemeName}
     />
   )
