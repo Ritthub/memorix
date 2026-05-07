@@ -44,16 +44,6 @@ interface Props {
   parentThemeName: string | null
 }
 
-function formatNextReview(days: number | null, freeModeCard?: boolean): string {
-  if (days === null) return freeModeCard ? 'Révisée en mode libre' : 'Jamais révisée en mode FSRS'
-  if (days < 0) return 'En retard'
-  if (days === 0) return "Aujourd'hui"
-  if (days === 1) return 'Demain'
-  if (days < 30) return `Dans ${days} jours`
-  if (days < 365) return `Dans ${Math.round(days / 30)} mois`
-  return `Dans ${Math.round(days / 365)} an${Math.round(days / 365) > 1 ? 's' : ''}`
-}
-
 function formatState(state: string | undefined): string {
   switch (state) {
     case 'new': return 'Nouvelle'
@@ -65,7 +55,11 @@ function formatState(state: string | undefined): string {
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })
+  const d = new Date(dateStr)
+  const opts: Intl.DateTimeFormatOptions = d.getFullYear() !== new Date().getFullYear()
+    ? { day: 'numeric', month: 'short', year: 'numeric' }
+    : { day: 'numeric', month: 'short' }
+  return d.toLocaleDateString('fr-FR', opts)
 }
 
 function RatingIcon({ rating }: { rating: number }) {
@@ -409,12 +403,23 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
           <p style={LABEL_STYLE}>Révisions</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>
-                {isFreeModeCard ? 'Mode' : 'Prochaine révision'}
-              </p>
-              <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>
-                {formatNextReview(daysUntilNext, isFreeModeCard)}
-              </p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Prochaine révision</p>
+              {isFreeModeCard ? (
+                <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>Mode libre</p>
+              ) : review?.scheduled_at ? (
+                <>
+                  <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>
+                    {formatDate(review.scheduled_at)}
+                  </p>
+                  {daysUntilNext !== null && daysUntilNext <= 0 && (
+                    <p style={{ fontSize: 11, marginTop: 2, color: daysUntilNext < 0 ? '#F87171' : 'var(--accent-light)' }}>
+                      {daysUntilNext < 0 ? 'En retard' : "Aujourd'hui"}
+                    </p>
+                  )}
+                </>
+              ) : (
+                <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>Jamais révisée</p>
+              )}
             </div>
             <div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>État</p>
@@ -488,7 +493,9 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
                       <RatingIcon rating={entry.rating} />
                     </span>
                     <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto' }}>
-                      {entry.scheduled_days > 3650 ? 'libre' : `J+${entry.scheduled_days}`}
+                      {entry.scheduled_days > 3650
+                        ? 'libre'
+                        : formatDate(new Date(new Date(entry.reviewed_at).getTime() + entry.scheduled_days * 86400000).toISOString())}
                     </span>
                   </div>
                 ))}
