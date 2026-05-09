@@ -33,6 +33,15 @@ type HistoryEntry = {
   reviewed_at: string
   scheduled_days: number
   state: string
+  mode: 'scheduled' | 'free'
+}
+
+type CardStats = {
+  total: number
+  freeCount: number
+  scheduledCount: number
+  successRate: number | null
+  correctStreak: number
 }
 
 interface Props {
@@ -42,6 +51,7 @@ interface Props {
   daysUntilNext: number | null
   isFreeModeCard: boolean
   parentThemeName: string | null
+  stats: CardStats
 }
 
 function formatState(state: string | undefined): string {
@@ -69,7 +79,7 @@ function RatingIcon({ rating }: { rating: number }) {
   return <span style={{ color: '#34D399' }}>✓✓</span>
 }
 
-export default function CardDetail({ card, review, history, daysUntilNext, isFreeModeCard, parentThemeName }: Props) {
+export default function CardDetail({ card, review, history, daysUntilNext, isFreeModeCard, parentThemeName, stats }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -138,10 +148,10 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
 
   async function handleResetProgress() {
     setShowResetDialog(false)
-    await supabase
-      .from('card_reviews')
-      .delete()
-      .eq('card_id', card.id)
+    await Promise.all([
+      supabase.from('card_reviews').delete().eq('card_id', card.id),
+      supabase.from('review_logs').delete().eq('card_id', card.id),
+    ])
     router.refresh()
   }
 
@@ -440,7 +450,22 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
             <div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Révisions totales</p>
               <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>
-                {review?.reps ?? 0}
+                {stats.total}
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400, marginLeft: 6 }}>
+                  ({stats.scheduledCount} prog. · {stats.freeCount} libre)
+                </span>
+              </p>
+            </div>
+            <div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Taux de réussite</p>
+              <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>
+                {stats.successRate !== null ? `${stats.successRate}%` : '—'}
+              </p>
+            </div>
+            <div>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Bonnes d&apos;affilée</p>
+              <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>
+                {stats.correctStreak}{stats.correctStreak > 0 ? ' 🔥' : ''}
               </p>
             </div>
             <div>
@@ -502,10 +527,25 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
                     <span style={{ fontSize: 14, minWidth: 24, textAlign: 'center' }}>
                       <RatingIcon rating={entry.rating} />
                     </span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        padding: '2px 6px',
+                        borderRadius: 4,
+                        background: entry.mode === 'free' ? 'rgba(133,79,11,0.25)' : 'var(--bg-elevated)',
+                        color: entry.mode === 'free' ? '#FAC775' : 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {entry.mode === 'free' ? 'Libre' : 'Prog.'}
+                    </span>
                     <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 'auto' }}>
-                      {entry.scheduled_days > 3650
-                        ? 'libre'
-                        : formatDate(new Date(new Date(entry.reviewed_at).getTime() + entry.scheduled_days * 86400000).toISOString())}
+                      {entry.mode === 'free'
+                        ? '—'
+                        : entry.scheduled_days > 3650
+                          ? '—'
+                          : formatDate(new Date(new Date(entry.reviewed_at).getTime() + entry.scheduled_days * 86400000).toISOString())}
                     </span>
                   </div>
                 ))}

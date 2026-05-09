@@ -165,14 +165,16 @@ export function useReviewSession({
 
         setCards(buildSession(cardsWithReviews as Card[]))
 
-        // Load rating history for autoEasy computation
+        // Load rating history for autoEasy computation. Use review_logs
+        // (full per-event log) so the >= 3 check actually works — the old
+        // card_reviews query only ever returned the most recent row.
         const cardIds = cardsWithReviews.map(c => c.id)
         const { data: hist } = await supabase
-          .from('card_reviews')
-          .select('card_id, rating, scheduled_days')
+          .from('review_logs')
+          .select('card_id, rating, scheduled_days, mode')
           .eq('user_id', user.id)
+          .eq('mode', 'scheduled')
           .in('card_id', cardIds)
-          .not('reviewed_at', 'is', null)
           .order('reviewed_at', { ascending: true })
 
         const map = new Map<string, ReviewHistoryItem[]>()
@@ -230,11 +232,21 @@ export function useReviewSession({
     const review = card.review as CardReview
 
     if (isFreeMode) {
+      // Free mode never mutates card_reviews — it must not reschedule the
+      // card. We only append a row to review_logs so stats reflect the
+      // free review without affecting the FSRS programme.
       supabase
-        .from('card_reviews')
-        .update({ rating: userRating, reviewed_at: new Date().toISOString() })
-        .eq('id', review.id)
-        .then(({ error }: { error: unknown }) => { if (error) console.error('free rating save:', error) })
+        .from('review_logs')
+        .insert({
+          card_id: card.id,
+          user_id: review.user_id,
+          mode: 'free',
+          rating: userRating,
+          reviewed_at: new Date().toISOString(),
+          scheduled_days: review.scheduled_days ?? null,
+          state_after: review.state ?? null,
+        })
+        .then(({ error }: { error: unknown }) => { if (error) console.error('free log save:', error) })
 
       setStats(s => {
         if (userRating === 1) return { ...s, non: s.non + 1 }
@@ -266,11 +278,25 @@ export function useReviewSession({
       successRate,
     })
 
+    const reviewedAtIso = new Date().toISOString()
     supabase
       .from('card_reviews')
-      .update({ ...nextReview, reviewed_at: new Date().toISOString(), rating: fsrsRating })
+      .update({ ...nextReview, reviewed_at: reviewedAtIso, rating: fsrsRating })
       .eq('id', review.id)
       .then(({ error }: { error: unknown }) => { if (error) console.error('rating save:', error) })
+
+    supabase
+      .from('review_logs')
+      .insert({
+        card_id: card.id,
+        user_id: review.user_id,
+        mode: 'scheduled',
+        rating: fsrsRating,
+        reviewed_at: reviewedAtIso,
+        scheduled_days: nextReview.scheduled_days,
+        state_after: nextReview.state,
+      })
+      .then(({ error }: { error: unknown }) => { if (error) console.error('scheduled log save:', error) })
 
     ratingHistoryRef.current.set(card.id, [
       ...history,

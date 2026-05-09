@@ -10,10 +10,10 @@ const DonutChart = dynamic(() => import('./Charts').then(m => m.DonutChart), { s
 // ── Types ──────────────────────────────────────────────────────────────────────
 
 type ReviewRow = {
-  reviewed_at: string | null
-  rating: number | null
-  scheduled_at?: string | null
-  scheduled_days?: number | null
+  reviewed_at: string
+  rating: number
+  mode: 'scheduled' | 'free'
+  card_id: string
 }
 
 type HardCard = {
@@ -38,6 +38,7 @@ type Props = {
   hardCards: HardCard[]
   forecast: ForecastDay[]
   streak: number
+  totalDaysReviewed: number
   retentionTarget: number
 }
 
@@ -75,7 +76,6 @@ function fmtDate(iso: string): string {
 function buildWeekGrid(reviews: ReviewRow[]): { date: string; count: number }[][] {
   const dayMap = new Map<string, number>()
   for (const r of reviews) {
-    if (!r.reviewed_at) continue
     const day = r.reviewed_at.slice(0, 10)
     dayMap.set(day, (dayMap.get(day) || 0) + 1)
   }
@@ -104,7 +104,7 @@ function filterReviews(reviews: ReviewRow[], period: Period): ReviewRow[] {
   const days = PERIOD_DAYS[period]
   if (!days) return reviews
   const cutoff = new Date(Date.now() - days * 24 * 3600 * 1000).toISOString().slice(0, 10)
-  return reviews.filter(r => r.reviewed_at && r.reviewed_at.slice(0, 10) >= cutoff)
+  return reviews.filter(r => r.reviewed_at.slice(0, 10) >= cutoff)
 }
 
 type SuccessPoint = { label: string; rate: number | null; count: number }
@@ -119,8 +119,8 @@ function buildSuccessRateData(reviews: ReviewRow[], period: Period): SuccessPoin
       d.setDate(d.getDate() - i)
       d.setHours(0, 0, 0, 0)
       const day = d.toISOString().slice(0, 10)
-      const dayR = reviews.filter(r => r.reviewed_at?.slice(0, 10) === day)
-      const good = dayR.filter(r => (r.rating || 0) >= 2).length
+      const dayR = reviews.filter(r => r.reviewed_at.slice(0, 10) === day)
+      const good = dayR.filter(r => r.rating >= 2).length
       const label = days === 7
         ? DAYS_FR[d.getDay()]
         : `${d.getDate()}/${d.getMonth() + 1}`
@@ -140,9 +140,9 @@ function buildSuccessRateData(reviews: ReviewRow[], period: Period): SuccessPoin
     startD.setDate(startD.getDate() - 6)
     const startStr = startD.toISOString().slice(0, 10)
     const weekR = reviews.filter(r =>
-      r.reviewed_at && r.reviewed_at.slice(0, 10) >= startStr && r.reviewed_at.slice(0, 10) <= endStr
+      r.reviewed_at.slice(0, 10) >= startStr && r.reviewed_at.slice(0, 10) <= endStr
     )
-    const good = weekR.filter(r => (r.rating || 0) >= 2).length
+    const good = weekR.filter(r => r.rating >= 2).length
     const label = `${startD.getDate()} ${MONTHS_FR[startD.getMonth()]}`
     result.push({ label, rate: weekR.length > 0 ? Math.round(good / weekR.length * 100) : null, count: weekR.length })
   }
@@ -151,7 +151,7 @@ function buildSuccessRateData(reviews: ReviewRow[], period: Period): SuccessPoin
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export default function StatsView({ reviews, hardCards, forecast, streak, retentionTarget }: Props) {
+export default function StatsView({ reviews, hardCards, forecast, streak, totalDaysReviewed, retentionTarget }: Props) {
   const [period, setPeriod] = useState<Period>('30j')
 
   const weekGrid = useMemo(() => buildWeekGrid(reviews), [reviews])
@@ -169,17 +169,27 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
   const filtered = useMemo(() => filterReviews(reviews, period), [reviews, period])
 
   const totalReviewed = filtered.length
+  const distinctCardsReviewed = useMemo(
+    () => new Set(filtered.map(r => r.card_id)).size,
+    [filtered]
+  )
+  const periodDaysReviewed = useMemo(
+    () => new Set(filtered.map(r => r.reviewed_at.slice(0, 10))).size,
+    [filtered]
+  )
+  const freeCount = useMemo(() => filtered.filter(r => r.mode === 'free').length, [filtered])
+  const scheduledCount = totalReviewed - freeCount
   const retentionRate = filtered.length > 0
-    ? Math.round(filtered.filter(r => (r.rating || 0) >= 2).length / filtered.length * 100)
+    ? Math.round(filtered.filter(r => r.rating >= 2).length / filtered.length * 100)
     : 0
   const yearRate = reviews.length > 0
-    ? Math.round(reviews.filter(r => (r.rating || 0) >= 2).length / reviews.length * 100)
+    ? Math.round(reviews.filter(r => r.rating >= 2).length / reviews.length * 100)
     : 0
 
   const ratingDist = useMemo(() => {
     const non = filtered.filter(r => r.rating === 1).length
     const hes = filtered.filter(r => r.rating === 2).length
-    const oui = filtered.filter(r => (r.rating || 0) >= 3).length
+    const oui = filtered.filter(r => r.rating >= 3).length
     const total = non + hes + oui
     return { non, hes, oui, total }
   }, [filtered])
@@ -304,8 +314,10 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <div className="text-2xl font-bold text-[var(--accent-light)] tabular-nums">{totalReviewed.toLocaleString('fr')}</div>
-            <div className="text-[10px] text-[#64748B] mt-0.5">révisions</div>
-            <div className="text-xs text-[#94A3B8] mt-1">Révisées</div>
+            <div className="text-[10px] text-[#64748B] mt-0.5">
+              {scheduledCount} prog. · {freeCount} libre
+            </div>
+            <div className="text-xs text-[#94A3B8] mt-1">Révisions</div>
           </div>
           <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <div className={`text-2xl font-bold tabular-nums ${retentionRate >= retentionTarget ? 'text-emerald-400' : 'text-[var(--accent-light)]'}`}>
@@ -313,6 +325,16 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
             </div>
             <div className="text-[10px] text-[#64748B] mt-0.5">objectif {retentionTarget}%</div>
             <div className="text-xs text-[#94A3B8] mt-1">Rétention</div>
+          </div>
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
+            <div className="text-2xl font-bold text-[var(--accent-light)] tabular-nums">{distinctCardsReviewed.toLocaleString('fr')}</div>
+            <div className="text-[10px] text-[#64748B] mt-0.5">{distinctCardsReviewed === 1 ? 'carte unique' : 'cartes uniques'}</div>
+            <div className="text-xs text-[#94A3B8] mt-1">Cartes révisées</div>
+          </div>
+          <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
+            <div className="text-2xl font-bold text-[var(--accent-light)] tabular-nums">{periodDaysReviewed}</div>
+            <div className="text-[10px] text-[#64748B] mt-0.5">/{totalDaysReviewed} au total</div>
+            <div className="text-xs text-[#94A3B8] mt-1">Jours actifs</div>
           </div>
           <div className="bg-[var(--bg-surface)] rounded-2xl p-4 border border-[var(--border-default)]">
             <div className="text-2xl font-bold text-[var(--accent-light)] tabular-nums">{streak}</div>
@@ -410,9 +432,15 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
               <p className="text-[#475569] text-sm text-center py-10">Pas encore de données pour cette période.</p>
             ) : (
               <div className="flex items-center gap-5">
-                <div style={{ width: 100, height: 100, flexShrink: 0 }}>
+                <div className="relative flex-shrink-0" style={{ width: 100, height: 100 }}>
                   {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
                   <DonutChart data={doughnutData} options={doughnutOptions} />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-lg font-bold text-[#F1F5F9] tabular-nums leading-none">
+                      {ratingDist.total.toLocaleString('fr')}
+                    </span>
+                    <span className="text-[9px] text-[#64748B] mt-0.5">réponses</span>
+                  </div>
                 </div>
                 <div className="space-y-2.5 flex-1 min-w-0">
                   {[
@@ -424,13 +452,10 @@ export default function StatsView({ reviews, hardCards, forecast, streak, retent
                       <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: item.color }} />
                       <span className="text-xs text-[#94A3B8] flex-1 min-w-0">{item.label}</span>
                       <span className="text-xs font-medium text-[#F1F5F9] tabular-nums">
-                        {Math.round(item.count / ratingDist.total * 100)}%
+                        {item.count} · {Math.round(item.count / ratingDist.total * 100)}%
                       </span>
                     </div>
                   ))}
-                  <p className="text-[10px] text-[#475569] pt-0.5">
-                    {ratingDist.total.toLocaleString('fr')} révision{ratingDist.total > 1 ? 's' : ''}
-                  </p>
                 </div>
               </div>
             )}

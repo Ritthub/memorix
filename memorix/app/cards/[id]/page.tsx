@@ -32,7 +32,6 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
     .select('*')
     .eq('card_id', id)
     .eq('user_id', user.id)
-    .order('reviewed_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
@@ -55,23 +54,51 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
     parentThemeName = parent?.name || null
   }
 
-  const { data: history } = await supabase
-    .from('card_reviews')
-    .select('rating, reviewed_at, scheduled_days, state')
+  // Full per-review history from review_logs (new in 2026-05-09 migration)
+  const { data: logs } = await supabase
+    .from('review_logs')
+    .select('rating, reviewed_at, scheduled_days, state_after, mode')
     .eq('card_id', id)
     .eq('user_id', user.id)
-    .not('reviewed_at', 'is', null)
     .order('reviewed_at', { ascending: false })
-    .limit(100)
+    .limit(500)
+
+  const history = (logs || []).map(l => ({
+    rating: l.rating as number,
+    reviewed_at: l.reviewed_at as string,
+    scheduled_days: (l.scheduled_days as number | null) ?? 0,
+    state: (l.state_after as string | null) || 'review',
+    mode: (l.mode as 'scheduled' | 'free') || 'scheduled',
+  }))
+
+  const total = history.length
+  const freeCount = history.filter(h => h.mode === 'free').length
+  const scheduledCount = total - freeCount
+  const successCount = history.filter(h => h.rating >= 2).length
+  const successRate = total > 0 ? Math.round(successCount / total * 100) : null
+
+  // Consecutive correct streak walking from most recent backward
+  let correctStreak = 0
+  for (const h of history) {
+    if (h.rating >= 2) correctStreak++
+    else break
+  }
 
   return (
     <CardDetail
       card={card}
       review={review}
-      history={history || []}
+      history={history}
       daysUntilNext={daysUntilNext}
       isFreeModeCard={isFreeModeCard}
       parentThemeName={parentThemeName}
+      stats={{
+        total,
+        freeCount,
+        scheduledCount,
+        successRate,
+        correctStreak,
+      }}
     />
   )
 }

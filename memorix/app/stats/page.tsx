@@ -22,24 +22,23 @@ export default async function StatsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
+  const yearAgoIso = new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()
+
   const [
-    { data: allReviews },
+    { data: allLogs },
     { data: hardCardsRaw },
     { data: forecastReviews },
     { data: profile },
   ] = await Promise.all([
-    supabase.from('card_reviews')
-      .select('reviewed_at, rating, scheduled_at, scheduled_days')
+    supabase.from('review_logs')
+      .select('reviewed_at, rating, mode, card_id')
       .eq('user_id', user.id)
-      .not('reviewed_at', 'is', null)
-      .gte('reviewed_at', new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString())
+      .gte('reviewed_at', yearAgoIso)
       .order('reviewed_at', { ascending: false }),
 
-    supabase.from('card_reviews')
-      .select('card_id, rating, cards!inner(question, theme_id, themes(name, color))')
-      .eq('user_id', user.id)
-      .not('reviewed_at', 'is', null)
-      .or('archived.is.null,archived.eq.false', { foreignTable: 'cards' }),
+    supabase.from('review_logs')
+      .select('card_id, rating, mode, cards!inner(question, theme_id, themes(name, color), archived)')
+      .eq('user_id', user.id),
 
     supabase.from('card_reviews')
       .select('scheduled_at')
@@ -53,14 +52,19 @@ export default async function StatsPage() {
       .single(),
   ])
 
-  const streak = computeStreak((allReviews || []).map(r => r.reviewed_at as string))
+  const logs = allLogs || []
+  const streak = computeStreak(logs.map(r => r.reviewed_at as string))
+  const totalDaysReviewed = new Set(logs.map(r => (r.reviewed_at as string).slice(0, 10))).size
 
-  // Hard cards: group by card_id, failure rate = rating===1 / total, min 3 reviews, top 8
+  // Hard cards: group by card_id, only consider scheduled reviews to avoid
+  // free-mode skewing the failure rate. Min 3 reviews, top 8.
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const cardMap = new Map<string, { total: number; fails: number; card: any }>()
   for (const r of hardCardsRaw || []) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { card_id, rating, cards } = r as any
+    const { card_id, rating, mode, cards } = r as any
+    if (mode !== 'scheduled') continue
+    if (cards?.archived) continue
     const entry = cardMap.get(card_id) || { total: 0, fails: 0, card: cards }
     entry.total++
     if (rating === 1) entry.fails++
@@ -102,10 +106,16 @@ export default async function StatsPage() {
 
   return (
     <StatsView
-      reviews={allReviews || []}
+      reviews={logs.map(r => ({
+        reviewed_at: r.reviewed_at as string,
+        rating: r.rating as number,
+        mode: r.mode as 'scheduled' | 'free',
+        card_id: r.card_id as string,
+      }))}
       hardCards={topHardCards}
       forecast={forecast}
       streak={streak}
+      totalDaysReviewed={totalDaysReviewed}
       retentionTarget={retentionTarget}
     />
   )
