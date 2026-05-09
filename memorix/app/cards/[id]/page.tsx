@@ -57,7 +57,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
   // Full per-review history from review_logs (new in 2026-05-09 migration)
   const { data: logs } = await supabase
     .from('review_logs')
-    .select('rating, reviewed_at, scheduled_days, state_after, mode')
+    .select('rating, reviewed_at, scheduled_days, state, mode')
     .eq('card_id', id)
     .eq('user_id', user.id)
     .order('reviewed_at', { ascending: false })
@@ -67,7 +67,7 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
     rating: l.rating as number,
     reviewed_at: l.reviewed_at as string,
     scheduled_days: (l.scheduled_days as number | null) ?? 0,
-    state: (l.state_after as string | null) || 'review',
+    state: (l.state as string | null) || 'review',
     mode: (l.mode as 'scheduled' | 'free') || 'scheduled',
   }))
 

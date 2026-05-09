@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS public.review_logs (
   rating integer NOT NULL CHECK (rating BETWEEN 1 AND 4),
   reviewed_at timestamptz NOT NULL DEFAULT now(),
   scheduled_days integer,
-  state_after text
+  stability double precision,
+  state text
 );
 
 CREATE INDEX IF NOT EXISTS idx_review_logs_user_reviewed
@@ -20,17 +21,20 @@ CREATE INDEX IF NOT EXISTS idx_review_logs_card_user_reviewed
 
 ALTER TABLE public.review_logs ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "Users can read own review logs"
+DROP POLICY IF EXISTS "Users can read own review logs" ON public.review_logs;
+CREATE POLICY "Users can read own review logs"
   ON public.review_logs
   FOR SELECT
   USING (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can insert own review logs"
+DROP POLICY IF EXISTS "Users can insert own review logs" ON public.review_logs;
+CREATE POLICY "Users can insert own review logs"
   ON public.review_logs
   FOR INSERT
   WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY IF NOT EXISTS "Users can delete own review logs"
+DROP POLICY IF EXISTS "Users can delete own review logs" ON public.review_logs;
+CREATE POLICY "Users can delete own review logs"
   ON public.review_logs
   FOR DELETE
   USING (auth.uid() = user_id);
@@ -39,7 +43,7 @@ CREATE POLICY IF NOT EXISTS "Users can delete own review logs"
 -- only retains its most recent review, so this preserves at least the
 -- last rating per card. Marked as 'scheduled' since pre-migration free
 -- mode also wrote to card_reviews (the bug we are fixing).
-INSERT INTO public.review_logs (card_id, user_id, mode, rating, reviewed_at, scheduled_days, state_after)
+INSERT INTO public.review_logs (card_id, user_id, mode, rating, reviewed_at, scheduled_days, state)
 SELECT card_id, user_id, 'scheduled', rating, reviewed_at, scheduled_days, state
 FROM public.card_reviews
 WHERE reviewed_at IS NOT NULL
