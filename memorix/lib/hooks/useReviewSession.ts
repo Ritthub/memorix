@@ -78,6 +78,7 @@ export function useReviewSession({
   const touchStartY = useRef<number | null>(null)
   // Guards against double-execution in React 18 Strict Mode
   const startedRef = useRef(false)
+  const userIdRef = useRef<string | null>(null)
 
   // ── Card loading ─────────────────────────────────────────────────────────────
 
@@ -88,6 +89,7 @@ export function useReviewSession({
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.replace('/login'); return }
+      userIdRef.current = user.id
 
       const { data: profileData } = await supabase
         .from('profiles')
@@ -235,18 +237,22 @@ export function useReviewSession({
       // Free mode never mutates card_reviews — it must not reschedule the
       // card. We only append a row to review_logs so stats reflect the
       // free review without affecting the FSRS programme.
-      supabase
-        .from('review_logs')
-        .insert({
-          card_id: card.id,
-          user_id: review.user_id,
-          mode: 'free',
-          rating: userRating,
-          reviewed_at: new Date().toISOString(),
-          scheduled_days: review.scheduled_days ?? null,
-          state_after: review.state ?? null,
-        })
-        .then(({ error }: { error: unknown }) => { if (error) console.error('free log save:', error) })
+      const uid = userIdRef.current
+      if (uid) {
+        supabase
+          .from('review_logs')
+          .insert({
+            user_id: uid,
+            card_id: card.id,
+            rating: userRating,
+            mode: 'free',
+            reviewed_at: new Date().toISOString(),
+            scheduled_days: null,
+            stability: null,
+            state: null,
+          })
+          .then(({ error }: { error: unknown }) => { if (error) console.error('review_logs insert error (free):', error) })
+      }
 
       setStats(s => {
         if (userRating === 1) return { ...s, non: s.non + 1 }
@@ -285,18 +291,22 @@ export function useReviewSession({
       .eq('id', review.id)
       .then(({ error }: { error: unknown }) => { if (error) console.error('rating save:', error) })
 
-    supabase
-      .from('review_logs')
-      .insert({
-        card_id: card.id,
-        user_id: review.user_id,
-        mode: 'scheduled',
-        rating: fsrsRating,
-        reviewed_at: reviewedAtIso,
-        scheduled_days: nextReview.scheduled_days,
-        state_after: nextReview.state,
-      })
-      .then(({ error }: { error: unknown }) => { if (error) console.error('scheduled log save:', error) })
+    const uid = userIdRef.current
+    if (uid) {
+      supabase
+        .from('review_logs')
+        .insert({
+          user_id: uid,
+          card_id: card.id,
+          rating: fsrsRating,
+          mode: 'scheduled',
+          reviewed_at: reviewedAtIso,
+          scheduled_days: nextReview.scheduled_days,
+          stability: nextReview.stability,
+          state: nextReview.state,
+        })
+        .then(({ error }: { error: unknown }) => { if (error) console.error('review_logs insert error:', error) })
+    }
 
     ratingHistoryRef.current.set(card.id, [
       ...history,
