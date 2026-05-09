@@ -12,14 +12,26 @@ export default async function ThemePage({ params }: { params: Promise<{ id: stri
 
   const { id } = await params
 
+  const nowIso = new Date().toISOString()
   const [
     { data: theme },
     { data: decks },
     { data: deckDueCards },
+    { data: themeDirectDueCards },
   ] = await Promise.all([
     supabase.from('themes').select('*').eq('id', id).eq('user_id', user.id).single(),
     supabase.from('decks').select('*, cards(count)').eq('theme_id', id).eq('user_id', user.id).order('position'),
-    supabase.from('card_reviews').select('cards(deck_id)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
+    supabase.from('card_reviews').select('cards(deck_id, archived)').eq('user_id', user.id).lte('scheduled_at', nowIso),
+    // Theme-direct cards: theme_id = this theme AND deck_id IS NULL.
+    // The deck_id IS NULL filter prevents double-counting cards already
+    // attributed to a deck under this theme via the previous query.
+    supabase
+      .from('card_reviews')
+      .select('cards!inner(id, archived)')
+      .eq('user_id', user.id)
+      .lte('scheduled_at', nowIso)
+      .eq('cards.theme_id', id)
+      .is('cards.deck_id', null),
   ])
 
   if (!theme) redirect('/library')
@@ -27,8 +39,18 @@ export default async function ThemePage({ params }: { params: Promise<{ id: stri
   const deckDueMap = new Map<string, number>()
   for (const r of deckDueCards || []) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const deckId = (r as any).cards?.deck_id
+    const card = (r as any).cards
+    if (!card || card.archived) continue
+    const deckId = card.deck_id
     if (deckId) deckDueMap.set(deckId, (deckDueMap.get(deckId) || 0) + 1)
+  }
+
+  let themeDirectDueCount = 0
+  for (const r of themeDirectDueCards || []) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const card = (r as any).cards
+    if (!card || card.archived) continue
+    themeDirectDueCount++
   }
 
   const decksWithMeta = (decks || []).map(deck => ({
@@ -39,7 +61,7 @@ export default async function ThemePage({ params }: { params: Promise<{ id: stri
   })) as (Deck & { card_count: number; due_count: number })[]
 
   const totalCards = decksWithMeta.reduce((s, d) => s + d.card_count, 0)
-  const totalDue = decksWithMeta.reduce((s, d) => s + d.due_count, 0)
+  const totalDue = decksWithMeta.reduce((s, d) => s + d.due_count, 0) + themeDirectDueCount
 
   return (
     <ThemeDetail

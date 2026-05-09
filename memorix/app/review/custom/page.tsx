@@ -48,13 +48,43 @@ function CustomReviewInner() {
 
   const session = useReviewSession({
     loadDeckIds: async (userId) => {
-      const themeIds = searchParams.get('themeIds')?.split(',').filter(Boolean) || []
+      const selectedThemeIds = searchParams.get('themeIds')?.split(',').filter(Boolean) || []
       const noTheme = searchParams.get('noTheme') === '1'
 
+      // Expand each selected theme to include its full sub-tree, so cards on
+      // sub-themes (and decks under sub-themes) are picked up.
+      let expandedThemeIds: string[] = []
+      if (selectedThemeIds.length > 0) {
+        const { data: allThemes } = await supabase
+          .from('themes')
+          .select('id, parent_id')
+          .eq('user_id', userId)
+
+        const themesList = (allThemes || []) as { id: string; parent_id: string | null }[]
+        const childrenByParent = new Map<string, string[]>()
+        for (const t of themesList) {
+          if (t.parent_id) {
+            const arr = childrenByParent.get(t.parent_id) || []
+            arr.push(t.id)
+            childrenByParent.set(t.parent_id, arr)
+          }
+        }
+
+        const collected = new Set<string>()
+        const stack = [...selectedThemeIds]
+        while (stack.length) {
+          const id = stack.pop()!
+          if (collected.has(id)) continue
+          collected.add(id)
+          for (const childId of childrenByParent.get(id) || []) stack.push(childId)
+        }
+        expandedThemeIds = Array.from(collected)
+      }
+
       let deckIds: string[] = []
-      if (themeIds.length > 0) {
+      if (expandedThemeIds.length > 0) {
         const { data: themeDecks } = await supabase
-          .from('decks').select('id').eq('user_id', userId).in('theme_id', themeIds)
+          .from('decks').select('id').eq('user_id', userId).in('theme_id', expandedThemeIds)
         deckIds = [...deckIds, ...(themeDecks || []).map((d: { id: string }) => d.id)]
       }
       if (noTheme) {
@@ -62,7 +92,12 @@ function CustomReviewInner() {
           .from('decks').select('id').eq('user_id', userId).is('theme_id', null)
         deckIds = [...deckIds, ...(noThemeDecks || []).map((d: { id: string }) => d.id)]
       }
-      return deckIds
+
+      // The review session hook accepts a mixed list of deck IDs
+      // and theme IDs via its OR filter on both columns. Returning the
+      // expanded theme IDs alongside deck IDs ensures cards attached
+      // directly to a theme (deck_id = null) are not silently excluded.
+      return [...deckIds, ...expandedThemeIds]
     },
     isFreeMode: false,
     supabase,

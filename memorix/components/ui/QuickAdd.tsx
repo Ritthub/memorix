@@ -134,8 +134,21 @@ export default function QuickAdd() {
     }
     if (destType === 'theme') {
       cardPayload.theme_id = destId
+      cardPayload.deck_id = null
     } else {
+      // When destination is a deck, also resolve and persist the deck's
+      // theme_id on the card so theme-driven read paths (dashboard,
+      // theme due count, custom review) see it without joining decks.
+      const { data: deck } = await supabase
+        .from('decks')
+        .select('theme_id')
+        .eq('id', destId)
+        .single()
+
       cardPayload.deck_id = destId
+      // TODO: when "Sans thème" fallback theme is created,
+      // assign it here instead of null
+      cardPayload.theme_id = (deck as { theme_id: string | null } | null)?.theme_id || null
     }
 
     const { data: card, error } = await supabase

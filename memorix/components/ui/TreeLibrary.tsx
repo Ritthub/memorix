@@ -140,7 +140,6 @@ function getThemeDepth(themeId: string | null, themesMap: Map<string, Theme>): n
 
 function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: string; pl: number }) {
   const { onDeleteThemeCard } = useLib()
-  const router = useRouter()
 
   const { listeners, setNodeRef, isDragging } = useDraggable({
     id: `card:${card.id}`,
@@ -168,11 +167,8 @@ function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: stri
 
   return (
     <div ref={setNodeRef} style={{ opacity: isDragging ? 0.25 : 1 }}>
-      {/* Listeners on the row itself → drag from anywhere; distance:8 prevents accidental drags */}
-      <div
-        onClick={() => router.push(`/cards/${card.id}`)}
-        onDoubleClick={() => router.push(`/cards/${card.id}`)}
-        tabIndex={0}
+      <Link
+        href={`/cards/${card.id}`}
         className="flex flex-col py-0.5 pr-2 group/card rounded hover:bg-[var(--bg-elevated)]/20 transition-colors cursor-pointer"
         style={{ paddingLeft: pl }}
       >
@@ -201,13 +197,13 @@ function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: stri
           </span>
           <div className="ml-auto flex items-center gap-0 opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0">
             <button
-              onClick={e => { e.stopPropagation(); router.push(`/cards/${card.id}`) }}
+              onClick={e => e.stopPropagation()}
               onPointerDown={e => e.stopPropagation()}
               className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-[var(--accent-light)] rounded text-xs transition-colors cursor-pointer" title="Voir le détail">
               ✏
             </button>
             <button
-              onClick={e => { e.stopPropagation(); startDelete() }}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); startDelete() }}
               onPointerDown={e => e.stopPropagation()}
               className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-red-400 rounded text-xs transition-colors cursor-pointer" title="Supprimer">
               ✕
@@ -219,7 +215,7 @@ function DraggableCardRow({ card, themeId, pl }: { card: CardItem; themeId: stri
             {card.explanation}
           </p>
         )}
-      </div>
+      </Link>
 
       {isDeleting && (
         <div className="flex items-center gap-2 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded text-xs mt-0.5 mr-2" style={{ marginLeft: pl }}>
@@ -582,7 +578,6 @@ function ThemeNode({ node }: { node: TreeNode }) {
 
 function NoThemeSection() {
   const { themeCards, loadingThemes, expandedThemes, onToggleTheme, onDeleteThemeCard, draggingCard } = useLib()
-  const router = useRouter()
 
   const isExpanded = expandedThemes.has(NO_THEME_ID)
   const isLoading = loadingThemes.has(NO_THEME_ID)
@@ -648,7 +643,6 @@ function NoThemeSection() {
               card={card}
               pl={cardPl}
               onDelete={() => onDeleteThemeCard(card.id, NO_THEME_ID)}
-              onNavigate={() => router.push(`/cards/${card.id}`)}
             />
           ))}
         </div>
@@ -657,8 +651,8 @@ function NoThemeSection() {
   )
 }
 
-function NoThemeCardRow({ card, pl, onDelete, onNavigate }: {
-  card: CardItem; pl: number; onDelete: () => void; onNavigate: () => void
+function NoThemeCardRow({ card, pl, onDelete }: {
+  card: CardItem; pl: number; onDelete: () => void
 }) {
   const [isDeleting, setIsDeleting] = useState(false)
   const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -685,10 +679,8 @@ function NoThemeCardRow({ card, pl, onDelete, onNavigate }: {
 
   return (
     <div ref={setNodeRef} style={{ opacity: isDragging ? 0.25 : 1 }}>
-      <div
-        onClick={onNavigate}
-        onDoubleClick={onNavigate}
-        tabIndex={0}
+      <Link
+        href={`/cards/${card.id}`}
         className="flex flex-col py-0.5 pr-2 group/card rounded hover:bg-[var(--bg-elevated)]/20 transition-colors cursor-pointer"
         style={{ paddingLeft: pl }}
       >
@@ -716,13 +708,13 @@ function NoThemeCardRow({ card, pl, onDelete, onNavigate }: {
           </span>
           <div className="ml-auto flex items-center gap-0 opacity-0 group-hover/card:opacity-100 transition-opacity flex-shrink-0">
             <button
-              onClick={e => { e.stopPropagation(); onNavigate() }}
+              onClick={e => e.stopPropagation()}
               onPointerDown={e => e.stopPropagation()}
               className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-[var(--accent-light)] rounded text-xs transition-colors cursor-pointer" title="Voir le détail">
               ✏
             </button>
             <button
-              onClick={e => { e.stopPropagation(); startDelete() }}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); startDelete() }}
               onPointerDown={e => e.stopPropagation()}
               className="w-5 h-5 flex items-center justify-center text-[var(--text-hint)] hover:text-red-400 rounded text-xs transition-colors cursor-pointer" title="Supprimer">
               ✕
@@ -734,7 +726,7 @@ function NoThemeCardRow({ card, pl, onDelete, onNavigate }: {
             {card.explanation}
           </p>
         )}
-      </div>
+      </Link>
 
       {isDeleting && (
         <div className="flex items-center gap-2 px-2 py-1 bg-red-500/10 border border-red-500/20 rounded text-xs mt-0.5 mr-2" style={{ marginLeft: pl }}>
@@ -970,8 +962,19 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
       const cards = prev.get(themeId) || []
       return new Map(prev).set(themeId, cards.filter(c => c.id !== cardId))
     })
-    await supabase.from('card_reviews').delete().eq('card_id', cardId)
-    await supabase.from('cards').delete().eq('id', cardId)
+    // Soft archive: preserve card_reviews / review_logs for stats and 30-day undo,
+    // matching the review-session archive behavior. A scheduled job hard-deletes
+    // rows whose auto_delete_at has passed.
+    const now = new Date()
+    const autoDeleteAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000)
+    await supabase
+      .from('cards')
+      .update({
+        archived: true,
+        archived_at: now.toISOString(),
+        auto_delete_at: autoDeleteAt.toISOString(),
+      })
+      .eq('id', cardId)
   }, [supabase])
 
   const onMoveCard = useCallback(async (cardId: string, fromThemeId: string, toThemeId: string) => {
