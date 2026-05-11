@@ -763,7 +763,9 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
   const [hoveredDropThemeId, setHoveredDropThemeId] = useState<string | null>(null)
   const [showCreateDropdown, setShowCreateDropdown] = useState(false)
 
-  const [expandedThemes, setExpandedThemes] = useState<Set<string>>(new Set())
+  const [expandedThemes, setExpandedThemes] = useState<Set<string>>(
+    () => new Set(initialThemes.map(t => t.id))
+  )
   const [themeCards, setThemeCards] = useState<Map<string, CardItem[]>>(new Map())
   const [loadingThemes, setLoadingThemes] = useState<Set<string>>(new Set())
 
@@ -912,6 +914,16 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
     setThemeCards(prev => new Map(prev).set(themeId, items))
     setLoadingThemes(prev => { const next = new Set(prev); next.delete(themeId); return next })
   }, [supabase, userId])
+
+  // Au montage : charger les cartes de tous les thèmes pour qu'ils soient
+  // développés par défaut (équivalent d'un "Tout développer" automatique).
+  const didInitialExpandRef = useRef(false)
+  useEffect(() => {
+    if (didInitialExpandRef.current) return
+    didInitialExpandRef.current = true
+    initialThemes.forEach(t => loadThemeCards(t.id))
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const onToggleTheme = useCallback((themeId: string) => {
     const isExpanded = expandedThemes.has(themeId)
