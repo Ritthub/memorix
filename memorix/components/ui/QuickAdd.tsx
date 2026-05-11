@@ -163,12 +163,23 @@ export default function QuickAdd() {
       return
     }
 
-    await supabase.from('card_reviews').insert({
+    const { error: reviewError } = await supabase.from('card_reviews').insert({
       card_id: card.id,
       user_id: userId,
       state: 'new',
       scheduled_at: new Date().toISOString(),
     })
+
+    if (reviewError) {
+      // Card was created but FSRS scheduling failed — it would become an
+      // orphan (invisible in scheduled review). Surface the failure
+      // instead of toasting success. Keep the dialog open so the content
+      // isn't lost.
+      console.error('QuickAdd card_reviews insert error:', reviewError)
+      setSaving(false)
+      setToast('Carte créée mais non planifiée pour la révision — réessayez depuis la bibliothèque.')
+      return
+    }
 
     localStorage.setItem(LAST_DEST_KEY, selectedDest)
     const destName = destinations.find(d => d.value === selectedDest)?.name ?? 'destination'

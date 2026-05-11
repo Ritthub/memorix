@@ -209,7 +209,7 @@ function CreatePageInner() {
     }
 
     if (insertedCards && insertedCards.length > 0) {
-      await supabase.from('card_reviews').insert(
+      const { error: reviewError } = await supabase.from('card_reviews').insert(
         insertedCards.map((card: { id: string }) => ({
           card_id: card.id,
           user_id: user.id,
@@ -217,6 +217,12 @@ function CreatePageInner() {
           scheduled_at: new Date().toISOString(),
         }))
       )
+      if (reviewError) {
+        console.error('create/page.tsx [wikipedia] card_reviews insert error:', reviewError)
+        setSaveError(`Cartes créées mais planification FSRS échouée (${insertedCards.length} carte${insertedCards.length > 1 ? 's' : ''}). Réessayez depuis la bibliothèque.`)
+        setLoading(false)
+        return
+      }
       router.push(`/themes/${selectedThemeId}`)
     }
     setLoading(false)
@@ -316,7 +322,7 @@ function CreatePageInner() {
     }
 
     if (insertedCards && insertedCards.length > 0) {
-      await supabase.from('card_reviews').insert(
+      const { error: reviewError } = await supabase.from('card_reviews').insert(
         insertedCards.map((card: { id: string }) => ({
           card_id: card.id,
           user_id: user.id,
@@ -324,6 +330,12 @@ function CreatePageInner() {
           scheduled_at: new Date().toISOString(),
         }))
       )
+      if (reviewError) {
+        console.error('create/page.tsx [ai/manual] card_reviews insert error:', reviewError)
+        setSaveError(`Cartes créées mais planification FSRS échouée (${insertedCards.length} carte${insertedCards.length > 1 ? 's' : ''}). Réessayez depuis la bibliothèque.`)
+        setLoading(false)
+        return
+      }
       router.push(`/themes/${selectedThemeId}`)
     }
     setLoading(false)
@@ -465,7 +477,13 @@ function CreatePageInner() {
       )
 
     if (reviewError) {
-      console.error('card_reviews insert error:', reviewError)
+      // Cards were inserted but FSRS scheduling failed — they would become
+      // orphans (invisible in scheduled review). Block navigation so the
+      // user knows and can react instead of failing silently.
+      console.error('create/page.tsx [excel] card_reviews insert error:', reviewError)
+      setExcelError(`Import partiel : ${insertedCards.length} carte${insertedCards.length > 1 ? 's' : ''} créée${insertedCards.length > 1 ? 's' : ''} mais non planifiée${insertedCards.length > 1 ? 's' : ''} pour la révision. Réessayez depuis la bibliothèque.`)
+      setLoading(false)
+      return
     }
 
     router.push(`/themes/${selectedThemeId}`)

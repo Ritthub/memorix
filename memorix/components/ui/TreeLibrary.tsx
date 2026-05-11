@@ -953,7 +953,13 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
       card_id: card.id, user_id: userId, state: 'new',
       scheduled_at: new Date().toISOString(),
     })
-    if (reviewError) console.error('card_reviews insert error:', reviewError)
+    if (reviewError) {
+      // Card exists but FSRS scheduling failed — it would become an orphan
+      // (invisible in scheduled review). Surface the error to the caller
+      // instead of silently inserting into local state.
+      console.error('TreeLibrary.onAddThemeCard card_reviews insert error:', reviewError)
+      throw new Error('Carte créée mais non planifiée pour la révision. Réessayez.')
+    }
     setThemeCards(prev => {
       const existing = prev.get(themeId) || []
       return new Map(prev).set(themeId, [{ id: card.id, question: q, answer: a, explanation: expl || null }, ...existing])
