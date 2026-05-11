@@ -2,6 +2,9 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase'
+import * as XLSX from 'xlsx'
+
+type ExcelCard = { q: string; a: string; expl: string | null }
 
 const WIKI_PRIORITIES = [
   'Dates & faits clés',
@@ -18,7 +21,7 @@ function CreatePageInner() {
   const themeIdParam = searchParams.get('themeId')
   const supabase = createClient()
 
-  const [mode, setMode] = useState<'manual' | 'ai' | 'wikipedia'>('manual')
+  const [mode, setMode] = useState<'manual' | 'ai' | 'wikipedia' | 'excel'>('manual')
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [extracting, setExtracting] = useState(false)
@@ -53,6 +56,15 @@ function CreatePageInner() {
   const [wikiMaxCards, setWikiMaxCards] = useState(15)
   const [wikiPriorities, setWikiPriorities] = useState<Set<string>>(new Set())
   const [wikiError, setWikiError] = useState('')
+
+  // Excel / CSV state
+  const [excelCards, setExcelCards] = useState<ExcelCard[]>([])
+  const [excelIgnored, setExcelIgnored] = useState(0)
+  const [excelCapped, setExcelCapped] = useState(false)
+  const [excelFileName, setExcelFileName] = useState('')
+  const [excelParsing, setExcelParsing] = useState(false)
+  const [excelDragOver, setExcelDragOver] = useState(false)
+  const [excelError, setExcelError] = useState<string | null>(null)
 
   const icons = ['📚', '💼', '🧠', '🌍', '⚖️', '💊', '🏛️', '🔬', '💰', '🎯']
 
@@ -317,6 +329,149 @@ function CreatePageInner() {
     setLoading(false)
   }
 
+  function resetExcel() {
+    setExcelCards([])
+    setExcelIgnored(0)
+    setExcelCapped(false)
+    setExcelFileName('')
+    setExcelError(null)
+  }
+
+  function handleExcelFile(file?: File) {
+    if (!file) return
+    const name = file.name.toLowerCase()
+    const isSupported = name.endsWith('.xlsx') || name.endsWith('.xls') || name.endsWith('.csv')
+    if (!isSupported) {
+      setExcelError('Format non supporté. Utilisez .xlsx, .xls ou .csv')
+      return
+    }
+    resetExcel()
+    setExcelFileName(file.name)
+    setExcelParsing(true)
+
+    const reader = new FileReader()
+    reader.onerror = () => {
+      setExcelError('Impossible de lire le fichier.')
+      setExcelParsing(false)
+    }
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target?.result as ArrayBuffer)
+        const workbook = XLSX.read(data, { type: 'array' })
+        const sheetName = workbook.SheetNames[0]
+        if (!sheetName) {
+          setExcelError('Aucune carte trouvée dans ce fichier')
+          setExcelParsing(false)
+          return
+        }
+        const sheet = workbook.Sheets[sheetName]
+        const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, blankrows: false })
+
+        const firstRow = (rows[0] as unknown[]) || []
+        const hasHeader = firstRow.some(cell =>
+          typeof cell === 'string' &&
+          ['question', 'réponse', 'reponse', 'answer', 'explication', 'explanation']
+            .includes(String(cell).toLowerCase().trim())
+        )
+        const dataRows = hasHeader ? rows.slice(1) : rows
+
+        const validRows = dataRows.filter((row) => {
+          const r = row as unknown[]
+          return r[0] != null && String(r[0]).trim() !== '' && r[1] != null && String(r[1]).trim() !== ''
+        })
+        const parsed: ExcelCard[] = validRows
+          .slice(0, 500)
+          .map((row) => {
+            const r = row as unknown[]
+            return {
+              q: String(r[0] ?? '').trim(),
+              a: String(r[1] ?? '').trim(),
+              expl: r[2] != null && String(r[2]).trim() !== '' ? String(r[2]).trim() : null,
+            }
+          })
+
+        const ignoredCount = dataRows.length - validRows.length
+        const cappedCount = Math.max(0, validRows.length - 500)
+
+        if (parsed.length === 0) {
+          setExcelError('Aucune carte trouvée dans ce fichier')
+          setExcelParsing(false)
+          return
+        }
+
+        setExcelCards(parsed)
+        setExcelIgnored(ignoredCount)
+        setExcelCapped(cappedCount > 0)
+        setExcelParsing(false)
+      } catch (err) {
+        console.error('excel parse error:', err)
+        setExcelError('Impossible de lire ce fichier. Vérifiez le format.')
+        setExcelParsing(false)
+      }
+    }
+    reader.readAsArrayBuffer(file)
+  }
+
+  function handleExcelDrop(e: React.DragEvent) {
+    e.preventDefault()
+    setExcelDragOver(false)
+    handleExcelFile(e.dataTransfer.files[0])
+  }
+
+  async function saveExcelCards() {
+    if (loading || !selectedThemeId || excelCards.length === 0) return
+    setLoading(true)
+    setExcelError(null)
+
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      setExcelError('Session expirée — rechargez la page.')
+      setLoading(false)
+      return
+    }
+
+    const { data: insertedCards, error: insertError } = await supabase
+      .from('cards')
+      .insert(
+        excelCards.map(c => ({
+          theme_id: selectedThemeId,
+          deck_id: null,
+          question: c.q,
+          answer: c.a,
+          explanation: c.expl || null,
+          difficulty: 3,
+          created_by_ai: false,
+          user_edited: false,
+        }))
+      )
+      .select('id')
+
+    if (insertError || !insertedCards) {
+      console.error('saveExcelCards insert error:', insertError)
+      setExcelError(insertError?.message || 'Erreur lors de l\'import')
+      setLoading(false)
+      return
+    }
+
+    const { error: reviewError } = await supabase
+      .from('card_reviews')
+      .insert(
+        insertedCards.map((card: { id: string }) => ({
+          card_id: card.id,
+          user_id: user.id,
+          state: 'new',
+          scheduled_at: new Date().toISOString(),
+        }))
+      )
+
+    if (reviewError) {
+      console.error('card_reviews insert error:', reviewError)
+    }
+
+    router.push(`/themes/${selectedThemeId}`)
+    setLoading(false)
+  }
+
   function addCard() { setCards([...cards, { question: '', answer: '', explanation: '' }]) }
   function updateCard(idx: number, field: string, value: string) {
     setCards(cards.map((c, i) => i === idx ? { ...c, [field]: value } : c))
@@ -488,6 +643,16 @@ function CreatePageInner() {
           <button onClick={enterWikiMode}
             className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${mode === 'wikipedia' ? 'bg-[var(--accent)] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'}`}>
             Wikipedia
+          </button>
+          <button
+            onClick={() => { setMode('excel'); setExcelError(null) }}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+              mode === 'excel'
+                ? 'bg-[var(--accent)] text-white'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+            }`}
+          >
+            Excel / CSV
           </button>
         </div>
 
@@ -803,6 +968,154 @@ function CreatePageInner() {
                     ? '⏳ Import en cours...'
                     : `Importer ${aiCards.length} carte${aiCards.length > 1 ? 's' : ''} dans le thème sélectionné`}
                 </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Excel / CSV mode */}
+        {mode === 'excel' && (
+          <div>
+            {excelCards.length === 0 ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="text-[var(--text-muted)] text-sm mb-2 block">
+                    Importez un fichier Excel ou CSV
+                  </label>
+                  <label
+                    className={`flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-xl cursor-pointer transition-colors ${
+                      excelDragOver
+                        ? 'border-[var(--accent)] bg-[var(--accent-subtle)]/20'
+                        : 'border-[var(--border-default)] hover:border-[var(--border-focus)]/50'
+                    }`}
+                    onDragOver={e => { e.preventDefault(); setExcelDragOver(true) }}
+                    onDragLeave={() => setExcelDragOver(false)}
+                    onDrop={handleExcelDrop}
+                  >
+                    <input
+                      type="file"
+                      accept=".xlsx,.xls,.csv"
+                      className="hidden"
+                      onChange={e => handleExcelFile(e.target.files?.[0])}
+                    />
+                    {excelParsing ? (
+                      <div className="text-center">
+                        <div className="text-2xl mb-2 animate-pulse">⏳</div>
+                        <p className="text-[var(--text-muted)] text-sm">Analyse du fichier...</p>
+                        {excelFileName && (
+                          <p className="text-[var(--text-muted)] text-xs mt-1 truncate max-w-xs">{excelFileName}</p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <div className="text-2xl mb-2">📊</div>
+                        <p className="text-[var(--text-muted)] text-sm">Glissez un fichier ici ou cliquez pour choisir</p>
+                        <p className="text-[var(--text-muted)] text-xs mt-1">.xlsx, .xls ou .csv</p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-xs text-[var(--text-muted)] space-y-1">
+                  <p className="text-[var(--text-secondary)] font-medium">Format attendu</p>
+                  <p>• Colonne A : Question (obligatoire)</p>
+                  <p>• Colonne B : Réponse (obligatoire)</p>
+                  <p>• Colonne C : Explication (optionnel)</p>
+                  <p>• Première ligne en-tête détectée automatiquement — limite 500 cartes</p>
+                </div>
+
+                {excelError && (
+                  <p className="text-red-400 text-sm p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                    ⚠ {excelError}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div>
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs px-2.5 py-1 bg-[var(--accent-subtle)]/30 text-[var(--accent-light)] rounded-full font-medium">
+                      {excelCards.length} carte{excelCards.length > 1 ? 's' : ''} prête{excelCards.length > 1 ? 's' : ''} à importer
+                    </span>
+                    {excelFileName && (
+                      <span className="text-xs text-[var(--text-muted)] truncate max-w-[180px]">{excelFileName}</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={resetExcel}
+                    className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-sm transition-colors"
+                  >
+                    Changer de fichier
+                  </button>
+                </div>
+
+                {excelIgnored > 0 && (
+                  <p className="text-amber-400 text-xs mb-2 p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                    {excelIgnored} ligne{excelIgnored > 1 ? 's' : ''} ignorée{excelIgnored > 1 ? 's' : ''} (question ou réponse manquante)
+                  </p>
+                )}
+                {excelCapped && (
+                  <p className="text-amber-400 text-xs mb-2 p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                    ⚠ Fichier tronqué à 500 cartes — seules les 500 premières lignes valides seront importées
+                  </p>
+                )}
+
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl overflow-hidden mb-4">
+                  <div className="px-4 py-2 border-b border-[var(--border-default)] text-xs text-[var(--text-muted)] font-medium">
+                    Aperçu — {Math.min(5, excelCards.length)} première{excelCards.length > 1 ? 's' : ''} carte{excelCards.length > 1 ? 's' : ''}
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border-default)]">
+                          <th className="px-3 py-2 font-medium w-8">#</th>
+                          <th className="px-3 py-2 font-medium">Question</th>
+                          <th className="px-3 py-2 font-medium">Réponse</th>
+                          <th className="px-3 py-2 font-medium">Explication</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {excelCards.slice(0, 5).map((card, idx) => (
+                          <tr key={idx} className="border-b border-[var(--border-default)] last:border-b-0">
+                            <td className="px-3 py-2 text-[var(--text-muted)]">{idx + 1}</td>
+                            <td className="px-3 py-2 text-[var(--text-primary)]">
+                              {card.q.length > 40 ? card.q.slice(0, 40) + '…' : card.q}
+                            </td>
+                            <td className="px-3 py-2 text-[var(--accent-light)]">
+                              {card.a.length > 40 ? card.a.slice(0, 40) + '…' : card.a}
+                            </td>
+                            <td className="px-3 py-2 text-[var(--text-muted)]">
+                              {card.expl
+                                ? (card.expl.length > 40 ? card.expl.slice(0, 40) + '…' : card.expl)
+                                : <span className="italic text-[var(--text-muted)]">—</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {excelError && (
+                  <p className="text-red-400 text-sm mb-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                    ⚠ {excelError}
+                  </p>
+                )}
+
+                <button
+                  onClick={saveExcelCards}
+                  disabled={loading || !selectedThemeId || excelCards.length === 0}
+                  className="w-full bg-[var(--accent)] hover:bg-[var(--accent-hover)] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl py-3 font-medium transition-colors"
+                >
+                  {loading
+                    ? '⏳ Import en cours...'
+                    : `Importer ${excelCards.length} carte${excelCards.length > 1 ? 's' : ''} dans le thème sélectionné`}
+                </button>
+                {!selectedThemeId && (
+                  <p className="text-[var(--text-muted)] text-xs mt-2 text-center">
+                    Sélectionnez ou créez un thème ci-dessus pour activer l&apos;import.
+                  </p>
+                )}
               </div>
             )}
           </div>
