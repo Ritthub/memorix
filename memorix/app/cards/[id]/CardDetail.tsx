@@ -49,7 +49,6 @@ interface Props {
   review: ReviewData
   history: HistoryEntry[]
   daysUntilNext: number | null
-  isFreeModeCard: boolean
   parentThemeName: string | null
   stats: CardStats
 }
@@ -62,6 +61,24 @@ function formatState(state: string | undefined): string {
     case 'relearning': return 'En rattrapage'
     default: return 'Nouvelle'
   }
+}
+
+// "Prochaine révision" — relative label derived only from card_reviews.scheduled_at.
+// daysUntilNext is null when there is no schedule (no row, null scheduled_at,
+// or legacy free-mode sentinel ~10 years out): in that case the caller should
+// show "Non planifiée" — never "Mode libre".
+function formatNextReview(daysUntilNext: number | null): string {
+  if (daysUntilNext === null) return 'Non planifiée'
+  if (daysUntilNext < 0) return 'En retard'
+  if (daysUntilNext === 0) return "Aujourd'hui"
+  if (daysUntilNext === 1) return 'Demain'
+  if (daysUntilNext < 30) return `Dans ${daysUntilNext} jours`
+  if (daysUntilNext < 365) {
+    const months = Math.round(daysUntilNext / 30)
+    return `Dans ${months} mois`
+  }
+  const years = Math.round(daysUntilNext / 365)
+  return `Dans ${years} an${years > 1 ? 's' : ''}`
 }
 
 function formatDate(dateStr: string): string {
@@ -79,7 +96,7 @@ function RatingIcon({ rating }: { rating: number }) {
   return <span style={{ color: '#34D399' }}>✓✓</span>
 }
 
-export default function CardDetail({ card, review, history, daysUntilNext, isFreeModeCard, parentThemeName, stats }: Props) {
+export default function CardDetail({ card, review, history, daysUntilNext, parentThemeName, stats }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -424,22 +441,17 @@ export default function CardDetail({ card, review, history, daysUntilNext, isFre
           <div className="grid grid-cols-2 gap-3">
             <div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>Prochaine révision</p>
-              {isFreeModeCard ? (
-                <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>Mode libre</p>
-              ) : review?.scheduled_at ? (
-                <>
-                  <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>
-                    {formatDate(review.scheduled_at)}
-                  </p>
-                  {daysUntilNext !== null && daysUntilNext <= 0 && (
-                    <p style={{ fontSize: 11, marginTop: 2, color: daysUntilNext < 0 ? '#F87171' : 'var(--accent-light)' }}>
-                      {daysUntilNext < 0 ? 'En retard' : "Aujourd'hui"}
-                    </p>
-                  )}
-                </>
-              ) : (
-                <p style={{ fontSize: 14, color: 'var(--text-primary)', fontWeight: 500 }}>Jamais révisée</p>
-              )}
+              <p
+                style={{
+                  fontSize: 14,
+                  fontWeight: 500,
+                  color: daysUntilNext !== null && daysUntilNext < 0
+                    ? '#F87171'
+                    : 'var(--text-primary)',
+                }}
+              >
+                {formatNextReview(daysUntilNext)}
+              </p>
             </div>
             <div>
               <p style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 2 }}>État</p>

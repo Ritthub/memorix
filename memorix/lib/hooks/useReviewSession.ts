@@ -102,6 +102,9 @@ export function useReviewSession({
       if (ids.length === 0) { setIsLoading(false); return }
 
       if (isFreeMode) {
+        // Free mode must not touch card_reviews at all — neither writes
+        // nor row creation. We just read existing reviews to attach
+        // (for display / undo flows) and leave cards without one alone.
         const { data: allCards } = await supabase
           .from('cards')
           .select('*, decks(name, theme_id, themes(name, color)), themes(name, color)')
@@ -122,26 +125,8 @@ export function useReviewSession({
           reviewMap.set((r as CardReview).card_id, r as CardReview)
         }
 
-        // Create missing card_review rows for manually-added cards
-        const missingIds = cardIds.filter((id: string) => !reviewMap.has(id))
-        if (missingIds.length > 0) {
-          const { data: newReviews } = await supabase
-            .from('card_reviews')
-            .insert(missingIds.map((card_id: string) => ({
-              card_id,
-              user_id: user.id,
-              state: 'new',
-              scheduled_at: new Date().toISOString(),
-            })))
-            .select()
-          for (const r of newReviews || []) {
-            reviewMap.set((r as CardReview).card_id, r as CardReview)
-          }
-        }
-
         const readyCards = (allCards as Card[])
-          .filter(c => reviewMap.has(c.id))
-          .map(c => ({ ...c, review: reviewMap.get(c.id)! }))
+          .map(c => reviewMap.has(c.id) ? { ...c, review: reviewMap.get(c.id)! } : c)
         setCards([...readyCards].sort(() => Math.random() - 0.5))
       } else {
         // Normal mode: fetch all due reviews for user, filter client-side by deck/theme
@@ -231,7 +216,6 @@ export function useReviewSession({
     setShowArchiveConfirm(false)
 
     const card = cards[current]
-    const review = card.review as CardReview
 
     if (isFreeMode) {
       // Free mode never mutates card_reviews — it must not reschedule the
@@ -270,6 +254,7 @@ export function useReviewSession({
     }
 
     // Normal mode: full FSRS update
+    const review = card.review as CardReview
     const history = ratingHistoryRef.current.get(card.id) || []
     const successRate = history.length > 0
       ? history.filter(h => h.rating >= 2).length / history.length

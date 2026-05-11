@@ -35,6 +35,9 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
     .limit(1)
     .maybeSingle()
 
+  // Source of truth for the next review is card_reviews.scheduled_at.
+  // Legacy free-mode rows seeded scheduled_at to ~10 years in the future as a
+  // "no real schedule" sentinel; treat any such value as no schedule for display.
   const scheduledAt = review?.scheduled_at ? new Date(review.scheduled_at) : null
   const daysUntilNext = scheduledAt
     ? (() => {
@@ -42,7 +45,6 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
         return days > 3650 ? null : days
       })()
     : null
-  const isFreeModeCard = scheduledAt !== null && daysUntilNext === null
 
   let parentThemeName: string | null = null
   if (card.themes?.parent_id) {
@@ -90,7 +92,6 @@ export default async function CardPage({ params }: { params: Promise<{ id: strin
       review={review}
       history={history}
       daysUntilNext={daysUntilNext}
-      isFreeModeCard={isFreeModeCard}
       parentThemeName={parentThemeName}
       stats={{
         total,
