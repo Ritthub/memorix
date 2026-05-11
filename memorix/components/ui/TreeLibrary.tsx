@@ -63,6 +63,14 @@ interface Ctx {
   onPromoteTheme: (id: string) => Promise<void>
 }
 
+type SearchResult = {
+  id: string
+  question: string
+  answer: string
+  theme_id: string | null
+  themes: { name: string; color: string; parent_id: string | null } | null
+}
+
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const COLORS = ['#4338CA', '#0D9488', '#E85D4A', '#F59E0B', '#3B82F6', '#22C55E', '#EC4899']
@@ -745,6 +753,93 @@ function NoThemeCardRow({ card, pl, onDelete }: {
   )
 }
 
+// ── SearchResultsPanel ────────────────────────────────────────────────────────
+
+function SearchResultsPanel({
+  search, loading, results, themeNameMatches, themesById, onPickTheme, onPickCard,
+}: {
+  search: string
+  loading: boolean
+  results: SearchResult[]
+  themeNameMatches: Theme[]
+  themesById: Map<string, Theme>
+  onPickTheme: (id: string) => void
+  onPickCard: (cardId: string) => void
+}) {
+  const tooShort = search.length < 2
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between px-1 py-1">
+        <p className="text-xs text-[var(--text-muted)]">
+          {tooShort
+            ? 'Tapez au moins 2 caractères'
+            : loading
+              ? 'Recherche…'
+              : `${themeNameMatches.length + results.length} résultat${(themeNameMatches.length + results.length) > 1 ? 's' : ''}`}
+        </p>
+      </div>
+
+      {!tooShort && !loading && themeNameMatches.length === 0 && results.length === 0 && (
+        <div className="text-center py-12 text-[var(--text-muted)]">
+          <p className="text-3xl mb-3">🔍</p>
+          <p className="text-sm">Aucun résultat pour « {search} ».</p>
+        </div>
+      )}
+
+      {themeNameMatches.length > 0 && (
+        <div className="space-y-1">
+          <p className="text-[10px] uppercase tracking-wider text-[var(--text-hint)] px-1">Thèmes</p>
+          {themeNameMatches.map(t => (
+            <button
+              key={t.id}
+              onClick={() => onPickTheme(t.id)}
+              className="w-full text-left bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors flex items-center gap-2"
+              style={{ borderRadius: 10, padding: '10px 12px' }}
+            >
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: t.color }} />
+              <span className="text-sm text-[var(--text-secondary)] truncate">{t.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {results.length > 0 && (
+        <div className="space-y-1">
+          {themeNameMatches.length > 0 && (
+            <p className="text-[10px] uppercase tracking-wider text-[var(--text-hint)] px-1 pt-2">Cartes</p>
+          )}
+          {results.map(card => {
+            const themeName = card.themes?.name
+              ?? (card.theme_id ? themesById.get(card.theme_id)?.name : null)
+              ?? 'Sans thème'
+            const themeColor = card.themes?.color
+              ?? (card.theme_id ? themesById.get(card.theme_id)?.color : null)
+              ?? '#6B7280'
+            const q = card.question.length > 60 ? card.question.slice(0, 60) + '…' : card.question
+            const a = card.answer.length > 40 ? card.answer.slice(0, 40) + '…' : card.answer
+            return (
+              <button
+                key={card.id}
+                onClick={() => onPickCard(card.id)}
+                className="w-full text-left bg-[var(--bg-surface)] border border-[var(--border-subtle)] hover:border-[var(--border-default)] transition-colors flex flex-col gap-0.5"
+                style={{ borderRadius: 10, padding: '10px 12px' }}
+              >
+                <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-hint)]">
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: themeColor }} />
+                  <span className="truncate">{themeName}</span>
+                </div>
+                <p className="text-sm text-[var(--text-secondary)] truncate">{q}</p>
+                <p className="text-xs text-[var(--text-muted)] truncate">{a}</p>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ── TreeLibrary ───────────────────────────────────────────────────────────────
 
 export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps) {
@@ -780,12 +875,59 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
     return result
   }
 
-  const filteredThemes = search
-    ? themes.filter(t => t.name.toLowerCase().includes(search.toLowerCase()))
-    : themes
-
-  const tree = useMemo(() => buildTree(filteredThemes), [filteredThemes])
   const themesById = useMemo(() => new Map(themes.map(t => [t.id, t])), [themes])
+
+  // ── Recherche : interroge Supabase (cards) + filtre les thèmes par nom en mémoire.
+  // Les cartes sont lazy-loadées dans `themeCards`, donc un filtre uniquement en mémoire
+  // raterait les cartes pas encore chargées — on passe par une requête directe.
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [searchLoading, setSearchLoading] = useState(false)
+
+  useEffect(() => {
+    const q = search.trim()
+    const safe = q.replace(/[%_,()"\\]/g, ' ').trim()
+    if (safe.length < 2) {
+      const clearTimer = setTimeout(() => {
+        setSearchResults([])
+        setSearchLoading(false)
+      }, 0)
+      return () => clearTimeout(clearTimer)
+    }
+    const pattern = `%${safe}%`
+    const loadingTimer = setTimeout(() => setSearchLoading(true), 0)
+    const queryTimer = setTimeout(async () => {
+      const { data, error } = await supabase
+        .from('cards')
+        .select('id, question, answer, theme_id, themes(name, color, parent_id)')
+        .or(`question.ilike.${pattern},answer.ilike.${pattern},explanation.ilike.${pattern}`)
+        .or('archived.is.null,archived.eq.false')
+        .limit(30)
+      if (error) {
+        console.error('library search error:', error)
+        setSearchResults([])
+      } else {
+        setSearchResults((data || []) as unknown as SearchResult[])
+      }
+      setSearchLoading(false)
+    }, 300)
+    return () => {
+      clearTimeout(loadingTimer)
+      clearTimeout(queryTimer)
+    }
+  }, [search, supabase])
+
+  const searchTrimmed = search.trim()
+  const isSearchMode = searchTrimmed.length > 0
+
+  const themeNameMatches = useMemo(() => {
+    if (!isSearchMode) return []
+    const lc = searchTrimmed.toLowerCase()
+    return themes
+      .filter(t => t.name.toLowerCase().includes(lc))
+      .slice(0, 10)
+  }, [isSearchMode, searchTrimmed, themes])
+
+  const tree = useMemo(() => buildTree(themes), [themes])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -1237,7 +1379,7 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
             </svg>
             <input
               type="text"
-              placeholder="Rechercher un thème…"
+              placeholder="Rechercher un thème ou une carte…"
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-[var(--bg-surface)] border border-[var(--border-default)] rounded-xl py-2.5 pl-9 pr-4 text-sm focus:outline-none focus:border-[var(--accent)]/60 placeholder-[var(--text-muted)]"
@@ -1246,33 +1388,54 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
         </header>
 
         <main className="max-w-2xl mx-auto px-2 py-3">
-          <DndContext
-            sensors={sensors}
-            collisionDetection={sameLevelCollision}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragEnd={handleDragEnd}
-          >
-            {tree.length > 0 && (
-              <SortableContext items={rootThemeIds} strategy={verticalListSortingStrategy}>
-                {tree.map(node => <ThemeNode key={node.id} node={node} />)}
-              </SortableContext>
-            )}
+          {isSearchMode ? (
+            <SearchResultsPanel
+              search={searchTrimmed}
+              loading={searchLoading}
+              results={searchResults}
+              themeNameMatches={themeNameMatches}
+              themesById={themesById}
+              onPickTheme={(id) => {
+                setSearch('')
+                setExpandedThemes(prev => new Set(prev).add(id))
+                setCollapsed(prev => { const n = new Set(prev); n.delete(id); return n })
+                if (typeof window !== 'undefined') {
+                  setTimeout(() => {
+                    const el = document.getElementById(`theme-${id}`)
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                  }, 50)
+                }
+              }}
+              onPickCard={(cardId) => router.push(`/cards/${cardId}`)}
+            />
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={sameLevelCollision}
+              onDragStart={handleDragStart}
+              onDragOver={handleDragOver}
+              onDragEnd={handleDragEnd}
+            >
+              {tree.length > 0 && (
+                <SortableContext items={rootThemeIds} strategy={verticalListSortingStrategy}>
+                  {tree.map(node => <ThemeNode key={node.id} node={node} />)}
+                </SortableContext>
+              )}
 
-            {tree.length === 0 && !search && (
-              <div className="text-center py-16 text-[var(--text-muted)]">
-                <p className="text-4xl mb-4">🗂️</p>
-                <p className="text-sm">Aucun thème pour l&apos;instant.</p>
-                <button
-                  onClick={handleCreateRootTheme}
-                  className="inline-block mt-4 text-[var(--accent)] hover:text-[var(--accent-light)] text-sm"
-                >
-                  Créer mon premier thème →
-                </button>
-              </div>
-            )}
+              {tree.length === 0 && (
+                <div className="text-center py-16 text-[var(--text-muted)]">
+                  <p className="text-4xl mb-4">🗂️</p>
+                  <p className="text-sm">Aucun thème pour l&apos;instant.</p>
+                  <button
+                    onClick={handleCreateRootTheme}
+                    className="inline-block mt-4 text-[var(--accent)] hover:text-[var(--accent-light)] text-sm"
+                  >
+                    Créer mon premier thème →
+                  </button>
+                </div>
+              )}
 
-            {!search && <NoThemeSection />}
+              <NoThemeSection />
 
             <DragOverlay dropAnimation={{ duration: 180, easing: 'ease' }}>
               {activeTheme && (
@@ -1295,6 +1458,7 @@ export default function TreeLibrary({ initialThemes, userId }: TreeLibraryProps)
               )}
             </DragOverlay>
           </DndContext>
+          )}
         </main>
       </div>
     </LibCtx.Provider>
