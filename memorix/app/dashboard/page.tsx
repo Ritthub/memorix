@@ -31,12 +31,16 @@ export default async function DashboardPage() {
     { data: profile },
     { data: recentReviews },
     { data: themeDueCards },
+    { count: totalCards },
+    { count: masteredCards },
   ] = await Promise.all([
     supabase.from('themes').select('id, name, color, position, parent_id').eq('user_id', user.id).order('position'),
     supabase.from('card_reviews').select('id, cards!inner(archived)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
     supabase.from('profiles').select('name').eq('id', user.id).single(),
     supabase.from('review_logs').select('reviewed_at').eq('user_id', user.id).gte('reviewed_at', new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()),
     supabase.from('card_reviews').select('cards!inner(theme_id, archived)').eq('user_id', user.id).lte('scheduled_at', new Date().toISOString()),
+    supabase.from('cards').select('id', { count: 'exact', head: true }).or('archived.is.null,archived.eq.false').not('theme_id', 'is', null),
+    supabase.from('card_reviews').select('id', { count: 'exact', head: true }).eq('user_id', user.id).eq('state', 'review'),
   ])
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -108,12 +112,12 @@ export default async function DashboardPage() {
 
         <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="rounded-2xl p-5 border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}>
-            <div className="text-3xl font-bold" style={{ color: 'var(--accent-light)' }}>{dueCount}</div>
-            <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Cartes dues</div>
+            <div className="text-3xl font-bold" style={{ color: 'var(--accent-light)' }}>{totalCards ?? 0}</div>
+            <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Cartes</div>
           </div>
           <div className="rounded-2xl p-5 border" style={{ background: 'var(--bg-surface)', borderColor: 'var(--border-default)' }}>
-            <div className="text-3xl font-bold" style={{ color: 'var(--accent-light)' }}>{themeCount}</div>
-            <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Thèmes actifs</div>
+            <div className="text-3xl font-bold" style={{ color: 'var(--accent-light)' }}>{masteredCards ?? 0}</div>
+            <div className="text-sm mt-1" style={{ color: 'var(--text-secondary)' }}>Maîtrisées</div>
           </div>
           <div className="rounded-2xl p-5 border" style={{ background: 'color-mix(in srgb, var(--accent-subtle) 50%, var(--bg-surface))', borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' }}>
             <div className="flex items-center gap-2">
