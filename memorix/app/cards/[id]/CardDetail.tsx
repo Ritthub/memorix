@@ -347,6 +347,7 @@ export default function CardDetail({ card, review, history, daysUntilNext, paren
           {editingField === 'question' ? (
             <textarea
               autoFocus
+              ref={el => { if (el) autoExpand(el) }}
               value={values.question}
               onChange={e => setValues(v => ({ ...v, question: e.target.value }))}
               onInput={e => autoExpand(e.currentTarget)}
@@ -366,6 +367,7 @@ export default function CardDetail({ card, review, history, daysUntilNext, paren
           {editingField === 'answer' ? (
             <textarea
               autoFocus
+              ref={el => { if (el) autoExpand(el) }}
               value={values.answer}
               onChange={e => setValues(v => ({ ...v, answer: e.target.value }))}
               onInput={e => autoExpand(e.currentTarget)}
@@ -385,6 +387,7 @@ export default function CardDetail({ card, review, history, daysUntilNext, paren
           {editingField === 'explanation' ? (
             <textarea
               autoFocus
+              ref={el => { if (el) autoExpand(el) }}
               value={values.explanation}
               onChange={e => setValues(v => ({ ...v, explanation: e.target.value }))}
               onInput={e => autoExpand(e.currentTarget)}
