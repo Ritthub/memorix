@@ -18,6 +18,7 @@ export default async function ThemePage({ params }: { params: Promise<{ id: stri
     { data: decks },
     { data: deckDueCards },
     { data: themeDirectDueCards },
+    { data: themeCards },
   ] = await Promise.all([
     supabase.from('themes').select('*').eq('id', id).eq('user_id', user.id).single(),
     supabase.from('decks').select('*, cards(count)').eq('theme_id', id).eq('user_id', user.id).order('position'),
@@ -32,6 +33,13 @@ export default async function ThemePage({ params }: { params: Promise<{ id: stri
       .lte('scheduled_at', nowIso)
       .eq('cards.theme_id', id)
       .is('cards.deck_id', null),
+    // Theme-direct cards listing (rendered below the "Tout réviser" CTA).
+    supabase
+      .from('cards')
+      .select('id, question, answer, explanation, archived')
+      .eq('theme_id', id)
+      .is('deck_id', null)
+      .order('created_at', { ascending: false }),
   ])
 
   if (!theme) redirect('/library')
@@ -60,13 +68,23 @@ export default async function ThemePage({ params }: { params: Promise<{ id: stri
     due_count: deckDueMap.get(deck.id) || 0,
   })) as (Deck & { card_count: number; due_count: number })[]
 
-  const totalCards = decksWithMeta.reduce((s, d) => s + d.card_count, 0)
+  const visibleThemeCards = (themeCards || [])
+    .filter(c => !c.archived)
+    .map(c => ({
+      id: c.id as string,
+      question: c.question as string,
+      answer: c.answer as string,
+      explanation: (c.explanation as string | null) ?? null,
+    }))
+
+  const totalCards = decksWithMeta.reduce((s, d) => s + d.card_count, 0) + visibleThemeCards.length
   const totalDue = decksWithMeta.reduce((s, d) => s + d.due_count, 0) + themeDirectDueCount
 
   return (
     <ThemeDetail
       theme={theme as Theme}
       decks={decksWithMeta}
+      themeCards={visibleThemeCards}
       totalCards={totalCards}
       totalDue={totalDue}
       userId={user.id}

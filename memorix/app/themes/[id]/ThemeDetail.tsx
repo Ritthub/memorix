@@ -13,16 +13,18 @@ const THEME_COLORS = [
 ]
 
 type DeckWithMeta = Deck & { card_count: number; due_count: number }
+type ThemeCard = { id: string; question: string; answer: string; explanation: string | null }
 
 interface Props {
   theme: Theme
   decks: DeckWithMeta[]
+  themeCards: ThemeCard[]
   totalCards: number
   totalDue: number
   userId: string
 }
 
-export default function ThemeDetail({ theme, decks: initialDecks, totalCards, totalDue, userId }: Props) {
+export default function ThemeDetail({ theme, decks: initialDecks, themeCards, totalCards, totalDue, userId }: Props) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -172,36 +174,27 @@ export default function ThemeDetail({ theme, decks: initialDecks, totalCards, to
           )}
         </div>
 
-        {/* Decks list */}
-        <div className="space-y-3">
-          <h2 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider">Decks ({decks.length})</h2>
-          {decks.length === 0 ? (
+        {/* Theme cards list */}
+        <div className="space-y-2">
+          <h2 className="text-sm font-semibold text-[var(--text-muted)] uppercase tracking-wider">
+            Cartes ({themeCards.length})
+          </h2>
+          {themeCards.length === 0 ? (
             <div className="bg-[var(--bg-surface)] rounded-2xl p-8 text-center border border-[var(--border-default)]">
-              <p className="text-[var(--text-muted)] text-sm mb-3">Aucun deck dans ce thème</p>
-              <Link href={`/create?themeId=${theme.id}`} className="text-[var(--accent)] hover:text-[var(--accent-light)] text-sm">+ Créer un deck</Link>
+              <p className="text-[var(--text-muted)] text-sm mb-3">Aucune carte dans ce thème</p>
+              <Link href={`/create?themeId=${theme.id}`} className="text-[var(--accent)] hover:text-[var(--accent-light)] text-sm">+ Créer une carte</Link>
             </div>
           ) : (
-            decks.map(deck => {
-              const retention = deck.card_count > 0
-                ? Math.round(((deck.card_count - deck.due_count) / deck.card_count) * 100)
-                : 100
-              return (
-                <Link
-                  key={deck.id}
-                  href={`/decks/${deck.id}`}
-                  className="flex items-center gap-3 bg-[var(--bg-surface)] rounded-xl p-4 border border-[var(--border-default)] hover:border-[var(--border-focus)]/40 transition-colors"
-                >
-                  <span className="text-2xl">{deck.icon || '📚'}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">{deck.name}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{deck.card_count} {pluralCard(deck.card_count)} · {retention}% rétention</p>
-                  </div>
-                  {deck.due_count > 0 && (
-                    <span className="bg-[var(--accent)] text-white text-xs font-bold rounded-full px-2 py-0.5">{deck.due_count}</span>
-                  )}
-                </Link>
-              )
-            })
+            themeCards.map(card => (
+              <Link
+                key={card.id}
+                href={`/cards/${card.id}`}
+                className="flex flex-col gap-0.5 bg-[var(--bg-surface)] rounded-xl px-4 py-3 border border-[var(--border-default)] hover:border-[var(--border-focus)]/40 transition-colors"
+              >
+                <p className="text-sm text-[var(--text-primary)] line-clamp-2 whitespace-pre-wrap">{card.question}</p>
+                <p className="text-xs text-[var(--text-muted)] line-clamp-2 whitespace-pre-wrap">{card.answer}</p>
+              </Link>
+            ))
           )}
         </div>
       </main>
