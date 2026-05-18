@@ -689,8 +689,15 @@ function CreatePageInner() {
                   <div className="space-y-3">
                     <input value={card.question} onChange={e => updateCard(idx, 'question', e.target.value)}
                       placeholder="Question..." className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
-                    <input value={card.answer} onChange={e => updateCard(idx, 'answer', e.target.value)}
-                      placeholder="Réponse..." className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
+                    <textarea
+                      value={card.answer}
+                      onChange={e => updateCard(idx, 'answer', e.target.value)}
+                      onInput={e => { e.currentTarget.style.height = 'auto'; e.currentTarget.style.height = e.currentTarget.scrollHeight + 'px' }}
+                      ref={el => { if (el) { el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px' } }}
+                      rows={1}
+                      placeholder="Réponse..."
+                      className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors resize-none overflow-hidden leading-normal"
+                    />
                     <input value={card.explanation} onChange={e => updateCard(idx, 'explanation', e.target.value)}
                       placeholder="Explication (optionnel)..." className="w-full bg-[var(--bg-base)] border border-[var(--border-default)] rounded-xl px-4 py-3 text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--border-focus)] transition-colors" />
                   </div>
